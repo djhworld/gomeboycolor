@@ -77,6 +77,14 @@ func (cpu *Z80) IncrementPC(by Word) {
 
 func (cpu *Z80) Dispatch(Opcode byte) {
 	switch Opcode {
+	case 0x00: //NOP
+		cpu.NOP()
+	case 0x76: //HALT
+		cpu.HALT()
+	case 0xF3: //DI
+		cpu.DI()
+	case 0xFB: //EI
+		cpu.EI()
 	case 0x3E: //LD A, n
 		cpu.LDrn(&cpu.R.A)
 	case 0x06: //LD B,n
@@ -263,6 +271,18 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xF0: //LDH r, n
 		cpu.LDHr_n(&cpu.R.A)
 
+	case 0x01: //LD BC, nn
+		cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
+	case 0x11: //LD DE, nn
+		cpu.LDn_nn(&cpu.R.D, &cpu.R.E)
+	case 0x21: //LD HL, nn
+		cpu.LDn_nn(&cpu.R.H, &cpu.R.L)
+	case 0x31: //LD SP, nn
+		cpu.LDSP_nn()
+	case 0xF8: //LDHL SP, n
+		cpu.LDHLSP_n()
+	case 0xF9: //LD SP, HL
+		cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
 	case 0x87: //ADD A, A
 		cpu.AddA_r(&cpu.R.A)
 	case 0x80: //ADD A, B
@@ -566,6 +586,63 @@ func (cpu *Z80) LDHr_n(r *byte) {
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
+//LD n, nn
+func (cpu *Z80) LDn_nn(r1, r2 *byte) {
+	log.Printf("LD n, nn")
+	var v1 byte = cpu.mmu.ReadByte(cpu.PC)
+	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
+	cpu.IncrementPC(2)
+
+	//TODO: Is this correct? 
+	*r1 = v1
+	*r2 = v2
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//LD SP, nn
+func (cpu *Z80) LDSP_nn() {
+	log.Printf("LD SP, nn")
+	var value Word = cpu.mmu.ReadWord(cpu.PC)
+	cpu.IncrementPC(2)
+
+	cpu.SP = value
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//LD SP, rr
+func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
+	log.Printf("LD SP, rr")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.SP = HL
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//LDHL SP, n 
+func (cpu *Z80) LDHLSP_n() {
+	log.Println("LDHL SP,n")
+	var n Word = Word(cpu.mmu.ReadByte(cpu.PC))
+	cpu.IncrementPC(1)
+
+	var HL Word = cpu.SP + n
+
+	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
+
+	//TODO: verify flag settings are correct....
+	//set carry flag
+	if cpu.SP+n < cpu.SP {
+		cpu.R.F = cpu.R.F ^ 0x10
+	}
+
+	//set half-carry flag
+	if (((cpu.SP & 0xf) + (n & 0xf)) & 0x10) == 0x10 {
+		cpu.R.F = cpu.R.F ^ 0x20
+	}
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
 //ADD A,r
 //Add the value in register (r) to register A
 func (cpu *Z80) AddA_r(r *byte) {
@@ -639,6 +716,44 @@ func (cpu *Z80) AddA_n() {
 
 	//set clock values
 	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//NOP
+//No operation
+func (cpu *Z80) NOP() {
+	log.Println("NOP")
+	//set clock values
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//HALT
+//Halt CPU
+func (cpu *Z80) HALT() {
+	log.Println("HALT")
+
+	//TODO: Implement
+	//set clock values
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//DI
+//Disable interrupts 
+func (cpu *Z80) DI() {
+	log.Println("DI")
+	//TODO: Implement 
+
+	//set clock values
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//EI
+//Enable interrupts 
+func (cpu *Z80) EI() {
+	log.Println("EI")
+	//TODO: Implement 
+
+	//set clock values
+	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //-----------------------------------------------------------------------

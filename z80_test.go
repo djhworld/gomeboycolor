@@ -931,7 +931,156 @@ func TestLDHr_nClockTimings(t *testing.T) {
 	cpu.LDHr_n(&cpu.R.A)
 	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
 	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+}
 
+//LD n,nn tests
+//------------------------------------------
+func TestLDn_nn(t *testing.T) {
+	reset()
+	var expected1 byte = 0xA3
+	var expected2 byte = 0xF0
+	cpu.PC = 0x0003
+	cpu.mmu.WriteByte(0x0003, expected1)
+	cpu.mmu.WriteByte(0x0004, expected2)
+
+	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
+
+	assert.Equal(t, cpu.R.B, expected1)
+	assert.Equal(t, cpu.R.C, expected2)
+}
+
+func TestLDn_nnCheckPCIncremented(t *testing.T) {
+	reset()
+	var expected Word = 0x0003
+	cpu.PC = 0x0001
+	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.PC, expected)
+}
+
+func TestLDn_nnClockTimings(t *testing.T) {
+	reset()
+	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+}
+
+//LD SP,nn tests
+//------------------------------------------
+func TestLDSP_nn(t *testing.T) {
+	reset()
+	var expected Word = 0xA3F0
+	cpu.PC = 0x0003
+	cpu.mmu.WriteWord(0x0003, expected)
+
+	cpu.LDSP_nn()
+
+	assert.Equal(t, cpu.SP, expected)
+}
+
+func TestLDSP_nnCheckPCIncremented(t *testing.T) {
+	reset()
+	var expected Word = 0x0003
+	cpu.PC = 0x0001
+	cpu.LDSP_nn()
+	assert.Equal(t, cpu.PC, expected)
+}
+
+func TestLDSP_nnClockTimings(t *testing.T) {
+	reset()
+	cpu.LDSP_nn()
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+}
+
+//LD SP, rr tests
+//------------------------------------------
+func TestLDSP_rr(t *testing.T) {
+	reset()
+	var expected Word = 0x3987
+	cpu.R.H = 0x39
+	cpu.R.L = 0x87
+
+	cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
+
+	assert.Equal(t, cpu.SP, expected)
+
+}
+
+func TestLDSP_rrClockTimings(t *testing.T) {
+	reset()
+	cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
+
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
+}
+
+//LDHL SP, n tests
+//------------------------------------------
+func TestLDHLSP_n(t *testing.T) {
+	var n byte = 0x09
+	var expectedH byte = 0x30
+	var expectedL byte = 0x3C
+
+	reset()
+	cpu.SP = 0x3033
+	cpu.PC = 0x0003
+	cpu.mmu.WriteByte(0x0003, n)
+	cpu.LDHLSP_n()
+
+	assert.Equal(t, cpu.R.H, expectedH)
+	assert.Equal(t, cpu.R.L, expectedL)
+}
+
+func TestLDHLSP_nPCIncremented(t *testing.T) {
+	reset()
+
+	var expected Word = 0x0003
+	cpu.PC = 0x0002
+	cpu.LDHLSP_n()
+
+	assert.Equal(t, cpu.PC, expected)
+}
+
+func TestLDHLSP_nFlags(t *testing.T) {
+	reset()
+
+	//half carry flag
+	var expected byte = 0xa0
+	cpu.R.F = 0x80
+	cpu.PC = 0x0003
+	cpu.SP = 0x0003
+	cpu.mmu.WriteByte(0x0003, 0x9F)
+
+	cpu.LDHLSP_n()
+	assert.Equal(t, cpu.R.F, expected)
+
+	//carry flag
+	reset()
+	expected = 0x90
+	cpu.R.F = 0x80
+	cpu.PC = 0x0003
+	cpu.SP = 0xFFF3
+	cpu.mmu.WriteByte(0x0003, 0x90)
+
+	cpu.LDHLSP_n()
+	assert.Equal(t, cpu.R.F, expected)
+}
+
+func TestLDHLSP_nClockTimings(t *testing.T) {
+	reset()
+	cpu.LDHLSP_n()
+
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+}
+
+//NOP
+//------------------------------------------
+func TestNOP(t *testing.T) {
+	reset()
+	cpu.NOP()
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(4))
 }
 
 //-----------------------------------------------------------------------
@@ -974,6 +1123,8 @@ func (m *MockMMU) WriteByte(address Word, value byte) {
 }
 
 func (m *MockMMU) WriteWord(address Word, value Word) {
+	m.memory[address] = byte(value >> 8)
+	m.memory[address+1] = byte(value & 0x00FF)
 }
 
 func (m *MockMMU) ReadByte(address Word) byte {
