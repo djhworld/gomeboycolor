@@ -3,8 +3,8 @@ package main
 import "testing"
 import "github.com/stretchrcom/testify/assert"
 
-const ZEROW Word = 0x0000
-const ZEROB byte = 0x00
+const ZEROW Word = 0
+const ZEROB byte = 0
 
 var cpu *Z80 = NewCPU(NewMockMMU())
 
@@ -757,15 +757,6 @@ func TestReset(t *testing.T) {
 	assert.Equal(t, cpu.MachineCycles.t, ZEROW)
 	assert.Equal(t, cpu.LastInstrCycle.m, ZEROW)
 	assert.Equal(t, cpu.LastInstrCycle.t, ZEROW)
-}
-
-func TestToWord(t *testing.T) {
-	assert.Equal(t, cpu.ToWord(0x03, 0xFF), Word(0x03FF))
-	assert.Equal(t, cpu.ToWord(0x00, 0x00), Word(0x0000))
-	assert.Equal(t, cpu.ToWord(0x03, 0x03), Word(0x0303))
-	assert.Equal(t, cpu.ToWord(0xFF, 0xFF), Word(0xFFFF))
-	assert.Equal(t, cpu.ToWord(0xFE, 0xFF), Word(0xFEFF))
-	assert.Equal(t, cpu.ToWord(0xFF, 0x00), Word(0xFF00))
 }
 
 type MockMMU struct {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/djhworld/gomeboycolor/utils"
 	"log"
 )
 
@@ -72,10 +73,6 @@ func (cpu *Z80) ResetFlags() {
 
 func (cpu *Z80) IncrementPC(by Word) {
 	cpu.PC += by
-}
-
-func (cpu *Z80) ToWord(hob, lob byte) Word {
-	return (Word(hob) << 8) ^ Word(lob)
 }
 
 func (cpu *Z80) Dispatch(Opcode byte) {
@@ -312,7 +309,7 @@ func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 func (cpu *Z80) LDr_hl(r *byte) {
 	log.Println("LD r,(HL)")
 
-	var HL Word = cpu.ToWord(cpu.R.H, cpu.R.L)
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
 	*r = value
@@ -324,7 +321,7 @@ func (cpu *Z80) LDr_hl(r *byte) {
 //LD (HL),r
 func (cpu *Z80) LDhl_r(r *byte) {
 	log.Println("LD (HL),r")
-	var HL Word = cpu.ToWord(cpu.R.H, cpu.R.L)
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = *r
 
 	cpu.mmu.WriteByte(HL, value)
@@ -337,7 +334,7 @@ func (cpu *Z80) LDhl_r(r *byte) {
 func (cpu *Z80) LDbc_r(r *byte) {
 	log.Println("LD (BC),r")
 
-	var BC Word = cpu.ToWord(cpu.R.B, cpu.R.C)
+	var BC Word = Word(utils.JoinBytes(cpu.R.B, cpu.R.C))
 	var value byte = *r
 
 	cpu.mmu.WriteByte(BC, value)
@@ -350,7 +347,7 @@ func (cpu *Z80) LDbc_r(r *byte) {
 func (cpu *Z80) LDde_r(r *byte) {
 	log.Println("LD (DE),r")
 
-	var DE Word = cpu.ToWord(cpu.R.D, cpu.R.E)
+	var DE Word = Word(utils.JoinBytes(cpu.R.D, cpu.R.E))
 	var value byte = *r
 
 	cpu.mmu.WriteByte(DE, value)
@@ -373,7 +370,7 @@ func (cpu *Z80) LDnn_r(r *byte) {
 //LD (HL),n
 func (cpu *Z80) LDhl_n() {
 	log.Println("LD (HL),n")
-	var HL Word = cpu.ToWord(cpu.R.H, cpu.R.L)
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -387,7 +384,7 @@ func (cpu *Z80) LDhl_n() {
 func (cpu *Z80) LDr_bc(r *byte) {
 	log.Println("LD r,(BC)")
 
-	var BC Word = cpu.ToWord(cpu.R.B, cpu.R.C)
+	var BC Word = Word(utils.JoinBytes(cpu.R.B, cpu.R.C))
 	var value byte = cpu.mmu.ReadByte(BC)
 
 	*r = value
@@ -400,7 +397,7 @@ func (cpu *Z80) LDr_bc(r *byte) {
 func (cpu *Z80) LDr_de(r *byte) {
 	log.Println("LD r,(DE)")
 
-	var DE Word = cpu.ToWord(cpu.R.D, cpu.R.E)
+	var DE Word = Word(utils.JoinBytes(cpu.R.D, cpu.R.E))
 	var value byte = cpu.mmu.ReadByte(DE)
 
 	*r = value
@@ -469,7 +466,7 @@ func (cpu *Z80) AddA_r(r *byte) {
 //ADD A,(HL)
 func (cpu *Z80) AddA_hl() {
 	log.Println("ADD A,(HL)")
-	var HL Word = cpu.ToWord(cpu.R.H, cpu.R.L)
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
 	var oldA byte = cpu.R.A
