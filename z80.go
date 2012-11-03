@@ -248,6 +248,21 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xE2: //LD (C),A
 		cpu.LDffplusc_r(&cpu.R.A)
 
+	case 0x3A: //LDD A, (HL)
+		cpu.LDDr_hl(&cpu.R.A)
+	case 0x32: //LDD (HL), A
+		cpu.LDDhl_r(&cpu.R.A)
+
+	case 0x2A: //LDI A, (HL)
+		cpu.LDIr_hl(&cpu.R.A)
+	case 0x22: //LDI (HL), A
+		cpu.LDIhl_r(&cpu.R.A)
+
+	case 0xE0: //LDH n, r
+		cpu.LDHn_r(&cpu.R.A)
+	case 0xF0: //LDH r, n
+		cpu.LDHr_n(&cpu.R.A)
+
 	case 0x87: //ADD A, A
 		cpu.AddA_r(&cpu.R.A)
 	case 0x80: //ADD A, B
@@ -284,7 +299,9 @@ func (cpu *Z80) Step() {
 
 // INSTRUCTIONS START
 //-----------------------------------------------------------------------
+
 //LD r,n
+//Load value (n) from memory address in the PC into register (r) and increment PC by 1 
 func (cpu *Z80) LDrn(r *byte) {
 	log.Println("LD r,n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
@@ -297,6 +314,7 @@ func (cpu *Z80) LDrn(r *byte) {
 }
 
 //LD r,r
+//Load value from register (r2) into register (r1)
 func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 	log.Println("LD r,r")
 	*r1 = *r2
@@ -306,6 +324,7 @@ func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 }
 
 //LD r,(HL)
+//Load value from memory address located in register pair (HL) into register (r)
 func (cpu *Z80) LDr_hl(r *byte) {
 	log.Println("LD r,(HL)")
 
@@ -319,6 +338,7 @@ func (cpu *Z80) LDr_hl(r *byte) {
 }
 
 //LD (HL),r
+//Load value from register (r) into memory address located at register pair (HL)
 func (cpu *Z80) LDhl_r(r *byte) {
 	log.Println("LD (HL),r")
 	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
@@ -331,6 +351,7 @@ func (cpu *Z80) LDhl_r(r *byte) {
 }
 
 //LD (BC),r
+//Load value from register (r) into memory address located at register pair (BC)
 func (cpu *Z80) LDbc_r(r *byte) {
 	log.Println("LD (BC),r")
 
@@ -344,6 +365,7 @@ func (cpu *Z80) LDbc_r(r *byte) {
 }
 
 //LD (DE),r
+//Load value from register (r) into memory address located at register pair (DE)
 func (cpu *Z80) LDde_r(r *byte) {
 	log.Println("LD (DE),r")
 
@@ -357,6 +379,7 @@ func (cpu *Z80) LDde_r(r *byte) {
 }
 
 //LD nn,r
+//Load value from register (r) and put it in memory address (nn) taken from the next 2 bytes of memory from the PC. Increment the PC by 2
 func (cpu *Z80) LDnn_r(r *byte) {
 	log.Println("LD nn,r")
 	var resultAddr Word = cpu.mmu.ReadWord(cpu.PC)
@@ -368,6 +391,7 @@ func (cpu *Z80) LDnn_r(r *byte) {
 }
 
 //LD (HL),n
+//Load the value (n) from the memory address in the PC and put it in the memory address designated by register pair (HL)
 func (cpu *Z80) LDhl_n() {
 	log.Println("LD (HL),n")
 	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
@@ -381,6 +405,7 @@ func (cpu *Z80) LDhl_n() {
 }
 
 //LD r, (BC)
+//Load the value (n) located in memory address stored in register pair (BC) and put it in register (r)
 func (cpu *Z80) LDr_bc(r *byte) {
 	log.Println("LD r,(BC)")
 
@@ -394,6 +419,7 @@ func (cpu *Z80) LDr_bc(r *byte) {
 }
 
 //LD r, (DE)
+//Load the value (n) located in memory address stored in register pair (DE) and put it in register (r)
 func (cpu *Z80) LDr_de(r *byte) {
 	log.Println("LD r,(DE)")
 
@@ -407,6 +433,7 @@ func (cpu *Z80) LDr_de(r *byte) {
 }
 
 //LD r, nn
+//Load the value in memory address defined from the next two bytes relative to the PC and store it in register (r). Increment the PC by 2
 func (cpu *Z80) LDr_nn(r *byte) {
 	log.Println("LD r,(nn)")
 
@@ -422,6 +449,7 @@ func (cpu *Z80) LDr_nn(r *byte) {
 }
 
 //LD r,(C)
+//Load the value from memory addressed 0xFF00 + value in register C. Store it in register (r)
 func (cpu *Z80) LDr_ffplusc(r *byte) {
 	log.Println("LD r,(C)")
 	var valueAddr Word = 0xFF00 + Word(cpu.R.C)
@@ -432,6 +460,7 @@ func (cpu *Z80) LDr_ffplusc(r *byte) {
 }
 
 //LD (C),r
+//Load the value from register (r) and store it in memory addressed 0xFF00 + value in register C. 
 func (cpu *Z80) LDffplusc_r(r *byte) {
 	log.Println("LD (C),r")
 	var valueAddr Word = 0xFF00 + Word(cpu.R.C)
@@ -441,7 +470,104 @@ func (cpu *Z80) LDffplusc_r(r *byte) {
 	cpu.LastInstrCycle.Set(2, 8)
 }
 
+//LDD r, (HL)
+//Load the value from memory addressed in register pair (HL) and store it in register R. Decrement the HL registers
+func (cpu *Z80) LDDr_hl(r *byte) {
+	log.Println("LDD r, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	*r = cpu.mmu.ReadByte(HL)
+
+	//decrement HL registers
+	cpu.R.L -= 1
+
+	//decrement H too if L is 0xFF
+	if cpu.R.L == 0xFF {
+		cpu.R.H -= 1
+	}
+
+	//set clock timings
+	cpu.LastInstrCycle.Set(2, 8)
+
+}
+
+//LDD (HL), r
+//Load the value in register (r) and store in memory addressed in register pair (HL). Decrement the HL registers
+func (cpu *Z80) LDDhl_r(r *byte) {
+	log.Println("LDD (HL), r")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(HL, *r)
+
+	//decrement HL registers
+	cpu.R.L -= 1
+
+	//decrement H too if L is 0xFF
+	if cpu.R.L == 0xFF {
+		cpu.R.H -= 1
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//LDI r, (HL)
+//Load the value from memory addressed in register pair (HL) and store it in register R. Increment the HL registers
+func (cpu *Z80) LDIr_hl(r *byte) {
+	log.Println("LDI r, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	*r = cpu.mmu.ReadByte(HL)
+
+	//increment HL registers
+	cpu.R.L += 1
+
+	//increment H too if L is 0x00
+	if cpu.R.L == 0x00 {
+		cpu.R.H += 1
+	}
+
+	//set clock timings
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//LDI (HL), r
+//Load the value in register (r) and store in memory addressed in register pair (HL). Increment the HL registers
+func (cpu *Z80) LDIhl_r(r *byte) {
+	log.Println("LDI (HL), r")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(HL, *r)
+
+	//increment HL registers
+	cpu.R.L += 1
+
+	//increment H too if L is 0x00
+	if cpu.R.L == 0x00 {
+		cpu.R.H += 1
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//LDH n, r
+//Load value (n) located in memory address in FF00+PC and store it in register (r). Increment PC by 1
+func (cpu *Z80) LDHn_r(r *byte) {
+	log.Println("LDH n, r")
+	var n byte = cpu.mmu.ReadByte(Word(0xFF00) + cpu.PC)
+	*r = n
+	cpu.IncrementPC(1)
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//LDH r, n
+//Load value (n) in register (r) and store it in memory address FF00+PC. Increment PC by 1
+func (cpu *Z80) LDHr_n(r *byte) {
+	log.Println("LDH r, n")
+	cpu.mmu.WriteByte(Word(0xFF00)+cpu.PC, *r)
+	cpu.IncrementPC(1)
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
 //ADD A,r
+//Add the value in register (r) to register A
 func (cpu *Z80) AddA_r(r *byte) {
 	log.Println("ADD A,r")
 	var oldA byte = cpu.R.A
@@ -464,6 +590,7 @@ func (cpu *Z80) AddA_r(r *byte) {
 }
 
 //ADD A,(HL)
+//Add the value in memory addressed in register pair (HL) to register A
 func (cpu *Z80) AddA_hl() {
 	log.Println("ADD A,(HL)")
 	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
@@ -489,6 +616,7 @@ func (cpu *Z80) AddA_hl() {
 }
 
 //ADD A,n
+//Add the value in memory addressed PC to register A. Increment the PC by 1
 func (cpu *Z80) AddA_n() {
 	log.Println("ADD A,n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)

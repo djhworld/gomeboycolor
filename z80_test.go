@@ -734,6 +734,206 @@ func TestLDffplusc_rClockTimings(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
 }
 
+//LDD r, (HL) tests
+//------------------------------------------
+func TestLDDr_hl(t *testing.T) {
+	reset()
+	var valueAddr Word = 0x9965
+	var expected byte = 0x2D
+	cpu.R.H, cpu.R.L = 0x99, 0x65
+	cpu.mmu.WriteByte(valueAddr, expected)
+
+	cpu.LDDr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.R.A, expected)
+	assert.Equal(t, cpu.R.H, byte(0x99))
+	assert.Equal(t, cpu.R.L, byte(0x64))
+
+	//Test that decrementing decrements H register when L = 0xFF
+	reset()
+	valueAddr = 0x9900
+	expected = 0x2D
+	cpu.R.H, cpu.R.L = 0x99, 0x00
+	cpu.mmu.WriteByte(valueAddr, expected)
+
+	cpu.LDDr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.R.A, expected)
+	assert.Equal(t, cpu.R.H, byte(0x98))
+	assert.Equal(t, cpu.R.L, byte(0xFF))
+}
+
+func TestLDDr_hlClockTimings(t *testing.T) {
+	reset()
+	cpu.LDDr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
+}
+
+//LDI r, (HL) tests
+//------------------------------------------
+func TestLDIr_hl(t *testing.T) {
+	reset()
+	var valueAddr Word = 0x9965
+	var expected byte = 0x2D
+	cpu.R.H, cpu.R.L = 0x99, 0x65
+	cpu.mmu.WriteByte(valueAddr, expected)
+
+	cpu.LDIr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.R.A, expected)
+	assert.Equal(t, cpu.R.H, byte(0x99))
+	assert.Equal(t, cpu.R.L, byte(0x66))
+
+	//Test that H register increments when L = 0xFF
+	reset()
+	valueAddr = 0x99FF
+	expected = 0x2D
+	cpu.R.H, cpu.R.L = 0x99, 0xFF
+	cpu.mmu.WriteByte(valueAddr, expected)
+
+	cpu.LDIr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.R.A, expected)
+	assert.Equal(t, cpu.R.H, byte(0x9A))
+	assert.Equal(t, cpu.R.L, byte(0x00))
+}
+
+func TestLDIr_hlClockTimings(t *testing.T) {
+	reset()
+	cpu.LDIr_hl(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
+}
+
+//LDD (HL), r tests
+//------------------------------------------
+func TestLDDhl_r(t *testing.T) {
+	reset()
+	var valueAddr Word = 0x7531
+	var expected byte = 0x9E
+	cpu.R.H = 0x75
+	cpu.R.L = 0x31
+	cpu.R.A = expected
+
+	cpu.LDDhl_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.R.H, byte(0x75))
+	assert.Equal(t, cpu.R.L, byte(0x30))
+
+	//Test that decrementing decrements H register when L = 0xFF
+	valueAddr = 0x7500
+	expected = 0x9E
+	cpu.R.H = 0x75
+	cpu.R.L = 0x00
+	cpu.R.A = expected
+
+	cpu.LDDhl_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.R.H, byte(0x74))
+	assert.Equal(t, cpu.R.L, byte(0xFF))
+}
+
+func TestLDDhl_rClockTimings(t *testing.T) {
+	reset()
+	cpu.LDDhl_r(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
+}
+
+//LDI (HL), r tests
+//------------------------------------------
+func TestLDIhl_r(t *testing.T) {
+	reset()
+	var valueAddr Word = 0x7531
+	var expected byte = 0x9E
+	cpu.R.H = 0x75
+	cpu.R.L = 0x31
+	cpu.R.A = expected
+
+	cpu.LDIhl_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.R.H, byte(0x75))
+	assert.Equal(t, cpu.R.L, byte(0x32))
+
+	//Test that decrementing decrements H register when L = 0xFF
+	valueAddr = 0x75FF
+	expected = 0x9E
+	cpu.R.H = 0x75
+	cpu.R.L = 0xFF
+	cpu.R.A = expected
+
+	cpu.LDIhl_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.R.H, byte(0x76))
+	assert.Equal(t, cpu.R.L, byte(0x00))
+}
+
+func TestLDIhl_rClockTimings(t *testing.T) {
+	reset()
+	cpu.LDIhl_r(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(8))
+}
+
+//LDH n, r tests
+//------------------------------------------
+func TestLDHn_r(t *testing.T) {
+	reset()
+	var expected byte = 0x77
+	var valueAddr Word = 0xFF03
+	cpu.PC = 0x0003
+	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.LDHn_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.R.A, expected)
+}
+
+func TestLDHn_rCheckPCIncremented(t *testing.T) {
+	reset()
+	var expected Word = 0x0002
+	cpu.PC = 0x0001
+	cpu.LDHn_r(&cpu.R.A)
+	assert.Equal(t, cpu.PC, expected)
+}
+
+func TestLDHn_rClockTimings(t *testing.T) {
+	reset()
+	cpu.LDHn_r(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+}
+
+//LDH r, n tests
+//------------------------------------------
+func TestLDHr_n(t *testing.T) {
+	reset()
+	var valueAddr Word = 0xFF03
+	var expected byte = 0x4A
+
+	cpu.PC = 0x0003
+	cpu.mmu.WriteByte(valueAddr, expected)
+
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+}
+
+func TestLDHr_nCheckPCIncremented(t *testing.T) {
+	reset()
+	var expected Word = 0x0002
+	cpu.PC = 0x0001
+	cpu.LDHr_n(&cpu.R.A)
+	assert.Equal(t, cpu.PC, expected)
+
+}
+
+func TestLDHr_nClockTimings(t *testing.T) {
+	reset()
+	cpu.LDHr_n(&cpu.R.A)
+	assert.Equal(t, cpu.LastInstrCycle.m, Word(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
+
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
