@@ -1074,6 +1074,34 @@ func TestLDHLSP_nClockTimings(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, Word(12))
 }
 
+//LD nn, SP tests
+//------------------------------------------
+func TestLDnn_SP(t *testing.T) {
+	reset()
+	var expectedSP Word = 0x3AF2
+	cpu.PC = 0x0009
+	cpu.mmu.WriteWord(0x0009, 0xF003)
+	cpu.SP = expectedSP
+	cpu.LDnn_SP()
+	assert.Equal(t, cpu.mmu.ReadWord(0xF003), expectedSP)
+
+}
+
+func TestLDnn_SPCheckPCIncremented(t *testing.T) {
+	reset()
+	var expected Word = 0x000B
+	cpu.PC = 0x0009
+	cpu.LDnn_SP()
+	assert.Equal(t, cpu.PC, expected)
+}
+
+func TestLDnn_SPClockTimings(t *testing.T) {
+	reset()
+	cpu.LDnn_SP()
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(5))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(20))
+}
+
 //NOP
 //------------------------------------------
 func TestNOP(t *testing.T) {

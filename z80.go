@@ -85,6 +85,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.DI()
 	case 0xFB: //EI
 		cpu.EI()
+	case 0x08: //LD nn, SP
+		cpu.LDnn_SP()
 	case 0x3E: //LD A, n
 		cpu.LDrn(&cpu.R.A)
 	case 0x06: //LD B,n
@@ -641,6 +643,18 @@ func (cpu *Z80) LDHLSP_n() {
 	}
 
 	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//LDHL SP, n 
+func (cpu *Z80) LDnn_SP() {
+	log.Println("LD nn,SP")
+
+	var nn Word = cpu.mmu.ReadWord(cpu.PC)
+
+	cpu.mmu.WriteWord(nn, cpu.SP)
+
+	cpu.IncrementPC(2)
+	cpu.LastInstrCycle.Set(5, 20)
 }
 
 //ADD A,r
