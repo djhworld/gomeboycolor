@@ -1,9 +1,9 @@
 gomeboycolor
 ============================
+**This project is a work in progress and is no way near complete!**
 
-Gameboy Color emulator
+Nintendo Gameboy Color emulator
 
-*This a work in progress...*
 
 Why?
 ---------------------------
