@@ -1,5 +1,11 @@
 gomeboycolor
+============================
 
 Gameboy Color emulator
 
-*Work in progress...*
+*This a work in progress...*
+
+Why?
+============================
+Why not?
+
