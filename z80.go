@@ -8,6 +8,15 @@ import (
 type Register byte
 type Word uint16
 
+//flags
+const (
+	_ = iota
+	C
+	H
+	N
+	Z
+)
+
 type Registers struct {
 	A byte
 	B byte
@@ -67,8 +76,50 @@ func (cpu *Z80) Reset() {
 	cpu.LastInstrCycle.Reset()
 }
 
-func (cpu *Z80) ResetFlags() {
-	cpu.R.F = 0x00
+func (cpu *Z80) ResetFlag(flag int) {
+	switch flag {
+	case Z:
+		cpu.R.F = cpu.R.F &^ 0x80
+	case N:
+		cpu.R.F = cpu.R.F &^ 0x40
+	case H:
+		cpu.R.F = cpu.R.F &^ 0x20
+	case C:
+		cpu.R.F = cpu.R.F &^ 0x10
+	default:
+		log.Fatalf("Unknown flag %c", flag)
+	}
+}
+
+func (cpu *Z80) SetFlag(flag int) {
+	switch flag {
+	case Z:
+		cpu.R.F = cpu.R.F ^ 0x80
+	case N:
+		cpu.R.F = cpu.R.F ^ 0x40
+	case H:
+		cpu.R.F = cpu.R.F ^ 0x20
+	case C:
+		cpu.R.F = cpu.R.F ^ 0x10
+	default:
+		log.Fatalf("Unknown flag %c", flag)
+	}
+}
+
+func (cpu *Z80) IsFlagSet(flag int) bool {
+	switch flag {
+	case Z:
+		return cpu.R.F&0x80 == 0x80
+	case N:
+		return cpu.R.F&0x40 == 0x40
+	case H:
+		return cpu.R.F&0x20 == 0x20
+	case C:
+		return cpu.R.F&0x10 == 0x10
+	default:
+		log.Fatalf("Unknown flag %c", flag)
+	}
+	return false
 }
 
 func (cpu *Z80) IncrementPC(by Word) {
@@ -85,6 +136,44 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.DI()
 	case 0xFB: //EI
 		cpu.EI()
+
+	case 0xF5: //PUSH AF
+		cpu.Push_nn(&cpu.R.A, &cpu.R.F)
+	case 0xC5: //PUSH BC
+		cpu.Push_nn(&cpu.R.B, &cpu.R.C)
+	case 0xD5: //PUSH DE
+		cpu.Push_nn(&cpu.R.D, &cpu.R.E)
+	case 0xE5: //PUSH HL
+		cpu.Push_nn(&cpu.R.H, &cpu.R.L)
+
+	case 0x8F: //ADC A, A
+		cpu.AddCA_r(&cpu.R.A)
+	case 0x88: //ADC A, B
+		cpu.AddCA_r(&cpu.R.B)
+	case 0x89: //ADC A, C
+		cpu.AddCA_r(&cpu.R.C)
+	case 0x8A: //ADC A, D
+		cpu.AddCA_r(&cpu.R.D)
+	case 0x8B: //ADC A, E
+		cpu.AddCA_r(&cpu.R.E)
+	case 0x8C: //ADC A, H
+		cpu.AddCA_r(&cpu.R.H)
+	case 0x8D: //ADC A, L
+		cpu.AddCA_r(&cpu.R.L)
+	case 0x8E: //ADC A, (HL)
+		cpu.AddCA_hl()
+	case 0xCE: //ADC A, n
+		cpu.AddCA_n()
+
+	case 0xF1: //POP AF
+		cpu.Pop_nn(&cpu.R.A, &cpu.R.F)
+	case 0xC1: //POP BC
+		cpu.Pop_nn(&cpu.R.B, &cpu.R.C)
+	case 0xD1: //POP DE
+		cpu.Pop_nn(&cpu.R.D, &cpu.R.E)
+	case 0xE1: //POP HL
+		cpu.Pop_nn(&cpu.R.H, &cpu.R.L)
+
 	case 0x08: //LD nn, SP
 		cpu.LDnn_SP()
 	case 0x3E: //LD A, n
@@ -632,14 +721,17 @@ func (cpu *Z80) LDHLSP_n() {
 	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
 
 	//TODO: verify flag settings are correct....
+	cpu.ResetFlag(Z)
+	cpu.ResetFlag(N)
+
 	//set carry flag
 	if cpu.SP+n < cpu.SP {
-		cpu.R.F = cpu.R.F ^ 0x10
+		cpu.SetFlag(C)
 	}
 
 	//set half-carry flag
 	if (((cpu.SP & 0xf) + (n & 0xf)) & 0x10) == 0x10 {
-		cpu.R.F = cpu.R.F ^ 0x20
+		cpu.SetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(3, 12)
@@ -657,6 +749,28 @@ func (cpu *Z80) LDnn_SP() {
 	cpu.LastInstrCycle.Set(5, 20)
 }
 
+//PUSH nn 
+//Push register pair nn onto the stack and decrement the SP twice
+func (cpu *Z80) Push_nn(r1, r2 *byte) {
+	log.Println("PUSH nn")
+	cpu.SP--
+	cpu.mmu.WriteByte(cpu.SP, *r1)
+	cpu.SP--
+	cpu.mmu.WriteByte(cpu.SP, *r2)
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//POP nn 
+//Pop the stack twice onto register pair nn 
+func (cpu *Z80) Pop_nn(r1, r2 *byte) {
+	log.Println("Pop nn")
+	*r2 = cpu.mmu.ReadByte(cpu.SP)
+	cpu.SP++
+	*r1 = cpu.mmu.ReadByte(cpu.SP)
+	cpu.SP++
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
 //ADD A,r
 //Add the value in register (r) to register A
 func (cpu *Z80) AddA_r(r *byte) {
@@ -664,16 +778,20 @@ func (cpu *Z80) AddA_r(r *byte) {
 	var oldA byte = cpu.R.A
 	cpu.R.A += *r
 
-	cpu.ResetFlags()
+	cpu.ResetFlag(N)
 
 	//set carry flag
 	if (oldA + *r) < oldA {
-		cpu.R.F = cpu.R.F ^ 0x40
+		cpu.SetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
-		cpu.R.F = cpu.R.F ^ 0x80
+		cpu.SetFlag(Z)
+	}
+
+	if (((oldA & 0xf) + (*r & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
 	}
 
 	//set clock values
@@ -690,16 +808,21 @@ func (cpu *Z80) AddA_hl() {
 	var oldA byte = cpu.R.A
 	cpu.R.A += value
 
-	cpu.ResetFlags()
+	cpu.ResetFlag(N)
 
 	//set carry flag
 	if (oldA + value) < oldA {
-		cpu.R.F = cpu.R.F ^ 0x40
+		cpu.SetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
-		cpu.R.F = cpu.R.F ^ 0x80
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
 	}
 
 	//set clock values
@@ -716,19 +839,131 @@ func (cpu *Z80) AddA_n() {
 	var oldA byte = cpu.R.A
 	cpu.R.A += value
 
-	cpu.ResetFlags()
+	cpu.ResetFlag(N)
 
 	//set carry flag
 	if (oldA + value) < oldA {
-		cpu.R.F = cpu.R.F ^ 0x40
+		cpu.SetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
-		cpu.R.F = cpu.R.F ^ 0x80
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
 	}
 
 	//set clock values
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//ADDC A,r
+func (cpu *Z80) AddCA_r(r *byte) {
+	log.Println("ADDC A, r")
+	var oldA byte = cpu.R.A
+	var carryFlag byte = 0
+
+	cpu.R.A += *r
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+		cpu.R.A += carryFlag
+	}
+
+	cpu.ResetFlag(N)
+
+	//set carry flag
+	if cpu.R.A < oldA {
+		cpu.SetFlag(C)
+	}
+
+	//set zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldA & 0xf) + ((*r + carryFlag) & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//ADDC A,(HL)
+func (cpu *Z80) AddCA_hl() {
+	log.Println("ADDC A, (HL)")
+
+	var oldA byte = cpu.R.A
+	var carryFlag byte = 0
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.R.A += value
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+		cpu.R.A += carryFlag
+	}
+
+	cpu.ResetFlag(N)
+
+	//set carry flag
+	if cpu.R.A < oldA {
+		//TODO: Should carry flag be reset first if it is already set?
+		cpu.SetFlag(C)
+	}
+
+	//set zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//ADDC A,n
+func (cpu *Z80) AddCA_n() {
+	log.Println("ADDC A, n")
+
+	var oldA byte = cpu.R.A
+	var carryFlag byte = 0
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.R.A += value
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+		cpu.R.A += carryFlag
+	}
+
+	cpu.ResetFlag(N)
+
+	//set carry flag
+	if cpu.R.A < oldA {
+		//TODO: Should carry flag be reset first if it is already set?
+		cpu.SetFlag(C)
+	}
+
+	//set zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
 	cpu.LastInstrCycle.Set(2, 8)
 }
 

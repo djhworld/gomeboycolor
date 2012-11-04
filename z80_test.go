@@ -57,16 +57,54 @@ func TestAddA_rForCarryFlag(t *testing.T) {
 	cpu.R.A = 0xFA
 	cpu.R.E = 0x19
 
-	//Check flag is set when result is zero
+	//Check flag is set when result is carried
 	cpu.AddA_r(&cpu.R.E)
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x40))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x10))
 
 	reset()
 	cpu.R.A = 0xFA
 	cpu.R.E = 0x02
-	//Check flag is NOT set when result is not zero
+
+	//Check flag is NOT set when result is not carried
 	cpu.AddA_r(&cpu.R.E)
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x00))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x00))
+}
+
+func TestAddA_rForHalfCarryFlag(t *testing.T) {
+	reset()
+	cpu.R.A = 0xA9
+	cpu.R.E = 0x1F
+
+	//Check flag is set when result is half carried
+	cpu.AddA_r(&cpu.R.E)
+	assert.Equal(t, (cpu.R.F & 0x20), byte(0x20))
+
+	reset()
+	cpu.R.A = 0xFA
+	cpu.R.E = 0x02
+
+	//Check flag is NOT set when result is not half carried
+	cpu.AddA_r(&cpu.R.E)
+	assert.Equal(t, (cpu.R.F & 0x20), byte(0x00))
+}
+
+func TestAddA_rForSubtractFlagReset(t *testing.T) {
+	reset()
+	cpu.R.F = 0x40
+	cpu.R.A = 0xFA
+	cpu.R.E = 0x02
+
+	cpu.AddA_r(&cpu.R.E)
+	assert.Equal(t, cpu.R.F, byte(0x00))
+
+	reset()
+	cpu.R.F = 0x70
+	cpu.R.A = 0xFA
+	cpu.R.E = 0x02
+
+	cpu.AddA_r(&cpu.R.E)
+	assert.Equal(t, cpu.R.F, byte(0x30))
+
 }
 
 func TestAddA_rClockTimings(t *testing.T) {
@@ -76,7 +114,6 @@ func TestAddA_rClockTimings(t *testing.T) {
 
 	assert.Equal(t, cpu.LastInstrCycle.m, Word(1))
 	assert.Equal(t, cpu.LastInstrCycle.t, Word(4))
-
 }
 
 //ADD A,(HL) tests
@@ -129,7 +166,7 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 
 	//Check flag is set when result overflows
 	cpu.AddA_hl()
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x40))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x10))
 
 	reset()
 
@@ -140,7 +177,7 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 
 	//Check flag is set when result does not
 	cpu.AddA_hl()
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x00))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x00))
 }
 
 func TestAddA_hlClockTimings(t *testing.T) {
@@ -206,7 +243,7 @@ func TestAddA_nForCarryFlag(t *testing.T) {
 
 	//Check flag is set when result overflows
 	cpu.AddA_n()
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x40))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x10))
 
 	reset()
 
@@ -216,7 +253,7 @@ func TestAddA_nForCarryFlag(t *testing.T) {
 
 	//Check flag is set when result does not
 	cpu.AddA_n()
-	assert.Equal(t, (cpu.R.F & 0x40), byte(0x00))
+	assert.Equal(t, (cpu.R.F & 0x10), byte(0x00))
 }
 
 func TestAddA_nClockTimings(t *testing.T) {
@@ -1045,8 +1082,8 @@ func TestLDHLSP_nFlags(t *testing.T) {
 	reset()
 
 	//half carry flag
-	var expected byte = 0xa0
-	cpu.R.F = 0x80
+	var expected byte = 0x30
+	cpu.R.F = 0x10
 	cpu.PC = 0x0003
 	cpu.SP = 0x0003
 	cpu.mmu.WriteByte(0x0003, 0x9F)
@@ -1056,8 +1093,8 @@ func TestLDHLSP_nFlags(t *testing.T) {
 
 	//carry flag
 	reset()
-	expected = 0x90
-	cpu.R.F = 0x80
+	expected = 0x10
+	cpu.R.F = 0x00
 	cpu.PC = 0x0003
 	cpu.SP = 0xFFF3
 	cpu.mmu.WriteByte(0x0003, 0x90)
@@ -1109,6 +1146,361 @@ func TestNOP(t *testing.T) {
 	cpu.NOP()
 	assert.Equal(t, cpu.LastInstrCycle.m, Word(1))
 	assert.Equal(t, cpu.LastInstrCycle.t, Word(4))
+}
+
+//PUSH nn tests
+//------------------------------------------
+func TestPushnn(t *testing.T) {
+	var expectedSP Word = 0x0002
+	reset()
+	cpu.SP = 0x0004
+	cpu.R.B = 0xFA
+	cpu.R.C = 0xD9
+
+	cpu.Push_nn(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.SP, expectedSP)
+	assert.Equal(t, cpu.mmu.ReadByte(0x0003), cpu.R.B)
+	assert.Equal(t, cpu.mmu.ReadByte(0x0002), cpu.R.C)
+}
+
+func TestPushnnClockTimings(t *testing.T) {
+	reset()
+	cpu.Push_nn(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
+//POP nn tests
+//------------------------------------------
+func TestPopnn(t *testing.T) {
+	var expectedSP Word = 0x0004
+	reset()
+	cpu.SP = 0x0004
+	cpu.R.B = 0xFA
+	cpu.R.C = 0xD9
+
+	cpu.Push_nn(&cpu.R.B, &cpu.R.C)
+	cpu.Pop_nn(&cpu.R.H, &cpu.R.L)
+
+	assert.Equal(t, cpu.SP, expectedSP)
+	assert.Equal(t, cpu.R.H, cpu.R.B)
+	assert.Equal(t, cpu.R.L, cpu.R.C)
+}
+
+func TestPopnnClockTimings(t *testing.T) {
+	reset()
+	cpu.Pop_nn(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
+//ADDC A,r tests
+//------------------------------------------
+func TestADDCA_r(t *testing.T) {
+	var expectedA byte = 0x03
+
+	//with carry flag set
+	reset()
+	cpu.R.A = 0x03
+	cpu.R.B = 0xFF
+	cpu.R.F = 0x10
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+
+	//with carry flag not set
+	expectedA = 0x02
+	reset()
+	cpu.R.A = 0x03
+	cpu.R.B = 0xFF
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+}
+
+func TestADDCA_rZeroFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.A = 0x00
+	cpu.R.B = 0x00
+	cpu.R.F = 0x10
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+
+	//with carry flag set
+	reset()
+	cpu.R.A = 0x00
+	cpu.R.B = 0x00
+	cpu.R.F = 0x00
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+func TestADDCA_rCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.A = 0x0f
+	cpu.R.B = 0x33
+	cpu.R.F = 0x10
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0xFE
+	cpu.R.B = 0x33
+	cpu.R.F = 0x00
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+}
+
+func TestADDCA_rHalfCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.A = 0x0f
+	cpu.R.B = 0x33
+	cpu.R.F = 0x10
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0x01
+	cpu.R.B = 0x33
+	cpu.R.F = 0x00
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+}
+
+func TestADDCA_rSubtractFlagReset(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+}
+
+func TestADDCA_rClockTimings(t *testing.T) {
+	reset()
+	cpu.AddCA_r(&cpu.R.B)
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+}
+
+//ADDC A,(HL) tests
+//------------------------------------------
+func TestADDCA_hl(t *testing.T) {
+	var expectedA byte = 0x05
+
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x03
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x01)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+
+	//with carry flag not set
+	reset()
+	expectedA = 0x04
+	cpu.R.A = 0x03
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x01)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+}
+
+func TestADDCA_hlZeroFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x00
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x00)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0x00
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x00)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+
+}
+
+func TestADDCA_hlCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0xFC
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x02)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0xFC
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x06)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+}
+
+func TestADDCA_hlHalfCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0xF0
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x03)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0xA9
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x07)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+
+}
+
+func TestADDCA_hlSubtractFlagReset(t *testing.T) {
+	reset()
+	cpu.R.H = 0xFF
+	cpu.R.L = 0x11
+	cpu.mmu.WriteByte(0xFF11, 0x03)
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+}
+
+func TestADDCA_hlClockTimings(t *testing.T) {
+	reset()
+	cpu.AddCA_hl()
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//ADDC A,n tests
+//------------------------------------------
+func TestADDCA_n(t *testing.T) {
+	var expectedA byte = 0x05
+
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x03
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+
+	//with carry flag not set
+	reset()
+	expectedA = 0x04
+	cpu.R.A = 0x03
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+
+}
+
+func TestADDCA_nZeroFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x00
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x00)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0x00
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x00)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+
+}
+
+func TestADDCA_nCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0xFC
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0xFE
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x0F)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+}
+
+func TestADDCA_nHalfCarryFlagSet(t *testing.T) {
+	//with carry flag set
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x89
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+	//with carry flag not set
+	reset()
+	cpu.R.A = 0x89
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x0F)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+}
+
+func TestADDCA_nSubtractFlagReset(t *testing.T) {
+	reset()
+	cpu.R.F = 0x10
+	cpu.R.A = 0x89
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+
+}
+
+func TestADDCA_nPCIncremented(t *testing.T) {
+	reset()
+	var expectedPC Word = 0x0002
+	cpu.PC = 0x0001
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.PC, expectedPC)
+}
+
+func TestADDCA_nClockTimings(t *testing.T) {
+	reset()
+	cpu.AddCA_n()
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //-----------------------------------------------------------------------
