@@ -1503,6 +1503,544 @@ func TestADDCA_nClockTimings(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
+// NOTE: Just going to encorporate all checks and things in one test from now it, it's becoming a PITA to write 4-5 tests per instruction!
+
+//SUB A,r tests 
+//------------------------------------------
+func TestSUBA_r(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//Check subtraction works
+	expectedA = 0x03
+	cpu.R.A = 0x05
+	cpu.R.B = 0x02
+	cpu.SubA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+	//Check N flag is set 
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	//Check other flags are not set 
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), false, "Half Carry flag (H) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+
+	//Check zero flag is set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x05
+	cpu.R.B = 0x05
+	cpu.SubA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true, "Zero flag (Z) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+
+	//Check half carry flag is set
+	reset()
+	expectedA = 0xe8
+	cpu.R.A = 0xf1
+	cpu.R.B = 0x09
+	cpu.SubA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+
+	//Check carry flag is set
+	reset()
+	expectedA = 0xfe
+	cpu.R.A = 0x15
+	cpu.R.B = 0x17
+	cpu.SubA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(C), true, "Carry flag (C) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) should not be set!")
+}
+
+//SUB A,(HL) tests 
+//------------------------------------------
+func TestSUBA_hl(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//Check subtraction works
+	expectedA = 0x03
+	cpu.R.A = 0x05
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x02)
+	cpu.SubA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//Check N flag is set 
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	//Check other flags are not set 
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), false, "Half Carry flag (H) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+
+	//Check zero flag is set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x05
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x05)
+	cpu.SubA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true, "Zero flag (Z) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+
+	//Check half carry flag is set
+	reset()
+	expectedA = 0xe8
+	cpu.R.A = 0xf1
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x09)
+	cpu.SubA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+
+	//Check carry flag is set
+	reset()
+	expectedA = 0xfe
+	cpu.R.A = 0x15
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x17)
+	cpu.SubA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(C), true, "Carry flag (C) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) should not be set!")
+}
+
+//SUB A,n tests 
+//------------------------------------------
+func TestSUBA_n(t *testing.T) {
+	var expectedA byte
+	var expectedPC Word
+
+	//Check subtraction works
+	reset()
+	expectedA = 0x03
+	expectedPC = 0x0002
+	cpu.R.A = 0x05
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x02)
+	cpu.SubA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+
+	//check PC has been incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//Check N flag is set 
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	//Check other flags are not set 
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), false, "Half Carry flag (H) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+
+	//Check zero flag is set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x05
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x05)
+	cpu.SubA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true, "Zero flag (Z) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+
+	//Check half carry flag is set
+	reset()
+	expectedA = 0xe8
+	cpu.R.A = 0xf1
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x09)
+	cpu.SubA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(C), false, "Carry flag (C) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+
+	//Check carry flag is set
+	reset()
+	expectedA = 0xfe
+	cpu.R.A = 0x15
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x17)
+	cpu.SubA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(C), true, "Carry flag (C) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
+	assert.Equal(t, cpu.IsFlagSet(Z), false, "Zero flag (Z) should not be set!")
+	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) should not be set!")
+}
+
+//AND A,r tests 
+//------------------------------------------
+func TestAndA_r(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0x0A
+	cpu.R.A = 0xAA
+	cpu.R.B = 0x0F
+	cpu.AndA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+	//H flag should be set
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	//result should not be zero so Z flag should not be set
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//N and C flags should not be set (or should be reset)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0xAA
+	cpu.R.B = 0x00
+	cpu.AndA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//AND A,(HL) tests 
+//------------------------------------------
+func TestAndA_hl(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0x0A
+	cpu.R.A = 0xAA
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.AndA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//H flag should be set
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	//result should not be zero so Z flag should not be set
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//N and C flags should not be set (or should be reset)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0xAA
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.AndA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//AND A, n tests 
+//------------------------------------------
+func TestAndA_n(t *testing.T) {
+	reset()
+	var expectedA byte
+	var expectedPC Word
+
+	//test instruction
+	expectedA = 0x0A
+	expectedPC = 0x0103
+	cpu.R.A = 0xAA
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.AndA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//check PC incremented 
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//H flag should be set
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	//result should not be zero so Z flag should not be set
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//N and C flags should not be set (or should be reset)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0xAA
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.AndA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+}
+
+//OR A,r tests 
+//------------------------------------------
+func TestOrA_r(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0xAF
+	cpu.R.A = 0xAA
+	cpu.R.B = 0x0F
+	cpu.OrA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.R.B = 0x00
+	cpu.OrA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//OR A,(HL) tests 
+//------------------------------------------
+func TestOrA_hl(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0xAF
+	cpu.R.A = 0xAA
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.OrA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.OrA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//OR A, n tests 
+//------------------------------------------
+func TestOrA_n(t *testing.T) {
+	reset()
+	var expectedA byte
+	var expectedPC Word
+
+	//test instruction
+	expectedA = 0xAF
+	expectedPC = 0x0103
+	cpu.R.A = 0xAA
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.OrA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//check PC incremented 
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.OrA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+}
+
+//XOR A,r tests 
+//------------------------------------------
+func TestXorA_r(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0xA5
+	cpu.R.A = 0xAA
+	cpu.R.B = 0x0F
+	cpu.XorA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.R.B = 0x00
+	cpu.XorA_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//XOR A,(HL) tests 
+//------------------------------------------
+func TestXorA_hl(t *testing.T) {
+	reset()
+	var expectedA byte
+
+	//test instruction
+	expectedA = 0xA5
+	cpu.R.A = 0xAA
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.XorA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.XorA_hl()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+}
+
+//XOR A, n tests 
+//------------------------------------------
+func TestXorA_n(t *testing.T) {
+	reset()
+	var expectedA byte
+	var expectedPC Word
+
+	//test instruction
+	expectedA = 0xA5
+	expectedPC = 0x0103
+	cpu.R.A = 0xAA
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.XorA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	//check PC incremented 
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	//all flags should be disabled
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//test zero flag set
+	reset()
+	expectedA = 0x00
+	cpu.R.A = 0x00
+	cpu.PC = 0x0102
+	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.XorA_n()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

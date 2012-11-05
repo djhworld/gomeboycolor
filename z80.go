@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/djhworld/gomeboycolor/utils"
 	"log"
 )
@@ -42,6 +43,10 @@ func (c *Clock) Reset() {
 	c.m, c.t = 0, 0
 }
 
+func (c *Clock) String() string {
+	return fmt.Sprintf("[M: %X, T: %X]", c.m, c.t)
+}
+
 type Z80 struct {
 	PC             Word // Program Counter
 	SP             Word // Stack Pointer
@@ -74,6 +79,41 @@ func (cpu *Z80) Reset() {
 	cpu.R.L = 0
 	cpu.MachineCycles.Reset()
 	cpu.LastInstrCycle.Reset()
+}
+
+func (cpu *Z80) String() string {
+	var flags string = ""
+
+	if cpu.R.F != 0 {
+		if cpu.IsFlagSet(Z) {
+			flags += "Z "
+		}
+
+		if cpu.IsFlagSet(N) {
+			flags += "N "
+		}
+
+		if cpu.IsFlagSet(H) {
+			flags += "H "
+		}
+
+		if cpu.IsFlagSet(C) {
+			flags += "C "
+		}
+	} else {
+		flags += "None Set"
+	}
+
+	return fmt.Sprintf("\nZ80 CPU\n") +
+		fmt.Sprintf("--------------------------------------------------------\n") +
+		fmt.Sprintf("\tPC		= %X\n", cpu.PC) +
+		fmt.Sprintf("\tSP		= %X\n", cpu.SP) +
+		fmt.Sprintf("\tLast Cycle	= %v\n", cpu.LastInstrCycle.String()) +
+		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +
+		fmt.Sprintf("\tFlags		= %v\n", flags) +
+		fmt.Sprintf("\n\tRegisters\n") +
+		fmt.Sprintf("\tA:%X\tB:%X\tC:%X\tD:%X\n\tE:%X\tF:%X\tH:%X\tL:%X", cpu.R.A, cpu.R.B, cpu.R.C, cpu.R.D, cpu.R.E, cpu.R.F, cpu.R.H, cpu.R.L) +
+		fmt.Sprintf("\n--------------------------------------------------------\n\n")
 }
 
 func (cpu *Z80) ResetFlag(flag int) {
@@ -136,6 +176,118 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.DI()
 	case 0xFB: //EI
 		cpu.EI()
+
+	case 0xA7: //AND A, A
+		cpu.AndA_r(&cpu.R.A)
+	case 0xA0: //AND A, B
+		cpu.AndA_r(&cpu.R.B)
+	case 0xA1: //AND A, C
+		cpu.AndA_r(&cpu.R.C)
+	case 0xA2: //AND A, D
+		cpu.AndA_r(&cpu.R.D)
+	case 0xA3: //AND A, E
+		cpu.AndA_r(&cpu.R.E)
+	case 0xA4: //AND A, H
+		cpu.AndA_r(&cpu.R.H)
+	case 0xA5: //AND A, L
+		cpu.AndA_r(&cpu.R.L)
+	case 0xA6: //AND A, (HL)
+		cpu.AndA_hl()
+	case 0xE6: //AND A, n
+		cpu.AndA_n()
+
+	case 0xB7: //OR A, A
+		cpu.OrA_r(&cpu.R.A)
+	case 0xB0: //OR A, B
+		cpu.OrA_r(&cpu.R.B)
+	case 0xB1: //OR A, C
+		cpu.OrA_r(&cpu.R.C)
+	case 0xB2: //OR A, D
+		cpu.OrA_r(&cpu.R.D)
+	case 0xB3: //OR A, E
+		cpu.OrA_r(&cpu.R.E)
+	case 0xB4: //OR A, H
+		cpu.OrA_r(&cpu.R.H)
+	case 0xB5: //OR A, L
+		cpu.OrA_r(&cpu.R.L)
+	case 0xB6: //OR A,(HL)
+		cpu.OrA_hl()
+	case 0xF6: //OR A, n
+		cpu.OrA_n()
+
+	case 0xAF: //XOR A, A
+		cpu.XorA_r(&cpu.R.A)
+	case 0xA8: //XOR A, B
+		cpu.XorA_r(&cpu.R.B)
+	case 0xA9: //XOR A, C
+		cpu.XorA_r(&cpu.R.C)
+	case 0xAA: //XOR A, D
+		cpu.XorA_r(&cpu.R.D)
+	case 0xAB: //XOR A, E
+		cpu.XorA_r(&cpu.R.E)
+	case 0xAC: //XOR A, H
+		cpu.XorA_r(&cpu.R.H)
+	case 0xAD: //XOR A, L
+		cpu.XorA_r(&cpu.R.L)
+	case 0xAE: //XOR A,(HL)
+		cpu.XorA_hl()
+	case 0xEE: //XOR A, n
+		cpu.XorA_n()
+
+	case 0x97: // SUB A, A
+		cpu.SubA_r(&cpu.R.A)
+	case 0x90: // SUB A, B
+		cpu.SubA_r(&cpu.R.B)
+	case 0x91: // SUB A, C
+		cpu.SubA_r(&cpu.R.C)
+	case 0x92: // SUB A, D
+		cpu.SubA_r(&cpu.R.D)
+	case 0x93: // SUB A, E
+		cpu.SubA_r(&cpu.R.E)
+	case 0x94: // SUB A, H
+		cpu.SubA_r(&cpu.R.H)
+	case 0x95: // SUB A, L
+		cpu.SubA_r(&cpu.R.L)
+	case 0x96: //SUB A, (HL)
+		cpu.SubA_hl()
+	case 0xD6: //SUB A, n
+		cpu.SubA_n()
+
+	case 0x9F: // SBC A, A
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.A)
+	case 0x98: // SBC A, B
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.B)
+	case 0x99: // SBC A, C
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.C)
+	case 0x9A: // SBC A, D
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.D)
+	case 0x9B: // SBC A, E
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.E)
+	case 0x9C: // SBC A, H
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.H)
+	case 0x9D: // SBC A, L
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_r(&cpu.R.L)
+	case 0x9E: //SBC A, (HL)
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
+		//cpu.SubAC_hl()
+	case 0xDE: //SBC A, n
+		//TODO: Implement
+		log.Fatal("Unimplemnted")
 
 	case 0xF5: //PUSH AF
 		cpu.Push_nn(&cpu.R.A, &cpu.R.F)
@@ -962,6 +1114,262 @@ func (cpu *Z80) AddCA_n() {
 	//set half carry flag
 	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//SUB A,r
+func (cpu *Z80) SubA_r(r *byte) {
+	log.Println("SUB A,r")
+	var oldA byte = cpu.R.A
+
+	cpu.R.A -= *r
+
+	//set subtract flag
+	cpu.SetFlag(N)
+
+	//set zero flag if needed
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//Set Carry flag
+	if cpu.R.A > oldA {
+		cpu.SetFlag(C)
+	}
+
+	//Set half carry flag if needed
+	//TODO: don't think this calculation for half carry is quite correct....
+	if (((oldA & 0x0F) - (*r & 0x0F)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//SUB A,hl
+func (cpu *Z80) SubA_hl() {
+	log.Println("SUB A,(HL)")
+	var oldA byte = cpu.R.A
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.R.A -= value
+
+	//set subtract flag
+	cpu.SetFlag(N)
+
+	//set zero flag if needed
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//Set Carry flag
+	if cpu.R.A > oldA {
+		cpu.SetFlag(C)
+	}
+
+	//Set half carry flag if needed
+	//TODO: don't think this calculation for half carry is quite correct....
+	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//SUB A,n
+func (cpu *Z80) SubA_n() {
+	log.Println("SUB A,n")
+	var oldA byte = cpu.R.A
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.R.A -= value
+
+	//set subtract flag
+	cpu.SetFlag(N)
+
+	//set zero flag if needed
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	//Set Carry flag
+	if cpu.R.A > oldA {
+		cpu.SetFlag(C)
+	}
+
+	//Set half carry flag if needed
+	//TODO: don't think this calculation for half carry is quite correct....
+	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//AND A, r
+func (cpu *Z80) AndA_r(r *byte) {
+	log.Println("AND A, r")
+	cpu.R.A = cpu.R.A & *r
+
+	cpu.SetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//AND A, (HL)
+func (cpu *Z80) AndA_hl() {
+	log.Println("AND A, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.R.A = cpu.R.A & value
+
+	cpu.SetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+
+}
+
+//AND A, n
+func (cpu *Z80) AndA_n() {
+	log.Println("AND A, n")
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.R.A = cpu.R.A & value
+
+	cpu.SetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//OR A, r
+func (cpu *Z80) OrA_r(r *byte) {
+	log.Println("OR A, r")
+	cpu.R.A = cpu.R.A | *r
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//OR A, (HL)
+func (cpu *Z80) OrA_hl() {
+	log.Println("OR A, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.R.A = cpu.R.A | value
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+
+}
+
+//OR A, n
+func (cpu *Z80) OrA_n() {
+	log.Println("OR A, n")
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.R.A = cpu.R.A | value
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//XOR A, r
+func (cpu *Z80) XorA_r(r *byte) {
+	log.Println("XOR A, r")
+	cpu.R.A = cpu.R.A ^ *r
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//XOR A, (HL)
+func (cpu *Z80) XorA_hl() {
+	log.Println("XOR A, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.R.A = cpu.R.A ^ value
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+
+}
+
+//XOR A, n
+func (cpu *Z80) XorA_n() {
+	log.Println("XOR A, n")
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.R.A = cpu.R.A ^ value
+
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(C)
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
