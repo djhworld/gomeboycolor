@@ -2041,6 +2041,100 @@ func TestXorA_n(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 }
 
+//CP A, r tests 
+//------------------------------------------
+func TestCPA_r(t *testing.T) {
+
+	//check for same (zero flag)
+	reset()
+	cpu.R.A = 0x05
+	cpu.R.B = 0x05
+	cpu.CPA_r(&cpu.R.B)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//check for carry
+	reset()
+	cpu.R.A = 0x05
+	cpu.R.B = 0xAA
+	cpu.CPA_r(&cpu.R.B)
+	//Check timings are correct
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+}
+
+//CP A, (HL) tests 
+//------------------------------------------
+func TestCPA_hl(t *testing.T) {
+	reset()
+	cpu.R.A = 0x05
+	cpu.R.H = 0x03
+	cpu.R.L = 0xAA
+	cpu.mmu.WriteByte(0x03AA, 0x05)
+	cpu.CPA_hl()
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//check for carry
+	reset()
+	cpu.R.A = 0x05
+	cpu.R.H = 0x03
+	cpu.R.L = 0xAA
+	cpu.mmu.WriteByte(0x03AA, 0xAA)
+	cpu.CPA_hl()
+	//Check timings are correct
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+}
+
+//CP A, n tests 
+//------------------------------------------
+func TestCPA_n(t *testing.T) {
+	var expectedPC Word = 0x0002
+	reset()
+	cpu.R.A = 0x05
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x05)
+	cpu.CPA_n()
+
+	//Check PC incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//check for carry
+	reset()
+	cpu.R.A = 0x05
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0xAA)
+	cpu.CPA_n()
+	//Check timings are correct
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

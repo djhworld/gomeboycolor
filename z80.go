@@ -134,13 +134,21 @@ func (cpu *Z80) ResetFlag(flag int) {
 func (cpu *Z80) SetFlag(flag int) {
 	switch flag {
 	case Z:
-		cpu.R.F = cpu.R.F ^ 0x80
+		if !cpu.IsFlagSet(Z) {
+			cpu.R.F = cpu.R.F ^ 0x80
+		}
 	case N:
-		cpu.R.F = cpu.R.F ^ 0x40
+		if !cpu.IsFlagSet(N) {
+			cpu.R.F = cpu.R.F ^ 0x40
+		}
 	case H:
-		cpu.R.F = cpu.R.F ^ 0x20
+		if !cpu.IsFlagSet(H) {
+			cpu.R.F = cpu.R.F ^ 0x20
+		}
 	case C:
-		cpu.R.F = cpu.R.F ^ 0x10
+		if !cpu.IsFlagSet(C) {
+			cpu.R.F = cpu.R.F ^ 0x10
+		}
 	default:
 		log.Fatalf("Unknown flag %c", flag)
 	}
@@ -288,6 +296,25 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xDE: //SBC A, n
 		//TODO: Implement
 		log.Fatal("Unimplemnted")
+
+	case 0xBF: //CP A, A
+		cpu.CPA_r(&cpu.R.A)
+	case 0xB8: //CP A, B
+		cpu.CPA_r(&cpu.R.B)
+	case 0xB9: //CP A, C
+		cpu.CPA_r(&cpu.R.C)
+	case 0xBA: //CP A, D
+		cpu.CPA_r(&cpu.R.D)
+	case 0xBB: //CP A, E
+		cpu.CPA_r(&cpu.R.E)
+	case 0xBC: //CP A, H
+		cpu.CPA_r(&cpu.R.H)
+	case 0xBD: //CP A, L
+		cpu.CPA_r(&cpu.R.L)
+	case 0xBE: //CP A, (HL)
+		cpu.CPA_hl()
+	case 0xFE: //CP A, n
+		cpu.CPA_n()
 
 	case 0xF5: //PUSH AF
 		cpu.Push_nn(&cpu.R.A, &cpu.R.F)
@@ -1371,6 +1398,71 @@ func (cpu *Z80) XorA_n() {
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
 	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//CP A, r
+func (cpu *Z80) CPA_r(r *byte) {
+	log.Println("CP A, r")
+	var calculation byte = cpu.R.A - *r
+
+	if calculation == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.SetFlag(N)
+
+	if calculation > cpu.R.A {
+		cpu.SetFlag(C)
+	}
+
+	//TODO: Half carry flag 
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//CP A, (HL) 
+func (cpu *Z80) CPA_hl() {
+	log.Println("CP A, (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	var calculation byte = cpu.R.A - value
+
+	if calculation == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.SetFlag(N)
+
+	if calculation > cpu.R.A {
+		cpu.SetFlag(C)
+	}
+
+	//TODO: Half carry flag 
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//CP A, n
+func (cpu *Z80) CPA_n() {
+	log.Println("CP A, n")
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+	var calculation byte = cpu.R.A - value
+
+	if calculation == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.SetFlag(N)
+
+	if calculation > cpu.R.A {
+		cpu.SetFlag(C)
+	}
+
+	//TODO: Half carry flag 
 
 	cpu.LastInstrCycle.Set(2, 8)
 }
