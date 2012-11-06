@@ -242,6 +242,23 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xEE: //XOR A, n
 		cpu.XorA_n()
 
+	case 0x3C: //INC A
+		cpu.Inc_r(&cpu.R.A)
+	case 0x04: //INC B
+		cpu.Inc_r(&cpu.R.B)
+	case 0x0C: //INC C
+		cpu.Inc_r(&cpu.R.C)
+	case 0x14: //INC D
+		cpu.Inc_r(&cpu.R.D)
+	case 0x1C: //INC E
+		cpu.Inc_r(&cpu.R.E)
+	case 0x24: //INC H
+		cpu.Inc_r(&cpu.R.H)
+	case 0x2C: //INC L
+		cpu.Inc_r(&cpu.R.L)
+	case 0x34: //INC (HL)
+		cpu.Inc_hl()
+
 	case 0x97: // SUB A, A
 		cpu.SubA_r(&cpu.R.A)
 	case 0x90: // SUB A, B
@@ -1465,6 +1482,53 @@ func (cpu *Z80) CPA_n() {
 	//TODO: Half carry flag 
 
 	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//INC r
+func (cpu *Z80) Inc_r(r *byte) {
+
+	log.Println("INC r")
+	var oldR byte = *r
+
+	*r += 1
+
+	//N should be reset
+	cpu.ResetFlag(N)
+
+	//set zero flag
+	if *r == 0 {
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldR & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//INC (HL)
+func (cpu *Z80) Inc_hl() {
+	log.Println("INC (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var oldValue byte = cpu.mmu.ReadByte(HL)
+	var inc byte = (oldValue + 1)
+
+	cpu.mmu.WriteByte(HL, inc)
+
+	cpu.ResetFlag(N)
+
+	if inc == 0 {
+		cpu.SetFlag(Z)
+	}
+
+	//set half carry flag
+	if (((oldValue & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	}
+
+	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //NOP

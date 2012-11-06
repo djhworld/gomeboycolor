@@ -2135,6 +2135,77 @@ func TestCPA_n(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 }
 
+//INC r tests 
+//------------------------------------------
+func TestInc_r(t *testing.T) {
+	var expectedB byte = 0x02
+	reset()
+	//set N flag as instruction should reset it
+	cpu.SetFlag(N)
+
+	cpu.R.B = 0x01
+	cpu.Inc_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.B, expectedB)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+	reset()
+	cpu.R.B = 0xFF
+	cpu.Inc_r(&cpu.R.B)
+	//check zero flag
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+
+	reset()
+	cpu.R.B = 0x0F
+	cpu.Inc_r(&cpu.R.B)
+	//check half carry flag
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+
+}
+
+//INC (HL) tests 
+//------------------------------------------
+func TestInc_hl(t *testing.T) {
+	var expectedVal byte = 0x02
+	reset()
+	//set N flag as instruction should reset it
+	cpu.SetFlag(N)
+
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFF
+	cpu.mmu.WriteByte(0x03FF, 0x01)
+	cpu.Inc_hl()
+	assert.Equal(t, cpu.mmu.ReadByte(0x03FF), expectedVal)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+
+	reset()
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFF
+	cpu.mmu.WriteByte(0x03FF, 0xFF)
+	cpu.Inc_hl()
+	//check zero flag
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+
+	reset()
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFF
+	cpu.mmu.WriteByte(0x03FF, 0x0F)
+	cpu.Inc_hl()
+	//check half carry flag
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
