@@ -2206,6 +2206,64 @@ func TestInc_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 }
 
+//DEC r tests 
+//------------------------------------------
+func TestDec_r(t *testing.T) {
+	var expectedB byte = 0x01
+	reset()
+	//set C flag as instruction should not do anything to it
+	cpu.SetFlag(C)
+
+	cpu.R.B = 0x02
+	cpu.Dec_r(&cpu.R.B)
+	assert.Equal(t, cpu.R.B, expectedB)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+	reset()
+	cpu.R.B = 0x01
+	cpu.Dec_r(&cpu.R.B)
+	//check zero flag
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+//DEC (HL) tests 
+//------------------------------------------
+func TestDec_hl(t *testing.T) {
+	var expectedVal byte = 0x01
+	reset()
+
+	//set C flag as instruction should not do anything to it
+	cpu.SetFlag(C)
+
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFF
+	cpu.mmu.WriteByte(0x03FF, 0x02)
+	cpu.Dec_hl()
+	assert.Equal(t, cpu.mmu.ReadByte(0x03FF), expectedVal)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+
+	reset()
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFF
+	cpu.mmu.WriteByte(0x03FF, 0x01)
+	cpu.Dec_hl()
+	//check zero flag
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
@@ -2257,4 +2315,11 @@ func (m *MockMMU) ReadByte(address Word) byte {
 func (m *MockMMU) ReadWord(address Word) Word {
 	a, b := m.memory[address], m.memory[address+1]
 	return (Word(a) << 8) ^ Word(b)
+}
+
+func (m *MockMMU) LoadROM(startAddr Word, rt ROMType, data []byte) (bool, error) {
+	return true, nil
+}
+
+func (m *MockMMU) SetInBootMode(mode bool) {
 }

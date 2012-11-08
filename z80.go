@@ -259,6 +259,23 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0x34: //INC (HL)
 		cpu.Inc_hl()
 
+	case 0x3D: //DEC A
+		cpu.Dec_r(&cpu.R.A)
+	case 0x05: //DEC B
+		cpu.Dec_r(&cpu.R.B)
+	case 0x0D: //DEC C
+		cpu.Dec_r(&cpu.R.C)
+	case 0x15: //DEC D
+		cpu.Dec_r(&cpu.R.D)
+	case 0x1D: //DEC E
+		cpu.Dec_r(&cpu.R.E)
+	case 0x25: //DEC H
+		cpu.Dec_r(&cpu.R.H)
+	case 0x2D: //DEC L
+		cpu.Dec_r(&cpu.R.L)
+	case 0x35: //DEC (HL)
+		cpu.Dec_hl()
+
 	case 0x97: // SUB A, A
 		cpu.SubA_r(&cpu.R.A)
 	case 0x90: // SUB A, B
@@ -1517,8 +1534,10 @@ func (cpu *Z80) Inc_hl() {
 
 	cpu.mmu.WriteByte(HL, inc)
 
+	//N should be reset
 	cpu.ResetFlag(N)
 
+	//set zero flag
 	if inc == 0 {
 		cpu.SetFlag(Z)
 	}
@@ -1530,6 +1549,46 @@ func (cpu *Z80) Inc_hl() {
 
 	cpu.LastInstrCycle.Set(3, 12)
 }
+
+
+//DEC r
+func (cpu *Z80) Dec_r(r *byte) {
+	log.Println("DEC r")
+
+	*r -= 1
+
+	cpu.SetFlag(N)
+
+	if *r == 0 {
+		cpu.SetFlag(Z)
+	}
+
+	//TODO HALF Carry flag
+
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//DEC (HL)
+func (cpu *Z80) Dec_hl() {
+	log.Println("DEC (HL)")
+	var HL Word = Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var oldValue byte = cpu.mmu.ReadByte(HL)
+	var dec byte = (oldValue - 1)
+
+	cpu.mmu.WriteByte(HL, dec)
+
+	cpu.SetFlag(N)
+
+	//set zero flag
+	if dec == 0 {
+		cpu.SetFlag(Z)
+	}
+
+	//TODO HALF Carry flag
+
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
 
 //NOP
 //No operation
