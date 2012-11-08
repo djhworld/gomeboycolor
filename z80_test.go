@@ -2263,7 +2263,6 @@ func TestDec_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
 
-
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

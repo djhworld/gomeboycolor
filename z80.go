@@ -1550,7 +1550,6 @@ func (cpu *Z80) Inc_hl() {
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
-
 //DEC r
 func (cpu *Z80) Dec_r(r *byte) {
 	log.Println("DEC r")
@@ -1588,7 +1587,6 @@ func (cpu *Z80) Dec_hl() {
 
 	cpu.LastInstrCycle.Set(3, 12)
 }
-
 
 //NOP
 //No operation
