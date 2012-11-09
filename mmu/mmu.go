@@ -1,6 +1,8 @@
-package main
+package mmu
 
 import (
+	"errors"
+	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
 )
 
@@ -10,28 +12,26 @@ The regions of memory are arrays of fixed size that are selected
 based on the memory address given
 */
 
-var ROMIsBiggerThanRegion error
-var ROMWillOverextendAddressableRegion error
-
-type ROMType byte
+var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
+var ROMWillOverextendAddressableRegion = errors.New("ROM will overextend addressable region based on start address and ROM size")
 
 const (
-	BOOT = 0x00
-	ROM  = 0x01
+	BOOT    = 0x00
+	CARTROM = 0x01
 )
 
-type MMU interface {
-	WriteByte(address Word, value byte)
-	WriteWord(address Word, value Word)
-	ReadByte(address Word) byte
-	ReadWord(address Word) Word
+type MemoryMappedUnit interface {
+	WriteByte(address types.Word, value byte)
+	WriteWord(address types.Word, value types.Word)
+	ReadByte(address types.Word) byte
+	ReadWord(address types.Word) types.Word
 	SetInBootMode(mode bool)
-	LoadROM(startAddr Word, rt ROMType, data []byte) (bool, error)
+	LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error)
 }
 
 type GbcMMU struct {
 	boot             [256]byte   //0x0000 -> 0x00FF
-	ROM              [32768]byte // 0x0000 -> 0x7FFF
+	cartrom          [32768]byte // 0x0000 -> 0x7FFF
 	externalRAM      [8192]byte  //0xA000 -> 0xBFFF
 	workingRAM       [8192]byte  //0xC000 -> 0xDFFF
 	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
@@ -39,21 +39,21 @@ type GbcMMU struct {
 	inBootMode       bool
 }
 
-func (mmu *GbcMMU) ReadByte(addr Word) byte {
+func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	switch {
 	//boot area/ROM after boot
 	case addr >= 0x0000 && addr <= 0x00FF:
 		if mmu.inBootMode {
 			return mmu.boot[addr]
 		} else {
-			return mmu.ROM[addr]
+			return mmu.cartrom[addr]
 		}
 	//ROM Bank 0
 	case addr >= 0x1000 && addr <= 0x3FFF:
-		return mmu.ROM[addr]
+		return mmu.cartrom[addr]
 	//ROM Bank 1
 	case addr >= 0x4000 && addr <= 0x7FFF:
-		return mmu.ROM[addr]
+		return mmu.cartrom[addr]
 	//Graphics VRAM
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		//TODO - needs GPU setup
@@ -84,7 +84,7 @@ func (mmu *GbcMMU) ReadByte(addr Word) byte {
 	return 0
 }
 
-func (mmu *GbcMMU) WriteByte(addr Word, value byte) {
+func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	switch {
 	//Graphics VRAM
 	case addr >= 0x8000 && addr <= 0x9FFF:
@@ -116,13 +116,13 @@ func (mmu *GbcMMU) WriteByte(addr Word, value byte) {
 	}
 }
 
-func (mmu *GbcMMU) ReadWord(addr Word) Word {
+func (mmu *GbcMMU) ReadWord(addr types.Word) types.Word {
 	var b1 byte = mmu.ReadByte(addr)
 	var b2 byte = mmu.ReadByte(addr + 1)
-	return Word(utils.JoinBytes(b1, b2))
+	return types.Word(utils.JoinBytes(b1, b2))
 }
 
-func (mmu *GbcMMU) WriteWord(addr Word, value Word) {
+func (mmu *GbcMMU) WriteWord(addr types.Word, value types.Word) {
 	b1, b2 := utils.SplitIntoBytes(uint16(value))
 	mmu.WriteByte(addr, b1)
 	mmu.WriteByte(addr+1, b2)
@@ -132,21 +132,37 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 	mmu.inBootMode = mode
 }
 
-func (mmu *GbcMMU) LoadROM(startAddr Word, rt ROMType, data []byte) (bool, error) {
-	switch rt {
-	case BOOT:
-		if len(data) > len(mmu.boot) {
-			return false, ROMIsBiggerThanRegion
+func (mmu *GbcMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error) {
+	doBoundaryChecks := func(mem int) error {
+		if len(data) > mem {
+			return ROMIsBiggerThanRegion
 		}
 
-		if Word(len(data)) > Word(len(data))-startAddr {
-			return false, ROMWillOverextendAddressableRegion
+		if startAddr+types.Word(len(data)) > types.Word(mem) {
+			return ROMWillOverextendAddressableRegion
+		}
+
+		return nil
+	}
+
+	switch rt {
+	case BOOT:
+		if err := doBoundaryChecks(len(mmu.boot)); err != nil {
+			return false, err
 		}
 
 		for i, b := range data {
-			mmu.boot[startAddr+Word(i)] = b
+			mmu.boot[startAddr+types.Word(i)] = b
 		}
-		//TODO: ROM
+
+	case CARTROM:
+		if err := doBoundaryChecks(len(mmu.cartrom)); err != nil {
+			return false, err
+		}
+
+		for i, b := range data {
+			mmu.cartrom[startAddr+types.Word(i)] = b
+		}
 	}
 
 	return true, nil
