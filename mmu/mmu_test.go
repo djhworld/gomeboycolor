@@ -1,8 +1,8 @@
 package mmu
 
 import (
-	"github.com/stretchrcom/testify/assert"
 	"github.com/djhworld/gomeboycolor/types"
+	"github.com/stretchrcom/testify/assert"
 	"testing"
 )
 
@@ -170,7 +170,7 @@ func TestRegionBoundaries(t *testing.T) {
 
 func TestLoadBootROM(t *testing.T) {
 	var startAddr types.Word = 0
-	var ROM  []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
+	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
 	gbc := new(GbcMMU)
 	gbc.LoadROM(startAddr, BOOT, ROM)
 	//check whether start address -> end of ROM is equal to ROM
@@ -187,7 +187,7 @@ func TestLoadBootROM(t *testing.T) {
 	//check that error is returned if ROM is loaded that will over extend BOOT region
 	gbc = new(GbcMMU)
 	startAddr = 0
-	ok, err = gbc.LoadROM(startAddr, BOOT, make([]byte,3000))
+	ok, err = gbc.LoadROM(startAddr, BOOT, make([]byte, 3000))
 	assert.False(t, ok)
 	assert.NotNil(t, err)
 	assert.Equal(t, ROMIsBiggerThanRegion, err)
@@ -212,12 +212,11 @@ func TestLoadCartROM(t *testing.T) {
 	//check that error is returned if ROM is loaded that will over extend BOOT region
 	gbc = new(GbcMMU)
 	startAddr = 0
-	ok, err = gbc.LoadROM(startAddr, CARTROM, make([]byte,42765))
+	ok, err = gbc.LoadROM(startAddr, CARTROM, make([]byte, 42765))
 	assert.False(t, ok)
 	assert.NotNil(t, err)
 	assert.Equal(t, ROMIsBiggerThanRegion, err)
 }
-
 
 func TestImplementsInterface(t *testing.T) {
 	gbc := new(GbcMMU)

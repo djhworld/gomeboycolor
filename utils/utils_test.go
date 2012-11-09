@@ -2,6 +2,7 @@ package utils
 
 import "testing"
 import "github.com/stretchrcom/testify/assert"
+
 func TestJoinBytes(t *testing.T) {
 	assert.Equal(t, JoinBytes(0x03, 0xFF), uint16(0x03FF))
 	assert.Equal(t, JoinBytes(0x00, 0x00), uint16(0x0000))

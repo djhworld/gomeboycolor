@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/djhworld/gomeboycolor/utils"
-	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/mmu"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 	"log"
 )
 
