@@ -2264,6 +2264,87 @@ func TestDec_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
 
+//ADD HL,rr tests 
+//------------------------------------------
+func TestAddhl_rr(t *testing.T) {
+	reset()
+	var expectedH byte = 0x41
+	var expectedL byte = 0x03
+
+	cpu.SetFlag(N)
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.R.B = 0x40
+	cpu.R.C = 0x01
+
+	cpu.Addhl_rr(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.R.H, expectedH)
+	assert.Equal(t, cpu.R.L, expectedL)
+	//Check N flag is reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//carry flag
+	reset()
+	expectedH = 0x00
+	expectedL = 0xFD
+
+	cpu.R.H = 0xFF
+	cpu.R.L = 0xFE
+	cpu.R.B = 0x00
+	cpu.R.C = 0xFF
+
+	cpu.Addhl_rr(&cpu.R.B, &cpu.R.C)
+	assert.Equal(t, cpu.R.H, expectedH)
+	assert.Equal(t, cpu.R.L, expectedL)
+	//Check N flag is reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check carry flag is set
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+}
+
+//ADD HL,SP tests 
+//------------------------------------------
+func TestAddhl_sp(t *testing.T) {
+	reset()
+	var expectedH byte = 0x41
+	var expectedL byte = 0x03
+
+	cpu.SetFlag(N)
+	cpu.R.H = 0x01
+	cpu.R.L = 0x02
+	cpu.SP = 0x4001
+
+	cpu.Addhl_sp()
+	assert.Equal(t, cpu.R.H, expectedH)
+	assert.Equal(t, cpu.R.L, expectedL)
+	//Check N flag is reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//carry flag
+	reset()
+	expectedH = 0x00
+	expectedL = 0xFD
+
+	cpu.R.H = 0xFF
+	cpu.R.L = 0xFE
+	cpu.SP = 0x00FF
+
+	cpu.Addhl_sp()
+	assert.Equal(t, cpu.R.H, expectedH)
+	assert.Equal(t, cpu.R.L, expectedL)
+	//Check N flag is reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check carry flag is set
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

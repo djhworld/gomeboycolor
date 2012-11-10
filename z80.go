@@ -275,6 +275,15 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0x35: //DEC (HL)
 		cpu.Dec_hl()
 
+	case 0x09: //ADD HL,BC
+		cpu.Addhl_rr(&cpu.R.B, &cpu.R.C)
+	case 0x19: //ADD HL,DE
+		cpu.Addhl_rr(&cpu.R.D, &cpu.R.E)
+	case 0x29: //ADD HL,HL
+		cpu.Addhl_rr(&cpu.R.H, &cpu.R.L)
+	case 0x39: //ADD HL,SP
+		cpu.Addhl_sp()
+
 	case 0x97: // SUB A, A
 		cpu.SubA_r(&cpu.R.A)
 	case 0x90: // SUB A, B
@@ -1585,6 +1594,49 @@ func (cpu *Z80) Dec_hl() {
 	//TODO HALF Carry flag
 
 	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//ADD HL,rr
+func (cpu *Z80) Addhl_rr(r1, r2 *byte) {
+	log.Println("ADD HL, rr")
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var oldHL types.Word = HL
+	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
+	HL += RR
+	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
+
+	//reset N flag
+	cpu.ResetFlag(N)
+
+	//set carry flag
+	if HL < oldHL {
+		cpu.SetFlag(C)
+	}
+
+	//TODO Half Carry flag
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//ADD HL,SP
+func (cpu *Z80) Addhl_sp() {
+	log.Println("ADD HL, SP")
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var oldHL types.Word = HL
+	HL += cpu.SP
+	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
+
+	//reset N flag
+	cpu.ResetFlag(N)
+
+	//set carry flag
+	if HL < oldHL {
+		cpu.SetFlag(C)
+	}
+
+	//TODO Half Carry flag
+
+	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //NOP

@@ -166,7 +166,29 @@ func TestRegionBoundaries(t *testing.T) {
 
 }
 
-//TODO: READ BYTE/WORD operations - will require some mechanism to load ROM into memory first?
+func TestReadByteFromBoot(t *testing.T) {
+	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
+	gbc := new(GbcMMU)
+	gbc.SetInBootMode(true)
+	gbc.LoadROM(0, BOOT, ROM)
+	assert.Equal(t, gbc.ReadByte(0x0002), ROM[2])
+}
+
+func TestReadByteFromCart(t *testing.T) {
+	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
+	gbc := new(GbcMMU)
+	gbc.SetInBootMode(false)
+	gbc.LoadROM(0x1000, CARTROM, ROM)
+	assert.Equal(t, gbc.ReadByte(0x1002), ROM[2])
+}
+
+func TestReadWriteByte(t *testing.T) {
+	var value byte = 0xFC
+	var addr types.Word = 0xC476
+	gbc := new(GbcMMU)
+	gbc.WriteByte(addr, value)
+	assert.Equal(t, gbc.ReadByte(addr), value)
+}
 
 func TestLoadBootROM(t *testing.T) {
 	var startAddr types.Word = 0
