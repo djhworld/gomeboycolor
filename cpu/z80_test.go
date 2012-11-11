@@ -2484,7 +2484,6 @@ func TestCPL(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expectedA)
 }
 
-
 //CCF Tests
 func TestCCF(t *testing.T) {
 	reset()
@@ -2504,13 +2503,11 @@ func TestCCF(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 }
-
 
 //SCF Tests
 func TestSCF(t *testing.T) {
@@ -2530,8 +2527,6 @@ func TestSCF(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
-
-
 
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END

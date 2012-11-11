@@ -212,7 +212,6 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0x3B: //DEC SP
 		cpu.Dec_sp()
 
-
 	case 0xE8: //ADD SP,n
 		cpu.Addsp_n()
 	case 0xA7: //AND A, A
@@ -1728,7 +1727,6 @@ func (cpu *Z80) Dec_sp() {
 	cpu.LastInstrCycle.Set(2, 8)
 }
 
-
 //DAA
 func (cpu *Z80) Daa() {
 	log.Println("DAA")
@@ -1742,9 +1740,8 @@ func (cpu *Z80) CPL() {
 	cpu.R.A ^= 0xFF
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
-
 
 //CCF
 func (cpu *Z80) CCF() {
@@ -1760,7 +1757,7 @@ func (cpu *Z80) CCF() {
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //SCF
@@ -1773,10 +1770,8 @@ func (cpu *Z80) SCF() {
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
-
-
 
 //NOP
 //No operation
