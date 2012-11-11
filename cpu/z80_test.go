@@ -1,4 +1,4 @@
-package main
+package cpu
 
 import "testing"
 import "github.com/stretchrcom/testify/assert"
