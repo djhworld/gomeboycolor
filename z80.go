@@ -184,6 +184,37 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xFB: //EI
 		cpu.EI()
 
+	case 0x27: //DAA
+		cpu.Daa()
+	case 0x37: //SCF
+		cpu.SCF()
+
+	case 0x2F: //CPL
+		cpu.CPL()
+	case 0x3F: //CCF
+		cpu.CCF()
+
+	case 0x03: //INC BC
+		cpu.Inc_rr(&cpu.R.B, &cpu.R.C)
+	case 0x13: //INC DE
+		cpu.Inc_rr(&cpu.R.D, &cpu.R.E)
+	case 0x23: //INC HL
+		cpu.Inc_rr(&cpu.R.H, &cpu.R.L)
+	case 0x33: //INC SP
+		cpu.Inc_sp()
+
+	case 0x0B: //DEC BC
+		cpu.Dec_rr(&cpu.R.B, &cpu.R.C)
+	case 0x1B: //DEC DE
+		cpu.Dec_rr(&cpu.R.D, &cpu.R.E)
+	case 0x2B: //DEC HL
+		cpu.Dec_rr(&cpu.R.H, &cpu.R.L)
+	case 0x3B: //DEC SP
+		cpu.Dec_sp()
+
+
+	case 0xE8: //ADD SP,n
+		cpu.Addsp_n()
 	case 0xA7: //AND A, A
 		cpu.AndA_r(&cpu.R.A)
 	case 0xA0: //AND A, B
@@ -1638,6 +1669,114 @@ func (cpu *Z80) Addhl_sp() {
 
 	cpu.LastInstrCycle.Set(2, 8)
 }
+
+//ADD SP,n
+func (cpu *Z80) Addsp_n() {
+	log.Println("ADD SP,n")
+	var n byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	//reset flags
+	cpu.ResetFlag(Z)
+	cpu.ResetFlag(N)
+
+	var oldSP types.Word = cpu.SP
+	cpu.SP += types.Word(n)
+
+	//check carry flag
+	if cpu.SP < oldSP {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//TODO Half carry flag
+
+	//set clock values
+	cpu.LastInstrCycle.Set(4, 16)
+}
+
+//INC rr
+func (cpu *Z80) Inc_rr(r1, r2 *byte) {
+	log.Println("INC rr")
+	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
+	RR += 1
+	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//INC SP
+func (cpu *Z80) Inc_sp() {
+	log.Println("INC SP")
+	cpu.SP += 1
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//DEC rr
+func (cpu *Z80) Dec_rr(r1, r2 *byte) {
+	log.Println("DEC rr")
+	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
+	RR -= 1
+	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//DEC SP
+func (cpu *Z80) Dec_sp() {
+	log.Println("DEC SP")
+	cpu.SP -= 1
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+
+//DAA
+func (cpu *Z80) Daa() {
+	log.Println("DAA")
+	//TODO: implement
+}
+
+//CPL
+func (cpu *Z80) CPL() {
+	log.Println("CPL")
+
+	cpu.R.A ^= 0xFF
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.LastInstrCycle.Set(1,4)
+}
+
+
+//CCF
+func (cpu *Z80) CCF() {
+	log.Println("CCF")
+
+	if cpu.IsFlagSet(C) {
+		cpu.ResetFlag(C)
+	} else {
+		cpu.SetFlag(C)
+	}
+
+	//Reset N and H flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	cpu.LastInstrCycle.Set(1,4)
+}
+
+//SCF
+func (cpu *Z80) SCF() {
+	log.Println("SCF")
+
+	cpu.SetFlag(C)
+
+	//Reset N and H flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	cpu.LastInstrCycle.Set(1,4)
+}
+
+
 
 //NOP
 //No operation

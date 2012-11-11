@@ -2345,6 +2345,194 @@ func TestAddhl_sp(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 }
 
+//ADD SP,n tests 
+//------------------------------------------
+func TestAddsp_n(t *testing.T) {
+	var expectedSP types.Word = 0x0006
+	var expectedPC types.Word = 0x1001
+	reset()
+	cpu.SetFlag(Z)
+	cpu.SetFlag(N)
+	cpu.PC = 0x1000
+	cpu.SP = 0x0003
+	cpu.mmu.WriteByte(cpu.PC, 0x0003)
+
+	cpu.Addsp_n()
+	assert.Equal(t, cpu.SP, expectedSP)
+	//Check Z and N flags are reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+	//Check PC incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//check carry flag
+	expectedSP = 0x0006
+	reset()
+	cpu.SP = 0xFFFE
+	cpu.mmu.WriteByte(cpu.PC, 0x0008)
+
+	cpu.Addsp_n()
+	assert.Equal(t, cpu.SP, expectedSP)
+	//Check carry flag is set
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+}
+
+//INC rr tests 
+//------------------------------------------
+func TestInc_rr(t *testing.T) {
+	var expectedH byte = 0x03
+	var expectedL byte = 0xFF
+
+	reset()
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFE
+
+	cpu.Inc_rr(&cpu.R.H, &cpu.R.L)
+
+	assert.Equal(t, expectedH, cpu.R.H)
+	assert.Equal(t, expectedL, cpu.R.L)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//INC SP tests 
+//------------------------------------------
+func TestInc_sp(t *testing.T) {
+	var expectedSP types.Word = 0x03FF
+
+	reset()
+	cpu.SP = 0x03FE
+	cpu.Inc_sp()
+
+	assert.Equal(t, expectedSP, cpu.SP)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//DEC rr tests 
+//------------------------------------------
+func TestDec_rr(t *testing.T) {
+	var expectedH byte = 0x03
+	var expectedL byte = 0xFD
+
+	reset()
+	cpu.R.H = 0x03
+	cpu.R.L = 0xFE
+
+	cpu.Dec_rr(&cpu.R.H, &cpu.R.L)
+
+	assert.Equal(t, expectedH, cpu.R.H)
+	assert.Equal(t, expectedL, cpu.R.L)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//DEC SP tests 
+//------------------------------------------
+func TestDec_sp(t *testing.T) {
+	var expectedSP types.Word = 0x03FD
+
+	reset()
+	cpu.SP = 0x03FE
+	cpu.Dec_sp()
+
+	assert.Equal(t, expectedSP, cpu.SP)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//CPL Tests
+func TestCPL(t *testing.T) {
+	var expectedA byte = 0x55
+	reset()
+	cpu.R.A = 0xAA
+	cpu.CPL()
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(N), true)
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+	expectedA = 0x00
+	reset()
+	cpu.R.A = 0xFF
+	cpu.CPL()
+	assert.Equal(t, cpu.R.A, expectedA)
+
+	expectedA = 0xFF
+	reset()
+	cpu.R.A = 0x00
+	cpu.CPL()
+	assert.Equal(t, cpu.R.A, expectedA)
+}
+
+
+//CCF Tests
+func TestCCF(t *testing.T) {
+	reset()
+	cpu.SetFlag(C)
+	cpu.CCF()
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	reset()
+	cpu.CCF()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//ensure n and h flags are reset
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.CCF()
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+}
+
+
+//SCF Tests
+func TestSCF(t *testing.T) {
+	reset()
+	cpu.SCF()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//ensure n and h flags are reset
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.SCF()
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+}
+
+
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
