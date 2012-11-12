@@ -207,11 +207,15 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xFB: //EI
 		cpu.EI()
 
-	case 0x07: //RCLA
-		cpu.RCLA()
+	case 0x07: //RLCA
+		cpu.RLCA()
 	case 0x17: //RLA
 		cpu.RLA()
 
+	case 0x0F: //RRCA
+		cpu.RRCA()
+	case 0x1F: //RRA
+		cpu.RRA()
 
 	case 0x27: //DAA
 		cpu.Daa()
@@ -1843,9 +1847,9 @@ func (cpu *Z80) Swap_hl() {
 	cpu.LastInstrCycle.Set(4, 16)
 }
 
-//RCLA
-func(cpu *Z80) RCLA() {
-	log.Println("RCLA")
+//RLCA
+func(cpu *Z80) RLCA() {
+	log.Println("RLCA")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A = cpu.R.A << 1 | cpu.R.A >> (8-1)
@@ -1860,14 +1864,12 @@ func(cpu *Z80) RCLA() {
 		cpu.ResetFlag(C)
 	}
 
-
 	//zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1,4)
-
 }
 
 //RLA
@@ -1896,9 +1898,62 @@ func(cpu *Z80) RLA() {
 	}
 
 	cpu.LastInstrCycle.Set(1,4)
-
-
 }
+
+//RRCA
+func(cpu *Z80) RRCA() {
+	log.Println("RRCA")
+	var oldA byte = cpu.R.A
+
+	cpu.R.A = cpu.R.A >> 1 | cpu.R.A << (8-1)
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	//carry flag
+	if (oldA & 0x01) == 0x01 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1,4)
+}
+
+//RRA
+func(cpu *Z80) RRA() {
+	log.Println("RRA")
+	var oldA byte = cpu.R.A
+
+	cpu.R.A = cpu.R.A >> 1 | cpu.R.A << (8-1)
+
+	if cpu.IsFlagSet(C) {
+		cpu.R.A ^= 0x80
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	//carry flag
+	if (oldA & 0x01) == 0x01 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1,4)
+}
+
 
 //NOP
 //No operation
