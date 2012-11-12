@@ -175,6 +175,256 @@ func (cpu *Z80) IncrementPC(by types.Word) {
 
 func (cpu *Z80) DispatchCB(Opcode byte) {
 	switch Opcode {
+	case 0x07: //RLC A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x00: //RLC B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x01: //RLC C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x02: //RLC D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x03: //RLC E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x04: //RLC H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x05: //RLC L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x06: //RLC (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x17: //RL A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x10: //RL B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x11: //RL C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x12: //RL D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x13: //RL E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x14: //RL H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x15: //RL L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x16: //RL (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x0F: //RRC A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x08: //RRC B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x09: //RRC C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x0A: //RRC D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x0B: //RRC E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x0C: //RRC H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x0D: //RRC L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x0E: //RRC (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x1F: //RR A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x18: //RR B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x19: //RR C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x1A: //RR D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x1B: //RR E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x1C: //RR H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x1D: //RR L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x1E: //RR (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x27: //SLA A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x20: //SLA B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x21: //SLA C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x22: //SLA D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x23: //SLA E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x24: //SLA H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x25: //SLA L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x26: //SLA B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x2F: //SRA A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x28: //SRA B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x29: //SRA C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x2A: //SRA D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x2B: //SRA E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x2C: //SRA H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x2D: //SRA L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x2E: //SRA (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x3F: //SRL A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x38: //SRL B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x39: //SRL C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x3A: //SRL D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x3B: //SRL E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x3C: //SRL H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x3D: //SRL L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x3E: //SRL (HL)
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x47: //BIT b, A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x40: //BIT b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x41: //BIT b, C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x42: //BIT b, D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x43: //BIT b, E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x44: //BIT b, H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x45: //BIT b, L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x46: //BIT b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0xC7: //SET b, A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC0: //SET b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC1: //SET b, C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC2: //SET b, D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC3: //SET b, E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC4: //SET b, H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC5: //SET b, L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0xC6: //SET b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
+	case 0x87: //RES b, A
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x80: //RES b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x81: //RES b, C
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x82: //RES b, D
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x83: //RES b, E
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x84: //RES b, H
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x85: //RES b, L
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+	case 0x86: //RES b, B
+		//TODO: implement
+		log.Fatalf("Unimplemented")
+
 	case 0x37: //SWAP A
 		cpu.Swap_r(&cpu.R.A)
 	case 0x30: //SWAP B
@@ -1848,11 +2098,11 @@ func (cpu *Z80) Swap_hl() {
 }
 
 //RLCA
-func(cpu *Z80) RLCA() {
+func (cpu *Z80) RLCA() {
 	log.Println("RLCA")
 	var oldA byte = cpu.R.A
 
-	cpu.R.A = cpu.R.A << 1 | cpu.R.A >> (8-1)
+	cpu.R.A = cpu.R.A<<1 | cpu.R.A>>(8-1)
 
 	//reset flags
 	cpu.ResetFlag(N)
@@ -1869,15 +2119,15 @@ func(cpu *Z80) RLCA() {
 		cpu.SetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RLA
-func(cpu *Z80) RLA() {
+func (cpu *Z80) RLA() {
 	log.Println("RLA")
 	var oldA byte = cpu.R.A
 
-	cpu.R.A = cpu.R.A << 1 | cpu.R.A >> (8-1)
+	cpu.R.A = cpu.R.A<<1 | cpu.R.A>>(8-1)
 	if cpu.IsFlagSet(C) {
 		cpu.R.A ^= 0x01
 	}
@@ -1897,15 +2147,15 @@ func(cpu *Z80) RLA() {
 		cpu.SetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RRCA
-func(cpu *Z80) RRCA() {
+func (cpu *Z80) RRCA() {
 	log.Println("RRCA")
 	var oldA byte = cpu.R.A
 
-	cpu.R.A = cpu.R.A >> 1 | cpu.R.A << (8-1)
+	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
 
 	//reset flags
 	cpu.ResetFlag(N)
@@ -1922,15 +2172,15 @@ func(cpu *Z80) RRCA() {
 		cpu.SetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RRA
-func(cpu *Z80) RRA() {
+func (cpu *Z80) RRA() {
 	log.Println("RRA")
 	var oldA byte = cpu.R.A
 
-	cpu.R.A = cpu.R.A >> 1 | cpu.R.A << (8-1)
+	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
 
 	if cpu.IsFlagSet(C) {
 		cpu.R.A ^= 0x80
@@ -1951,9 +2201,8 @@ func(cpu *Z80) RRA() {
 		cpu.SetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1,4)
+	cpu.LastInstrCycle.Set(1, 4)
 }
-
 
 //NOP
 //No operation

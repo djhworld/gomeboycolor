@@ -2597,7 +2597,7 @@ func TestSwap_hl(t *testing.T) {
 
 //RLCA tests
 func TestRLCA(t *testing.T) {
-	var expectedA byte =  0x08
+	var expectedA byte = 0x08
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
@@ -2630,7 +2630,7 @@ func TestRLCA(t *testing.T) {
 
 //RLA tests
 func TestRLA(t *testing.T) {
-	var expectedA byte =  0x08
+	var expectedA byte = 0x08
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
@@ -2663,7 +2663,6 @@ func TestRLA(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
-
 	//check zero flag
 	reset()
 	cpu.R.A = 0x00
@@ -2673,7 +2672,7 @@ func TestRLA(t *testing.T) {
 
 //RRCA tests
 func TestRRCA(t *testing.T) {
-	var expectedA byte =  0x02
+	var expectedA byte = 0x02
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
@@ -2706,7 +2705,7 @@ func TestRRCA(t *testing.T) {
 
 //RRA tests
 func TestRRA(t *testing.T) {
-	var expectedA byte =  0x40
+	var expectedA byte = 0x40
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
@@ -2745,7 +2744,6 @@ func TestRRA(t *testing.T) {
 	cpu.RRA()
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
-
 
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
