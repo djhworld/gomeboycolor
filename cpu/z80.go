@@ -207,6 +207,12 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xFB: //EI
 		cpu.EI()
 
+	case 0x07: //RCLA
+		cpu.RCLA()
+	case 0x17: //RLA
+		cpu.RLA()
+
+
 	case 0x27: //DAA
 		cpu.Daa()
 	case 0x37: //SCF
@@ -1835,6 +1841,63 @@ func (cpu *Z80) Swap_hl() {
 	}
 
 	cpu.LastInstrCycle.Set(4, 16)
+}
+
+//RCLA
+func(cpu *Z80) RCLA() {
+	log.Println("RCLA")
+	var oldA byte = cpu.R.A
+
+	cpu.R.A = cpu.R.A << 1 | cpu.R.A >> (8-1)
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	//carry flag
+	if (oldA & 0x80) == 0x80 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+
+	//zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1,4)
+
+}
+
+//RLA
+func(cpu *Z80) RLA() {
+	log.Println("RLA")
+	var oldA byte = cpu.R.A
+
+	cpu.R.A = cpu.R.A << 1 | cpu.R.A >> (8-1)
+	if cpu.IsFlagSet(C) {
+		cpu.R.A ^= 0x01
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	//carry flag
+	if (oldA & 0x80) == 0x80 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(1,4)
+
+
 }
 
 //NOP

@@ -2595,6 +2595,83 @@ func TestSwap_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
 
+//RLCA tests
+func TestRLCA(t *testing.T) {
+	var expectedA byte =  0x08
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.R.A = 0x04
+	cpu.RCLA()
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+	//ensure flags are reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+	//check carry flag
+	reset()
+	cpu.R.A = 0x89
+	cpu.RCLA()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//check zero flag
+	reset()
+	cpu.R.A = 0x00
+	cpu.RCLA()
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+//RLA tests
+func TestRLA(t *testing.T) {
+	var expectedA byte =  0x08
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.R.A = 0x04
+	cpu.RLA()
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+	//ensure flags are reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+	//check carry flag
+	reset()
+	cpu.R.A = 0x89
+	cpu.RLA()
+	assert.Equal(t, cpu.IsFlagSet(C), true)
+
+	//check carry flag with carry flag already set
+	reset()
+	expectedA = 0x85
+	cpu.SetFlag(C)
+	cpu.R.A = 0x42
+	cpu.RLA()
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+
+	//check zero flag
+	reset()
+	cpu.R.A = 0x00
+	cpu.RLA()
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
