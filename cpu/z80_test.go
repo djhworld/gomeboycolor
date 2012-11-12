@@ -2528,6 +2528,73 @@ func TestSCF(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
+//SWAP r Tests
+func TestSwap_r(t *testing.T) {
+	var expectedA byte = 0xBF
+	reset()
+	cpu.R.A = 0xFB
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.SetFlag(C)
+	cpu.Swap_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//ensure flags are reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//check zero flag
+	expectedA = 0x00
+	reset()
+	cpu.R.A = 0x00
+	cpu.Swap_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
+//SWAP (HL) Tests
+func TestSwap_hl(t *testing.T) {
+	var addr types.Word = 0x1001
+	var expected byte = 0xBF
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.SetFlag(C)
+	cpu.R.H = 0x10
+	cpu.R.L = 0x01
+	cpu.mmu.WriteByte(addr, 0xFB)
+	cpu.Swap_hl()
+
+	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
+	//ensure flags are reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(H), false)
+	assert.Equal(t, cpu.IsFlagSet(C), false)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+
+	addr = 0x1001
+	expected = 0x00
+	reset()
+	cpu.R.H = 0x10
+	cpu.R.L = 0x01
+	cpu.mmu.WriteByte(addr, 0x00)
+	cpu.Swap_hl()
+
+	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.IsFlagSet(Z), true)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

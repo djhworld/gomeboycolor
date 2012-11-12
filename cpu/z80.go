@@ -173,6 +173,29 @@ func (cpu *Z80) IncrementPC(by types.Word) {
 	cpu.PC += by
 }
 
+func (cpu *Z80) DispatchCB(Opcode byte) {
+	switch Opcode {
+	case 0x37: //SWAP A
+		cpu.Swap_r(&cpu.R.A)
+	case 0x30: //SWAP B
+		cpu.Swap_r(&cpu.R.B)
+	case 0x31: //SWAP C
+		cpu.Swap_r(&cpu.R.C)
+	case 0x32: //SWAP D
+		cpu.Swap_r(&cpu.R.D)
+	case 0x33: //SWAP E
+		cpu.Swap_r(&cpu.R.E)
+	case 0x34: //SWAP H
+		cpu.Swap_r(&cpu.R.H)
+	case 0x35: //SWAP L
+		cpu.Swap_r(&cpu.R.L)
+	case 0x36: //SWAP (HL)
+		cpu.Swap_hl()
+	default:
+		log.Fatalf("Invalid/Unknown instruction %X", Opcode)
+	}
+}
+
 func (cpu *Z80) Dispatch(Opcode byte) {
 	switch Opcode {
 	case 0x00: //NOP
@@ -652,7 +675,13 @@ func (cpu *Z80) Step() {
 	var Opcode byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
-	cpu.Dispatch(Opcode)
+	if Opcode == 0xCB {
+		Opcode = cpu.mmu.ReadByte(cpu.PC)
+		cpu.IncrementPC(1)
+		cpu.DispatchCB(Opcode)
+	} else {
+		cpu.Dispatch(Opcode)
+	}
 
 	cpu.MachineCycles.m += cpu.LastInstrCycle.m
 	cpu.MachineCycles.t += cpu.LastInstrCycle.t
@@ -1771,6 +1800,41 @@ func (cpu *Z80) SCF() {
 	cpu.ResetFlag(H)
 
 	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//SWAP r
+func (cpu *Z80) Swap_r(r *byte) {
+	log.Println("SWAP r")
+	var a byte = *r
+	*r = utils.SwapNibbles(a)
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(C)
+
+	if *r == 0x00 {
+		cpu.SetFlag(Z)
+	}
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//SWAP (HL)
+func (cpu *Z80) Swap_hl() {
+	log.Println("SWAP (HL)")
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var a byte = cpu.mmu.ReadByte(HL)
+	var result byte = utils.SwapNibbles(a)
+	cpu.mmu.WriteByte(HL, result)
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(C)
+
+	if result == 0x00 {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //NOP
