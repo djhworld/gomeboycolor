@@ -2745,6 +2745,146 @@ func TestRRA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
 
+//BIT b,r tests
+func TestBitb_r(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	reset()
+	cpu.PC = 0x0001
+	cpu.R.A = 0x31
+	cpu.SetFlag(N)
+	cpu.mmu.WriteByte(cpu.PC, 0x01)
+	cpu.Bitb_r(&cpu.R.A)
+
+	assert.Equal(t, cpu.PC, expectedPC)
+	//ensure flag is set
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	//ensure flag reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	var expected []bool = []bool{true, true, false, false, true, true, true, false}
+
+	var results []bool = make([]bool, 8)
+	var j byte = 0x07
+	for i := 0x00; i <= 0x07; i++ {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.A = 0x31
+		cpu.SetFlag(N)
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.Bitb_r(&cpu.R.A)
+		results[j] = cpu.IsFlagSet(Z)
+		j--
+	}
+	assert.Equal(t, expected, results)
+}
+
+//BIT b,(HL) tests
+func TestBitb_hl(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	var addr types.Word = 0x3044
+	reset()
+	cpu.PC = 0x0001
+	cpu.R.H = 0x30
+	cpu.R.L = 0x44
+	cpu.SetFlag(N)
+	cpu.mmu.WriteByte(addr, 0x21)
+	cpu.mmu.WriteByte(cpu.PC, 0x01)
+	cpu.Bitb_hl()
+
+	assert.Equal(t, cpu.PC, expectedPC)
+	//ensure flag is set
+	assert.Equal(t, cpu.IsFlagSet(H), true)
+	//ensure flag reset
+	assert.Equal(t, cpu.IsFlagSet(N), false)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+
+	var expected []bool = []bool{true, true, false, false, true, true, true, false}
+
+	var results []bool = make([]bool, 8)
+	var j byte = 0x07
+	for i := 0x00; i <= 0x07; i++ {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.H = 0x30
+		cpu.R.L = 0x44
+		cpu.SetFlag(N)
+		cpu.mmu.WriteByte(addr, 0x31)
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.Bitb_hl()
+		results[j] = cpu.IsFlagSet(Z)
+		j--
+	}
+
+	assert.Equal(t, expected, results)
+}
+
+//JP nn tests
+func TestJP_nn(t *testing.T) {
+	var expectedPC types.Word = 0x5672
+	reset()
+	cpu.PC = 0x2001
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.JP_nn()
+
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
+//JP (HL) tests
+func TestJP_hl(t *testing.T) {
+	var addr types.Word = 0x2001
+	var expectedPC types.Word = 0x5672
+	reset()
+	cpu.R.H = 0x20
+	cpu.R.L = 0x01
+	cpu.mmu.WriteWord(addr, expectedPC)
+	cpu.JP_hl()
+
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+}
+
+//JP cc nn tests
+func TestJPcc_nn(t *testing.T) {
+	var expectedPC types.Word = 0x5672
+	reset()
+	cpu.PC = 0x2001
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.SetFlag(Z)
+	cpu.JPcc_nn(Z, true)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	expectedPC = 0x2001
+	reset()
+	cpu.PC = 0x2001
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.SetFlag(Z)
+	cpu.JPcc_nn(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	expectedPC = 0x5672
+	reset()
+	cpu.PC = 0x2001
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.JPcc_nn(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

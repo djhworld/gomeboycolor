@@ -351,29 +351,21 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		log.Fatalf("Unimplemented")
 
 	case 0x47: //BIT b, A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x40: //BIT b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x41: //BIT b, C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x42: //BIT b, D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x43: //BIT b, E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x44: //BIT b, H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
 	case 0x45: //BIT b, L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
-	case 0x46: //BIT b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x46: //BIT b, (HL)
+		cpu.Bitb_hl()
 
 	case 0xC7: //SET b, A
 		//TODO: implement
@@ -456,6 +448,20 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.DI()
 	case 0xFB: //EI
 		cpu.EI()
+
+	case 0xC2: //JP NZ,nn
+		cpu.JPcc_nn(Z, false)
+	case 0xCA: //JP Z,nn
+		cpu.JPcc_nn(Z, true)
+	case 0xD2: //JP NC,nn
+		cpu.JPcc_nn(C, false)
+	case 0xDA: //JP C,nn
+		cpu.JPcc_nn(C, true)
+
+	case 0xC3: //JP nn
+		cpu.JP_nn()
+	case 0xE9: //JP (HL)
+		cpu.JP_hl()
 
 	case 0x07: //RLCA
 		cpu.RLCA()
@@ -2204,6 +2210,86 @@ func (cpu *Z80) RRA() {
 	cpu.LastInstrCycle.Set(1, 4)
 }
 
+//BIT b, r
+func (cpu *Z80) Bitb_r(r *byte) {
+	log.Println("BIT b, r")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	cpu.ResetFlag(N)
+	cpu.SetFlag(H)
+
+	switch b {
+	case 0x00:
+		b = 0x01
+	case 0x01:
+		b = 0x02
+	case 0x02:
+		b = 0x04
+	case 0x03:
+		b = 0x08
+	case 0x04:
+		b = 0x10
+	case 0x05:
+		b = 0x20
+	case 0x06:
+		b = 0x40
+	case 0x07:
+		b = 0x80
+	default:
+		//TODO: what if a different value is passed in?
+		b = 0x01
+	}
+
+	if (*r & b) != b {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//BIT b,(HL) 
+func (cpu *Z80) Bitb_hl() {
+	log.Println("BIT b, (HL)")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HL)
+
+	cpu.ResetFlag(N)
+	cpu.SetFlag(H)
+
+	switch b {
+	case 0x00:
+		b = 0x01
+	case 0x01:
+		b = 0x02
+	case 0x02:
+		b = 0x04
+	case 0x03:
+		b = 0x08
+	case 0x04:
+		b = 0x10
+	case 0x05:
+		b = 0x20
+	case 0x06:
+		b = 0x40
+	case 0x07:
+		b = 0x80
+	default:
+		//TODO: what if a different value is passed in?
+		b = 0x01
+	}
+
+	if (value & b) != b {
+		cpu.SetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(4, 16)
+
+}
+
 //NOP
 //No operation
 func (cpu *Z80) NOP() {
@@ -2240,6 +2326,39 @@ func (cpu *Z80) EI() {
 
 	//set clock values
 	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//JP nn
+func (cpu *Z80) JP_nn() {
+	log.Println("JP nn")
+	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	cpu.PC = nn
+
+	//set clock values
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//JP (HL)
+func (cpu *Z80) JP_hl() {
+	log.Println("JP (HL)")
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var addr types.Word = cpu.mmu.ReadWord(HL)
+	cpu.PC = addr
+
+	//set clock values
+	cpu.LastInstrCycle.Set(1, 4)
+}
+
+//JP cc, nn
+func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
+	log.Println("JP cc,nn")
+	if cpu.IsFlagSet(flag) == jumpWhen {
+		var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+		cpu.PC = nn
+	}
+
+	//set clock values
+	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //-----------------------------------------------------------------------
