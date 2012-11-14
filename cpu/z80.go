@@ -462,6 +462,17 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.JP_nn()
 	case 0xE9: //JP (HL)
 		cpu.JP_hl()
+	case 0x18: //JR n
+		cpu.JR_n()
+
+	case 0x20: //JR NZ,n
+		cpu.JRcc_nn(Z, false)
+	case 0x28: //JR Z,n
+		cpu.JRcc_nn(Z, true)
+	case 0x30: //JR NZ,n
+		cpu.JRcc_nn(C, false)
+	case 0x38: //JR C,n
+		cpu.JRcc_nn(C, true)
 
 	case 0x07: //RLCA
 		cpu.RLCA()
@@ -2359,6 +2370,28 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 
 	//set clock values
 	cpu.LastInstrCycle.Set(3, 12)
+}
+
+//JR n
+func (cpu *Z80) JR_n() {
+	log.Println("JR n")
+	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.PC += types.Word(value)
+
+	//set clock values
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//JR cc, nn
+func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
+	log.Println("JR cc,nn")
+	if cpu.IsFlagSet(flag) == jumpWhen {
+		var n byte = cpu.mmu.ReadByte(cpu.PC)
+		cpu.PC += types.Word(n)
+	}
+
+	//set clock values
+	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //-----------------------------------------------------------------------

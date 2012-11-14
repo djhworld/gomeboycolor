@@ -2885,6 +2885,52 @@ func TestJPcc_nn(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
+//JR cc nn tests
+func TestJRcc_nn(t *testing.T) {
+	var expectedPC types.Word = 0x000A
+	reset()
+	cpu.PC = 0x0000
+	cpu.mmu.WriteByte(cpu.PC, 0x0A)
+	cpu.SetFlag(Z)
+	cpu.JRcc_nn(Z, true)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	expectedPC = 0x2001
+	reset()
+	cpu.PC = 0x2001
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.SetFlag(Z)
+	cpu.JRcc_nn(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	expectedPC = 0x000A
+	reset()
+	cpu.PC = 0x0001
+	cpu.mmu.WriteByte(cpu.PC, 0x09)
+	cpu.JRcc_nn(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//JR n tests
+func TestJR_n(t *testing.T) {
+	var expectedPC byte = 0x000A
+	reset()
+	cpu.PC = 0x0002
+	cpu.mmu.WriteByte(cpu.PC, 0x08)
+	cpu.JR_n()
+
+	//check PC 
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
