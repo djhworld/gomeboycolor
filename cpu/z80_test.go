@@ -2931,6 +2931,79 @@ func TestJR_n(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
+//SET b,r tests
+func TestSetb_r(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	reset()
+	cpu.PC = 0x0001
+	cpu.Setb_r(&cpu.R.A)
+
+	//check pc incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//now do actual test
+	expectedAs := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+	for i, expectedA := range expectedAs {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.A = 0x00
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.Setb_r(&cpu.R.A)
+		assert.Equal(t, cpu.R.A, expectedA)
+	}
+}
+
+//SET (HL) tests
+func TestSetb_hl(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	reset()
+	cpu.PC = 0x0001
+	cpu.Setb_hl()
+
+	//check pc incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+
+	//now do actual test
+	var hlAddr types.Word = 0x3827
+	var hlValue byte = 0x00
+	expectedHLs := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+	for i, expectedHL := range expectedHLs {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.H = 0x38
+		cpu.R.L = 0x27
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.mmu.WriteByte(hlAddr, hlValue)
+		cpu.Setb_hl()
+		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
+	}
+}
+
+//CALL nn tests
+func TestCall_nn(t *testing.T) {
+	var expectedPC types.Word = 0x3972
+	var nextInstr byte = 0x0009
+	cpu.PC = 0x0007
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.mmu.WriteByte(cpu.PC+2, nextInstr)
+
+	cpu.Call_nn()
+
+	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstr)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

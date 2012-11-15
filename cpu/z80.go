@@ -368,29 +368,21 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Bitb_hl()
 
 	case 0xC7: //SET b, A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.A)
 	case 0xC0: //SET b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.B)
 	case 0xC1: //SET b, C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.C)
 	case 0xC2: //SET b, D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.D)
 	case 0xC3: //SET b, E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.E)
 	case 0xC4: //SET b, H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.H)
 	case 0xC5: //SET b, L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
-	case 0xC6: //SET b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Setb_r(&cpu.R.L)
+	case 0xC6: //SET b, (HL)
+		cpu.Setb_hl()
 
 	case 0x87: //RES b, A
 		//TODO: implement
@@ -473,6 +465,9 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.JRcc_nn(C, false)
 	case 0x38: //JR C,n
 		cpu.JRcc_nn(C, true)
+
+	case 0xCD: //CALL nn
+		cpu.Call_nn()
 
 	case 0x07: //RLCA
 		cpu.RLCA()
@@ -2230,27 +2225,7 @@ func (cpu *Z80) Bitb_r(r *byte) {
 	cpu.ResetFlag(N)
 	cpu.SetFlag(H)
 
-	switch b {
-	case 0x00:
-		b = 0x01
-	case 0x01:
-		b = 0x02
-	case 0x02:
-		b = 0x04
-	case 0x03:
-		b = 0x08
-	case 0x04:
-		b = 0x10
-	case 0x05:
-		b = 0x20
-	case 0x06:
-		b = 0x40
-	case 0x07:
-		b = 0x80
-	default:
-		//TODO: what if a different value is passed in?
-		b = 0x01
-	}
+	b = utils.BitToValue(b)
 
 	if (*r & b) != b {
 		cpu.SetFlag(Z)
@@ -2271,27 +2246,7 @@ func (cpu *Z80) Bitb_hl() {
 	cpu.ResetFlag(N)
 	cpu.SetFlag(H)
 
-	switch b {
-	case 0x00:
-		b = 0x01
-	case 0x01:
-		b = 0x02
-	case 0x02:
-		b = 0x04
-	case 0x03:
-		b = 0x08
-	case 0x04:
-		b = 0x10
-	case 0x05:
-		b = 0x20
-	case 0x06:
-		b = 0x40
-	case 0x07:
-		b = 0x80
-	default:
-		//TODO: what if a different value is passed in?
-		b = 0x01
-	}
+	b = utils.BitToValue(b)
 
 	if (value & b) != b {
 		cpu.SetFlag(Z)
@@ -2394,5 +2349,61 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	cpu.LastInstrCycle.Set(2, 8)
 }
 
+// SET b, r
+func (cpu *Z80) Setb_r(r *byte) {
+	log.Println("SET b,r")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	b = utils.BitToValue(b)
+
+	*r = *r ^ b
+
+	//set clock values
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+// SET b, (HL) 
+func (cpu *Z80) Setb_hl() {
+	log.Println("SET b,(HL)")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+	b = utils.BitToValue(b)
+
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var HLValue byte = cpu.mmu.ReadByte(HL)
+
+	HLValue = HLValue ^ b
+
+	cpu.mmu.WriteByte(HL, HLValue)
+
+	//set clock values
+	cpu.LastInstrCycle.Set(4, 16)
+}
+
+// CALL nn
+//Push address of next instruction onto stack and then jump to address nn
+func (cpu *Z80) Call_nn() {
+	log.Println("CALL nn")
+	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	cpu.IncrementPC(2)
+	var nextInstr types.Word = cpu.PC
+	cpu.pushWordToStack(nextInstr)
+	cpu.PC = nn
+
+	//set clock values
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
+
+func (cpu *Z80) pushByteToStack(b byte) {
+	cpu.SP--
+	cpu.mmu.WriteByte(cpu.SP, b)
+}
+
+func (cpu *Z80) pushWordToStack(word types.Word) {
+	cpu.SP -= 2
+	cpu.mmu.WriteWord(cpu.SP, word)
+}
