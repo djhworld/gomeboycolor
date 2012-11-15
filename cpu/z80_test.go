@@ -2865,7 +2865,7 @@ func TestJPcc_nn(t *testing.T) {
 	cpu.JPcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	expectedPC = 0x2001
+	expectedPC = 0x2003
 	reset()
 	cpu.PC = 0x2001
 	cpu.mmu.WriteWord(cpu.PC, expectedPC)
@@ -2988,6 +2988,7 @@ func TestSetb_hl(t *testing.T) {
 
 //CALL nn tests
 func TestCall_nn(t *testing.T) {
+	reset()
 	var expectedPC types.Word = 0x3972
 	var nextInstr byte = 0x0009
 	cpu.PC = 0x0007
@@ -3003,6 +3004,35 @@ func TestCall_nn(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
+
+//CALL cc,nn tests
+func TestCallcc_nn(t *testing.T) {
+	reset()
+	var expectedPC types.Word = 0x3972
+	var nextInstr byte = 0x0009
+	cpu.PC = 0x0007
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.mmu.WriteByte(cpu.PC+2, nextInstr)
+	cpu.SetFlag(Z)
+	cpu.Callcc_nn(Z, true)
+	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstr)
+
+	reset()
+	expectedPC = 0x0009
+	nextInstr = 0x0009
+	cpu.PC = 0x0007
+	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.mmu.WriteByte(cpu.PC+2, nextInstr)
+	cpu.Callcc_nn(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstr)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
+}
+
 
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
