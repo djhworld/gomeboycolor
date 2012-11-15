@@ -469,6 +469,15 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xCD: //CALL nn
 		cpu.Call_nn()
 
+	case 0xC4: //CALL NZ, nn
+		cpu.Callcc_nn(Z, false)
+	case 0xCC: //CALL Z, nn
+		cpu.Callcc_nn(Z, true)
+	case 0xD4: //CALL NC, nn
+		cpu.Callcc_nn(C, false)
+	case 0xDC: //CALL C, nn
+		cpu.Callcc_nn(C, true)
+
 	case 0x07: //RLCA
 		cpu.RLCA()
 	case 0x17: //RLA
@@ -2318,8 +2327,9 @@ func (cpu *Z80) JP_hl() {
 //JP cc, nn
 func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 	log.Println("JP cc,nn")
+	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	cpu.IncrementPC(2)
 	if cpu.IsFlagSet(flag) == jumpWhen {
-		var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
 		cpu.PC = nn
 	}
 
@@ -2339,9 +2349,10 @@ func (cpu *Z80) JR_n() {
 
 //JR cc, nn
 func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
-	log.Println("JR cc,nn")
+	log.Println("JR cc,n")
+	var n byte = cpu.mmu.ReadByte(cpu.PC)
+
 	if cpu.IsFlagSet(flag) == jumpWhen {
-		var n byte = cpu.mmu.ReadByte(cpu.PC)
 		cpu.PC += types.Word(n)
 	}
 
@@ -2390,6 +2401,22 @@ func (cpu *Z80) Call_nn() {
 	var nextInstr types.Word = cpu.PC
 	cpu.pushWordToStack(nextInstr)
 	cpu.PC = nn
+
+	//set clock values
+	cpu.LastInstrCycle.Set(3, 12)
+}
+
+
+// CALL cc,nn
+func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
+	log.Println("CALL cc, nn")
+	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	cpu.IncrementPC(2)
+
+	if cpu.IsFlagSet(flag) == callWhen {
+		cpu.pushWordToStack(cpu.PC)
+		cpu.PC = nn
+	}
 
 	//set clock values
 	cpu.LastInstrCycle.Set(3, 12)
