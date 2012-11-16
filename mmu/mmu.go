@@ -49,7 +49,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 			return mmu.cartrom[addr]
 		}
 	//ROM Bank 0
-	case addr >= 0x1000 && addr <= 0x3FFF:
+	case addr >= 0x0100 && addr <= 0x3FFF:
 		return mmu.cartrom[addr]
 	//ROM Bank 1
 	case addr >= 0x4000 && addr <= 0x7FFF:

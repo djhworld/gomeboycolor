@@ -3089,6 +3089,75 @@ func TestCallcc_nn(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
+//RST n tests
+func TestRst(t *testing.T) {
+	var currentPC types.Word = 0x8765
+	reset()
+	cpu.PC = currentPC
+	cpu.Rst(0x00)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(8))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(32))
+
+	//check top of stack is currentPC
+	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), currentPC)
+
+	var Ns []byte = []byte{0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38}
+	var expectedPC types.Word = 0x0000
+	for _, n := range Ns {
+		reset()
+		expectedPC = 0x0000
+		expectedPC += types.Word(n)
+		cpu.Rst(n)
+		assert.Equal(t, cpu.PC, expectedPC)
+	}
+}
+
+//RET tests
+func TestRet(t *testing.T) {
+	var expectedPC types.Word = 0xFF39
+	reset()
+	cpu.PC = 0x9284
+	cpu.pushWordToStack(expectedPC)
+	cpu.Ret()
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//RET cc tests
+func TestRetcc(t *testing.T) {
+	reset()
+	var expectedPC types.Word = 0xFF39
+	cpu.pushWordToStack(expectedPC)
+	cpu.PC = 0x9284
+	cpu.SetFlag(Z)
+	cpu.Retcc(Z, true)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	reset()
+	expectedPC = 0xFF39
+	cpu.pushWordToStack(expectedPC)
+	cpu.PC = 0x9284
+	cpu.Retcc(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	reset()
+	expectedPC = 0x9284
+	cpu.pushWordToStack(expectedPC)
+	cpu.PC = 0x9284
+	cpu.SetFlag(Z)
+	cpu.Retcc(Z, false)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

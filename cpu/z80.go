@@ -431,6 +431,35 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xFB: //EI
 		cpu.EI()
 
+	case 0xC7: //RST n
+		cpu.Rst(0x00)
+	case 0xCF: //RST n
+		cpu.Rst(0x08)
+	case 0xD7: //RST n
+		cpu.Rst(0x10)
+	case 0xDF: //RST n
+		cpu.Rst(0x18)
+	case 0xE7: //RST n
+		cpu.Rst(0x20)
+	case 0xEF: //RST n
+		cpu.Rst(0x28)
+	case 0xF7: //RST n
+		cpu.Rst(0x30)
+	case 0xFF: //RST n
+		cpu.Rst(0x38)
+
+	case 0xC0: //RET NZ
+		cpu.Retcc(Z, false)
+	case 0xC8: //RET Z
+		cpu.Retcc(Z, true)
+	case 0xD0: //RET NC
+		cpu.Retcc(C, false)
+	case 0xD8: //RET C
+		cpu.Retcc(C, true)
+
+	case 0xC9: //RET
+		cpu.Ret()
+
 	case 0xC2: //JP NZ,nn
 		cpu.JPcc_nn(Z, false)
 	case 0xCA: //JP Z,nn
@@ -2442,6 +2471,30 @@ func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
+// RST n
+func (cpu *Z80) Rst(n byte) {
+	log.Println("RST n")
+	cpu.pushWordToStack(cpu.PC)
+	cpu.PC = 0x0000 + types.Word(n)
+	cpu.LastInstrCycle.Set(8, 32)
+}
+
+// RET n
+func (cpu *Z80) Ret() {
+	log.Println("RET")
+	cpu.PC = cpu.popWordFromStack()
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+// RET n
+func (cpu *Z80) Retcc(flag int, returnWhen bool) {
+	log.Println("RET cc")
+	if cpu.IsFlagSet(flag) == returnWhen {
+		cpu.PC = cpu.popWordFromStack()
+	}
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
@@ -2453,4 +2506,16 @@ func (cpu *Z80) pushByteToStack(b byte) {
 func (cpu *Z80) pushWordToStack(word types.Word) {
 	cpu.SP -= 2
 	cpu.mmu.WriteWord(cpu.SP, word)
+}
+
+func (cpu *Z80) popByteFromStack() byte {
+	var b byte = cpu.mmu.ReadByte(cpu.SP)
+	cpu.SP++
+	return b
+}
+
+func (cpu *Z80) popWordFromStack() types.Word {
+	var w types.Word = cpu.mmu.ReadWord(cpu.SP)
+	cpu.SP += 2
+	return w
 }
