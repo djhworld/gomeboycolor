@@ -2986,6 +2986,62 @@ func TestSetb_hl(t *testing.T) {
 	}
 }
 
+//RES b,r tests
+func TestResb_r(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	reset()
+	cpu.PC = 0x0001
+	cpu.Resb_r(&cpu.R.A)
+
+	//check pc incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//now do actual test
+	As := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+	var expectedA byte = 0x00
+	for i, A := range As {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.A = A
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.Resb_r(&cpu.R.A)
+		assert.Equal(t, cpu.R.A, expectedA)
+	}
+}
+
+//RES b, (HL) tests
+func TestResb_hl(t *testing.T) {
+	var expectedPC types.Word = 0x0002
+	reset()
+	cpu.PC = 0x0001
+	cpu.Resb_hl()
+
+	//check pc incremented
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+
+	//now do actual test
+	var hlAddr types.Word = 0x3827
+	var expectedHL byte = 0x00
+	HLs := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+	for i, hlValue := range HLs {
+		reset()
+		cpu.PC = 0x0001
+		cpu.R.H = 0x38
+		cpu.R.L = 0x27
+		cpu.mmu.WriteByte(cpu.PC, byte(i))
+		cpu.mmu.WriteByte(hlAddr, hlValue)
+		cpu.Resb_hl()
+		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
+	}
+}
+
 //CALL nn tests
 func TestCall_nn(t *testing.T) {
 	reset()

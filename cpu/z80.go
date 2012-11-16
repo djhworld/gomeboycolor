@@ -383,32 +383,22 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Setb_r(&cpu.R.L)
 	case 0xC6: //SET b, (HL)
 		cpu.Setb_hl()
-
 	case 0x87: //RES b, A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.A)
 	case 0x80: //RES b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.B)
 	case 0x81: //RES b, C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.C)
 	case 0x82: //RES b, D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.D)
 	case 0x83: //RES b, E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.E)
 	case 0x84: //RES b, H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Resb_r(&cpu.R.H)
 	case 0x85: //RES b, L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
-	case 0x86: //RES b, B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
-
+		cpu.Resb_r(&cpu.R.L)
+	case 0x86: //RES b,(HL) 
+		cpu.Resb_hl()
 	case 0x37: //SWAP A
 		cpu.Swap_r(&cpu.R.A)
 	case 0x30: //SWAP B
@@ -2262,7 +2252,6 @@ func (cpu *Z80) Bitb_hl() {
 	}
 
 	cpu.LastInstrCycle.Set(4, 16)
-
 }
 
 //NOP
@@ -2385,6 +2374,38 @@ func (cpu *Z80) Setb_hl() {
 	var HLValue byte = cpu.mmu.ReadByte(HL)
 
 	HLValue = HLValue ^ b
+
+	cpu.mmu.WriteByte(HL, HLValue)
+
+	//set clock values
+	cpu.LastInstrCycle.Set(4, 16)
+}
+
+// RES b, r
+func (cpu *Z80) Resb_r(r *byte) {
+	log.Println("RES b,r")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+
+	b = utils.BitToValue(b)
+
+	*r = *r &^ b
+
+	//set clock values
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+// RES b, (HL) 
+func (cpu *Z80) Resb_hl() {
+	log.Println("RES b,(HL)")
+	var b byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
+	b = utils.BitToValue(b)
+
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var HLValue byte = cpu.mmu.ReadByte(HL)
+
+	HLValue = HLValue &^ b
 
 	cpu.mmu.WriteByte(HL, HLValue)
 
