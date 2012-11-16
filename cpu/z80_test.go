@@ -3089,7 +3089,6 @@ func TestCallcc_nn(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
-
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

@@ -2427,7 +2427,6 @@ func (cpu *Z80) Call_nn() {
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
-
 // CALL cc,nn
 func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 	log.Println("CALL cc, nn")
