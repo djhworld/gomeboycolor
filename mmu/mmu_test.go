@@ -244,3 +244,19 @@ func TestImplementsInterface(t *testing.T) {
 	gbc := new(GbcMMU)
 	assert.Implements(t, (*MemoryMappedUnit)(nil), gbc)
 }
+
+func TestReadByte(t *testing.T) {
+	rom := make([]byte, 32768,32768)
+	for i := 32767; i >= 0; i-- {
+		rom[i] = byte(i)
+	}
+	gbc := new(GbcMMU)
+	gbc.SetInBootMode(false)
+	gbc.LoadROM(0x0000, CARTROM, rom)
+
+	var i types.Word = 0x0000
+	for ; i < 0x8000; i++ {
+		f := gbc.ReadByte(i)
+		assert.Equal(t, f, rom[i])
+	}
+}
