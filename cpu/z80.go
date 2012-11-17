@@ -47,14 +47,15 @@ func (c *Clock) String() string {
 }
 
 type Z80 struct {
-	PC                types.Word // Program Counter
-	SP                types.Word // Stack Pointer
-	R                 Registers
-	Running           bool
-	InterruptsEnabled bool
-	MachineCycles     Clock
-	LastInstrCycle    Clock
-	mmu               mmu.MemoryMappedUnit
+	PC                 types.Word // Program Counter
+	SP                 types.Word // Stack Pointer
+	R                  Registers
+	Running            bool
+	InterruptsEnabled  bool
+	CurrentInstruction byte
+	MachineCycles      Clock
+	LastInstrCycle     Clock
+	mmu                mmu.MemoryMappedUnit
 }
 
 func NewCPU(m mmu.MemoryMappedUnit) *Z80 {
@@ -78,6 +79,7 @@ func (cpu *Z80) Reset() {
 	cpu.R.F = 0
 	cpu.R.H = 0
 	cpu.R.L = 0
+	cpu.CurrentInstruction = 0
 	cpu.mmu.Reset()
 	cpu.InterruptsEnabled = true
 	cpu.Running = true
@@ -110,9 +112,10 @@ func (cpu *Z80) String() string {
 
 	return fmt.Sprintf("\nZ80 CPU\n") +
 		fmt.Sprintf("--------------------------------------------------------\n") +
+		fmt.Sprintf("\tOpcode		= %X\n", cpu.CurrentInstruction) +
 		fmt.Sprintf("\tPC		= %X\n", cpu.PC) +
 		fmt.Sprintf("\tSP		= %X\n", cpu.SP) +
-		fmt.Sprintf("\tINTS?	= %v\n", cpu.InterruptsEnabled) +
+		fmt.Sprintf("\tINTS?		= %v\n", cpu.InterruptsEnabled) +
 		fmt.Sprintf("\tLast Cycle	= %v\n", cpu.LastInstrCycle.String()) +
 		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +
 		fmt.Sprintf("\tFlags		= %v\n", flags) +
@@ -182,179 +185,123 @@ func (cpu *Z80) IncrementPC(by types.Word) {
 func (cpu *Z80) DispatchCB(Opcode byte) {
 	switch Opcode {
 	case 0x07: //RLC A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.A)
 	case 0x00: //RLC B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.B)
 	case 0x01: //RLC C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.C)
 	case 0x02: //RLC D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.D)
 	case 0x03: //RLC E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.E)
 	case 0x04: //RLC H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.H)
 	case 0x05: //RLC L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_r(&cpu.R.L)
 	case 0x06: //RLC (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rlc_hl()
 
 	case 0x17: //RL A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.A)
 	case 0x10: //RL B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.B)
 	case 0x11: //RL C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.C)
 	case 0x12: //RL D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.D)
 	case 0x13: //RL E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.E)
 	case 0x14: //RL H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.H)
 	case 0x15: //RL L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_r(&cpu.R.L)
 	case 0x16: //RL (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rl_hl()
 
 	case 0x0F: //RRC A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.A)
 	case 0x08: //RRC B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.B)
 	case 0x09: //RRC C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.C)
 	case 0x0A: //RRC D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.D)
 	case 0x0B: //RRC E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.E)
 	case 0x0C: //RRC H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.H)
 	case 0x0D: //RRC L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_r(&cpu.R.L)
 	case 0x0E: //RRC (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rrc_hl()
 
 	case 0x1F: //RR A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.A)
 	case 0x18: //RR B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.B)
 	case 0x19: //RR C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.C)
 	case 0x1A: //RR D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.D)
 	case 0x1B: //RR E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.E)
 	case 0x1C: //RR H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.H)
 	case 0x1D: //RR L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_r(&cpu.R.L)
 	case 0x1E: //RR (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Rr_hl()
 
 	case 0x27: //SLA A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.A)
 	case 0x20: //SLA B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.B)
 	case 0x21: //SLA C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.C)
 	case 0x22: //SLA D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.D)
 	case 0x23: //SLA E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.E)
 	case 0x24: //SLA H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.H)
 	case 0x25: //SLA L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
-	case 0x26: //SLA B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sla_r(&cpu.R.L)
+	case 0x26: //SLA (HL)
+		cpu.Sla_hl()
 
 	case 0x2F: //SRA A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.A)
 	case 0x28: //SRA B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.B)
 	case 0x29: //SRA C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.C)
 	case 0x2A: //SRA D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.D)
 	case 0x2B: //SRA E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.E)
 	case 0x2C: //SRA H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.H)
 	case 0x2D: //SRA L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_r(&cpu.R.L)
 	case 0x2E: //SRA (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Sra_hl()
 
 	case 0x3F: //SRL A
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.A)
 	case 0x38: //SRL B
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.B)
 	case 0x39: //SRL C
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.C)
 	case 0x3A: //SRL D
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.D)
 	case 0x3B: //SRL E
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.E)
 	case 0x3C: //SRL H
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.H)
 	case 0x3D: //SRL L
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_r(&cpu.R.L)
 	case 0x3E: //SRL (HL)
-		//TODO: implement
-		log.Fatalf("Unimplemented")
+		cpu.Srl_hl()
 
 	case 0x47: //BIT b, A
 		cpu.Bitb_r(&cpu.R.A)
@@ -665,40 +612,23 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.SubA_n()
 
 	case 0x9F: // SBC A, A
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.A)
+		cpu.SubAC_r(&cpu.R.A)
 	case 0x98: // SBC A, B
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.B)
+		cpu.SubAC_r(&cpu.R.B)
 	case 0x99: // SBC A, C
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.C)
+		cpu.SubAC_r(&cpu.R.C)
 	case 0x9A: // SBC A, D
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.D)
+		cpu.SubAC_r(&cpu.R.D)
 	case 0x9B: // SBC A, E
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.E)
+		cpu.SubAC_r(&cpu.R.E)
 	case 0x9C: // SBC A, H
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.H)
+		cpu.SubAC_r(&cpu.R.H)
 	case 0x9D: // SBC A, L
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_r(&cpu.R.L)
+		cpu.SubAC_r(&cpu.R.L)
 	case 0x9E: //SBC A, (HL)
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
-		//cpu.SubAC_hl()
+		cpu.SubAC_hl()
 	case 0xDE: //SBC A, n
-		//TODO: Implement
-		log.Fatal("Unimplemnted")
+		cpu.SubAC_n()
 
 	case 0xBF: //CP A, A
 		cpu.CPA_r(&cpu.R.A)
@@ -981,6 +911,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 
 func (cpu *Z80) Step() {
 	var Opcode byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.CurrentInstruction = Opcode
 	cpu.IncrementPC(1)
 
 	if Opcode == 0xCB {
@@ -2509,6 +2440,108 @@ func (cpu *Z80) Ret_i() {
 	cpu.PC = cpu.popWordFromStack()
 	cpu.InterruptsEnabled = true
 	cpu.LastInstrCycle.Set(2, 8)
+}
+
+//RLC r
+func (cpu *Z80) Rlc_r(r *byte) {
+	log.Println("RLC r")
+	//TODO: Implement
+}
+
+//RLC (HL) 
+func (cpu *Z80) Rlc_hl() {
+	log.Println("RLC (HL)")
+	//TODO: Implement
+}
+
+//RL r
+func (cpu *Z80) Rl_r(r *byte) {
+	log.Println("RL r")
+	//TODO: Implement
+}
+
+//RL (HL) 
+func (cpu *Z80) Rl_hl() {
+	log.Println("RL (HL)")
+	//TODO: Implement
+}
+
+//RRC r
+func (cpu *Z80) Rrc_r(r *byte) {
+	log.Println("RRC r")
+	//TODO: Implement
+}
+
+//RRC (HL) 
+func (cpu *Z80) Rrc_hl() {
+	log.Println("RRC (HL)")
+	//TODO: Implement
+}
+
+//RR r
+func (cpu *Z80) Rr_r(r *byte) {
+	log.Println("RR r")
+	//TODO: Implement
+}
+
+//RR (HL) 
+func (cpu *Z80) Rr_hl() {
+	log.Println("RR (HL)")
+	//TODO: Implement
+}
+
+//SLA r
+func (cpu *Z80) Sla_r(r *byte) {
+	log.Println("SLA r")
+	//TODO: Implement
+}
+
+//SLA (HL) 
+func (cpu *Z80) Sla_hl() {
+	log.Println("SLA (HL)")
+	//TODO: Implement
+}
+
+//SRA r
+func (cpu *Z80) Sra_r(r *byte) {
+	log.Println("SRA r")
+	//TODO: Implement
+}
+
+//SRA (HL) 
+func (cpu *Z80) Sra_hl() {
+	log.Println("SRA (HL)")
+	//TODO: Implement
+}
+
+//SRL r
+func (cpu *Z80) Srl_r(r *byte) {
+	log.Println("SRL r")
+	//TODO: Implement
+}
+
+//SRL (HL) 
+func (cpu *Z80) Srl_hl() {
+	log.Println("SRL (HL)")
+	//TODO: Implement
+}
+
+//SBC A,r
+func (cpu *Z80) SubAC_r(r *byte) {
+	log.Println("SBC A,r")
+	//TODO: Implement
+}
+
+//SBC A, (HL)
+func (cpu *Z80) SubAC_hl() {
+	log.Println("SBC A, (HL)")
+	//TODO: Implement
+}
+
+//SBC A, n
+func (cpu *Z80) SubAC_n() {
+	log.Println("SBC A, n")
+	//TODO: Implement
 }
 
 //-----------------------------------------------------------------------
