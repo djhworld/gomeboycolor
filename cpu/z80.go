@@ -184,8 +184,6 @@ func (cpu *Z80) IncrementPC(by types.Word) {
 
 func (cpu *Z80) DispatchCB(Opcode byte) {
 	switch Opcode {
-	case 0x07: //RLC A
-		cpu.Rlc_r(&cpu.R.A)
 	case 0x00: //RLC B
 		cpu.Rlc_r(&cpu.R.B)
 	case 0x01: //RLC C
@@ -200,26 +198,8 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Rlc_r(&cpu.R.L)
 	case 0x06: //RLC (HL)
 		cpu.Rlc_hl()
-
-	case 0x17: //RL A
-		cpu.Rl_r(&cpu.R.A)
-	case 0x10: //RL B
-		cpu.Rl_r(&cpu.R.B)
-	case 0x11: //RL C
-		cpu.Rl_r(&cpu.R.C)
-	case 0x12: //RL D
-		cpu.Rl_r(&cpu.R.D)
-	case 0x13: //RL E
-		cpu.Rl_r(&cpu.R.E)
-	case 0x14: //RL H
-		cpu.Rl_r(&cpu.R.H)
-	case 0x15: //RL L
-		cpu.Rl_r(&cpu.R.L)
-	case 0x16: //RL (HL)
-		cpu.Rl_hl()
-
-	case 0x0F: //RRC A
-		cpu.Rrc_r(&cpu.R.A)
+	case 0x07: //RLC A
+		cpu.Rlc_r(&cpu.R.A)
 	case 0x08: //RRC B
 		cpu.Rrc_r(&cpu.R.B)
 	case 0x09: //RRC C
@@ -234,9 +214,24 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Rrc_r(&cpu.R.L)
 	case 0x0E: //RRC (HL)
 		cpu.Rrc_hl()
-
-	case 0x1F: //RR A
-		cpu.Rr_r(&cpu.R.A)
+	case 0x0F: //RRC A
+		cpu.Rrc_r(&cpu.R.A)
+	case 0x10: //RL B
+		cpu.Rl_r(&cpu.R.B)
+	case 0x11: //RL C
+		cpu.Rl_r(&cpu.R.C)
+	case 0x12: //RL D
+		cpu.Rl_r(&cpu.R.D)
+	case 0x13: //RL E
+		cpu.Rl_r(&cpu.R.E)
+	case 0x14: //RL H
+		cpu.Rl_r(&cpu.R.H)
+	case 0x15: //RL L
+		cpu.Rl_r(&cpu.R.L)
+	case 0x16: //RL (HL)
+		cpu.Rl_hl()
+	case 0x17: //RL A
+		cpu.Rl_r(&cpu.R.A)
 	case 0x18: //RR B
 		cpu.Rr_r(&cpu.R.B)
 	case 0x19: //RR C
@@ -251,9 +246,8 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Rr_r(&cpu.R.L)
 	case 0x1E: //RR (HL)
 		cpu.Rr_hl()
-
-	case 0x27: //SLA A
-		cpu.Sla_r(&cpu.R.A)
+	case 0x1F: //RR A
+		cpu.Rr_r(&cpu.R.A)
 	case 0x20: //SLA B
 		cpu.Sla_r(&cpu.R.B)
 	case 0x21: //SLA C
@@ -268,9 +262,8 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Sla_r(&cpu.R.L)
 	case 0x26: //SLA (HL)
 		cpu.Sla_hl()
-
-	case 0x2F: //SRA A
-		cpu.Sra_r(&cpu.R.A)
+	case 0x27: //SLA A
+		cpu.Sla_r(&cpu.R.A)
 	case 0x28: //SRA B
 		cpu.Sra_r(&cpu.R.B)
 	case 0x29: //SRA C
@@ -285,75 +278,8 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Sra_r(&cpu.R.L)
 	case 0x2E: //SRA (HL)
 		cpu.Sra_hl()
-
-	case 0x3F: //SRL A
-		cpu.Srl_r(&cpu.R.A)
-	case 0x38: //SRL B
-		cpu.Srl_r(&cpu.R.B)
-	case 0x39: //SRL C
-		cpu.Srl_r(&cpu.R.C)
-	case 0x3A: //SRL D
-		cpu.Srl_r(&cpu.R.D)
-	case 0x3B: //SRL E
-		cpu.Srl_r(&cpu.R.E)
-	case 0x3C: //SRL H
-		cpu.Srl_r(&cpu.R.H)
-	case 0x3D: //SRL L
-		cpu.Srl_r(&cpu.R.L)
-	case 0x3E: //SRL (HL)
-		cpu.Srl_hl()
-
-	case 0x47: //BIT b, A
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x40: //BIT b, B
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x41: //BIT b, C
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x42: //BIT b, D
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x43: //BIT b, E
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x44: //BIT b, H
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x45: //BIT b, L
-		cpu.Bitb_r(&cpu.R.A)
-	case 0x46: //BIT b, (HL)
-		cpu.Bitb_hl()
-
-	case 0xC7: //SET b, A
-		cpu.Setb_r(&cpu.R.A)
-	case 0xC0: //SET b, B
-		cpu.Setb_r(&cpu.R.B)
-	case 0xC1: //SET b, C
-		cpu.Setb_r(&cpu.R.C)
-	case 0xC2: //SET b, D
-		cpu.Setb_r(&cpu.R.D)
-	case 0xC3: //SET b, E
-		cpu.Setb_r(&cpu.R.E)
-	case 0xC4: //SET b, H
-		cpu.Setb_r(&cpu.R.H)
-	case 0xC5: //SET b, L
-		cpu.Setb_r(&cpu.R.L)
-	case 0xC6: //SET b, (HL)
-		cpu.Setb_hl()
-	case 0x87: //RES b, A
-		cpu.Resb_r(&cpu.R.A)
-	case 0x80: //RES b, B
-		cpu.Resb_r(&cpu.R.B)
-	case 0x81: //RES b, C
-		cpu.Resb_r(&cpu.R.C)
-	case 0x82: //RES b, D
-		cpu.Resb_r(&cpu.R.D)
-	case 0x83: //RES b, E
-		cpu.Resb_r(&cpu.R.E)
-	case 0x84: //RES b, H
-		cpu.Resb_r(&cpu.R.H)
-	case 0x85: //RES b, L
-		cpu.Resb_r(&cpu.R.L)
-	case 0x86: //RES b,(HL) 
-		cpu.Resb_hl()
-	case 0x37: //SWAP A
-		cpu.Swap_r(&cpu.R.A)
+	case 0x2F: //SRA A
+		cpu.Sra_r(&cpu.R.A)
 	case 0x30: //SWAP B
 		cpu.Swap_r(&cpu.R.B)
 	case 0x31: //SWAP C
@@ -368,6 +294,72 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 		cpu.Swap_r(&cpu.R.L)
 	case 0x36: //SWAP (HL)
 		cpu.Swap_hl()
+	case 0x37: //SWAP A
+		cpu.Swap_r(&cpu.R.A)
+	case 0x38: //SRL B
+		cpu.Srl_r(&cpu.R.B)
+	case 0x39: //SRL C
+		cpu.Srl_r(&cpu.R.C)
+	case 0x3A: //SRL D
+		cpu.Srl_r(&cpu.R.D)
+	case 0x3B: //SRL E
+		cpu.Srl_r(&cpu.R.E)
+	case 0x3C: //SRL H
+		cpu.Srl_r(&cpu.R.H)
+	case 0x3D: //SRL L
+		cpu.Srl_r(&cpu.R.L)
+	case 0x3E: //SRL (HL)
+		cpu.Srl_hl()
+	case 0x3F: //SRL A
+		cpu.Srl_r(&cpu.R.A)
+	case 0x40: //BIT b, B
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x41: //BIT b, C
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x42: //BIT b, D
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x43: //BIT b, E
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x44: //BIT b, H
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x45: //BIT b, L
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x46: //BIT b, (HL)
+		cpu.Bitb_hl()
+	case 0x47: //BIT b, A
+		cpu.Bitb_r(&cpu.R.A)
+	case 0x80: //RES b, B
+		cpu.Resb_r(&cpu.R.B)
+	case 0x81: //RES b, C
+		cpu.Resb_r(&cpu.R.C)
+	case 0x82: //RES b, D
+		cpu.Resb_r(&cpu.R.D)
+	case 0x83: //RES b, E
+		cpu.Resb_r(&cpu.R.E)
+	case 0x84: //RES b, H
+		cpu.Resb_r(&cpu.R.H)
+	case 0x85: //RES b, L
+		cpu.Resb_r(&cpu.R.L)
+	case 0x86: //RES b,(HL) 
+		cpu.Resb_hl()
+	case 0x87: //RES b, A
+		cpu.Resb_r(&cpu.R.A)
+	case 0xC0: //SET b, B
+		cpu.Setb_r(&cpu.R.B)
+	case 0xC1: //SET b, C
+		cpu.Setb_r(&cpu.R.C)
+	case 0xC2: //SET b, D
+		cpu.Setb_r(&cpu.R.D)
+	case 0xC3: //SET b, E
+		cpu.Setb_r(&cpu.R.E)
+	case 0xC4: //SET b, H
+		cpu.Setb_r(&cpu.R.H)
+	case 0xC5: //SET b, L
+		cpu.Setb_r(&cpu.R.L)
+	case 0xC6: //SET b, (HL)
+		cpu.Setb_hl()
+	case 0xC7: //SET b, A
+		cpu.Setb_r(&cpu.R.A)
 	default:
 		log.Fatalf("Invalid/Unknown instruction %X", Opcode)
 	}
@@ -377,358 +369,130 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	switch Opcode {
 	case 0x00: //NOP
 		cpu.NOP()
-	case 0x76: //HALT
-		cpu.HALT()
-	case 0xF3: //DI
-		cpu.DI()
-	case 0xFB: //EI
-		cpu.EI()
-
-	case 0xC7: //RST n
-		cpu.Rst(0x00)
-	case 0xCF: //RST n
-		cpu.Rst(0x08)
-	case 0xD7: //RST n
-		cpu.Rst(0x10)
-	case 0xDF: //RST n
-		cpu.Rst(0x18)
-	case 0xE7: //RST n
-		cpu.Rst(0x20)
-	case 0xEF: //RST n
-		cpu.Rst(0x28)
-	case 0xF7: //RST n
-		cpu.Rst(0x30)
-	case 0xFF: //RST n
-		cpu.Rst(0x38)
-
-	case 0xC0: //RET NZ
-		cpu.Retcc(Z, false)
-	case 0xC8: //RET Z
-		cpu.Retcc(Z, true)
-	case 0xD0: //RET NC
-		cpu.Retcc(C, false)
-	case 0xD8: //RET C
-		cpu.Retcc(C, true)
-
-	case 0xC9: //RET
-		cpu.Ret()
-	case 0xD9: //RETI
-		cpu.Ret_i()
-
-	case 0xC2: //JP NZ,nn
-		cpu.JPcc_nn(Z, false)
-	case 0xCA: //JP Z,nn
-		cpu.JPcc_nn(Z, true)
-	case 0xD2: //JP NC,nn
-		cpu.JPcc_nn(C, false)
-	case 0xDA: //JP C,nn
-		cpu.JPcc_nn(C, true)
-
-	case 0xC3: //JP nn
-		cpu.JP_nn()
-	case 0xE9: //JP (HL)
-		cpu.JP_hl()
-	case 0x18: //JR n
-		cpu.JR_n()
-
-	case 0x20: //JR NZ,n
-		cpu.JRcc_nn(Z, false)
-	case 0x28: //JR Z,n
-		cpu.JRcc_nn(Z, true)
-	case 0x30: //JR NZ,n
-		cpu.JRcc_nn(C, false)
-	case 0x38: //JR C,n
-		cpu.JRcc_nn(C, true)
-
-	case 0xCD: //CALL nn
-		cpu.Call_nn()
-
-	case 0xC4: //CALL NZ, nn
-		cpu.Callcc_nn(Z, false)
-	case 0xCC: //CALL Z, nn
-		cpu.Callcc_nn(Z, true)
-	case 0xD4: //CALL NC, nn
-		cpu.Callcc_nn(C, false)
-	case 0xDC: //CALL C, nn
-		cpu.Callcc_nn(C, true)
-
-	case 0x07: //RLCA
-		cpu.RLCA()
-	case 0x17: //RLA
-		cpu.RLA()
-
-	case 0x0F: //RRCA
-		cpu.RRCA()
-	case 0x1F: //RRA
-		cpu.RRA()
-
-	case 0x27: //DAA
-		cpu.Daa()
-	case 0x37: //SCF
-		cpu.SCF()
-
-	case 0x2F: //CPL
-		cpu.CPL()
-	case 0x3F: //CCF
-		cpu.CCF()
-
+	case 0x01: //LD BC, nn
+		cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
+	case 0x02: //LD (BC), A
+		cpu.LDbc_r(&cpu.R.A)
 	case 0x03: //INC BC
 		cpu.Inc_rr(&cpu.R.B, &cpu.R.C)
-	case 0x13: //INC DE
-		cpu.Inc_rr(&cpu.R.D, &cpu.R.E)
-	case 0x23: //INC HL
-		cpu.Inc_rr(&cpu.R.H, &cpu.R.L)
-	case 0x33: //INC SP
-		cpu.Inc_sp()
-
-	case 0x0B: //DEC BC
-		cpu.Dec_rr(&cpu.R.B, &cpu.R.C)
-	case 0x1B: //DEC DE
-		cpu.Dec_rr(&cpu.R.D, &cpu.R.E)
-	case 0x2B: //DEC HL
-		cpu.Dec_rr(&cpu.R.H, &cpu.R.L)
-	case 0x3B: //DEC SP
-		cpu.Dec_sp()
-
-	case 0xE8: //ADD SP,n
-		cpu.Addsp_n()
-	case 0xA7: //AND A, A
-		cpu.AndA_r(&cpu.R.A)
-	case 0xA0: //AND A, B
-		cpu.AndA_r(&cpu.R.B)
-	case 0xA1: //AND A, C
-		cpu.AndA_r(&cpu.R.C)
-	case 0xA2: //AND A, D
-		cpu.AndA_r(&cpu.R.D)
-	case 0xA3: //AND A, E
-		cpu.AndA_r(&cpu.R.E)
-	case 0xA4: //AND A, H
-		cpu.AndA_r(&cpu.R.H)
-	case 0xA5: //AND A, L
-		cpu.AndA_r(&cpu.R.L)
-	case 0xA6: //AND A, (HL)
-		cpu.AndA_hl()
-	case 0xE6: //AND A, n
-		cpu.AndA_n()
-
-	case 0xB7: //OR A, A
-		cpu.OrA_r(&cpu.R.A)
-	case 0xB0: //OR A, B
-		cpu.OrA_r(&cpu.R.B)
-	case 0xB1: //OR A, C
-		cpu.OrA_r(&cpu.R.C)
-	case 0xB2: //OR A, D
-		cpu.OrA_r(&cpu.R.D)
-	case 0xB3: //OR A, E
-		cpu.OrA_r(&cpu.R.E)
-	case 0xB4: //OR A, H
-		cpu.OrA_r(&cpu.R.H)
-	case 0xB5: //OR A, L
-		cpu.OrA_r(&cpu.R.L)
-	case 0xB6: //OR A,(HL)
-		cpu.OrA_hl()
-	case 0xF6: //OR A, n
-		cpu.OrA_n()
-
-	case 0xAF: //XOR A, A
-		cpu.XorA_r(&cpu.R.A)
-	case 0xA8: //XOR A, B
-		cpu.XorA_r(&cpu.R.B)
-	case 0xA9: //XOR A, C
-		cpu.XorA_r(&cpu.R.C)
-	case 0xAA: //XOR A, D
-		cpu.XorA_r(&cpu.R.D)
-	case 0xAB: //XOR A, E
-		cpu.XorA_r(&cpu.R.E)
-	case 0xAC: //XOR A, H
-		cpu.XorA_r(&cpu.R.H)
-	case 0xAD: //XOR A, L
-		cpu.XorA_r(&cpu.R.L)
-	case 0xAE: //XOR A,(HL)
-		cpu.XorA_hl()
-	case 0xEE: //XOR A, n
-		cpu.XorA_n()
-
-	case 0x3C: //INC A
-		cpu.Inc_r(&cpu.R.A)
 	case 0x04: //INC B
 		cpu.Inc_r(&cpu.R.B)
-	case 0x0C: //INC C
-		cpu.Inc_r(&cpu.R.C)
-	case 0x14: //INC D
-		cpu.Inc_r(&cpu.R.D)
-	case 0x1C: //INC E
-		cpu.Inc_r(&cpu.R.E)
-	case 0x24: //INC H
-		cpu.Inc_r(&cpu.R.H)
-	case 0x2C: //INC L
-		cpu.Inc_r(&cpu.R.L)
-	case 0x34: //INC (HL)
-		cpu.Inc_hl()
-
-	case 0x3D: //DEC A
-		cpu.Dec_r(&cpu.R.A)
 	case 0x05: //DEC B
 		cpu.Dec_r(&cpu.R.B)
-	case 0x0D: //DEC C
-		cpu.Dec_r(&cpu.R.C)
-	case 0x15: //DEC D
-		cpu.Dec_r(&cpu.R.D)
-	case 0x1D: //DEC E
-		cpu.Dec_r(&cpu.R.E)
-	case 0x25: //DEC H
-		cpu.Dec_r(&cpu.R.H)
-	case 0x2D: //DEC L
-		cpu.Dec_r(&cpu.R.L)
-	case 0x35: //DEC (HL)
-		cpu.Dec_hl()
-
-	case 0x09: //ADD HL,BC
-		cpu.Addhl_rr(&cpu.R.B, &cpu.R.C)
-	case 0x19: //ADD HL,DE
-		cpu.Addhl_rr(&cpu.R.D, &cpu.R.E)
-	case 0x29: //ADD HL,HL
-		cpu.Addhl_rr(&cpu.R.H, &cpu.R.L)
-	case 0x39: //ADD HL,SP
-		cpu.Addhl_sp()
-
-	case 0x97: // SUB A, A
-		cpu.SubA_r(&cpu.R.A)
-	case 0x90: // SUB A, B
-		cpu.SubA_r(&cpu.R.B)
-	case 0x91: // SUB A, C
-		cpu.SubA_r(&cpu.R.C)
-	case 0x92: // SUB A, D
-		cpu.SubA_r(&cpu.R.D)
-	case 0x93: // SUB A, E
-		cpu.SubA_r(&cpu.R.E)
-	case 0x94: // SUB A, H
-		cpu.SubA_r(&cpu.R.H)
-	case 0x95: // SUB A, L
-		cpu.SubA_r(&cpu.R.L)
-	case 0x96: //SUB A, (HL)
-		cpu.SubA_hl()
-	case 0xD6: //SUB A, n
-		cpu.SubA_n()
-
-	case 0x9F: // SBC A, A
-		cpu.SubAC_r(&cpu.R.A)
-	case 0x98: // SBC A, B
-		cpu.SubAC_r(&cpu.R.B)
-	case 0x99: // SBC A, C
-		cpu.SubAC_r(&cpu.R.C)
-	case 0x9A: // SBC A, D
-		cpu.SubAC_r(&cpu.R.D)
-	case 0x9B: // SBC A, E
-		cpu.SubAC_r(&cpu.R.E)
-	case 0x9C: // SBC A, H
-		cpu.SubAC_r(&cpu.R.H)
-	case 0x9D: // SBC A, L
-		cpu.SubAC_r(&cpu.R.L)
-	case 0x9E: //SBC A, (HL)
-		cpu.SubAC_hl()
-	case 0xDE: //SBC A, n
-		cpu.SubAC_n()
-
-	case 0xBF: //CP A, A
-		cpu.CPA_r(&cpu.R.A)
-	case 0xB8: //CP A, B
-		cpu.CPA_r(&cpu.R.B)
-	case 0xB9: //CP A, C
-		cpu.CPA_r(&cpu.R.C)
-	case 0xBA: //CP A, D
-		cpu.CPA_r(&cpu.R.D)
-	case 0xBB: //CP A, E
-		cpu.CPA_r(&cpu.R.E)
-	case 0xBC: //CP A, H
-		cpu.CPA_r(&cpu.R.H)
-	case 0xBD: //CP A, L
-		cpu.CPA_r(&cpu.R.L)
-	case 0xBE: //CP A, (HL)
-		cpu.CPA_hl()
-	case 0xFE: //CP A, n
-		cpu.CPA_n()
-
-	case 0xF5: //PUSH AF
-		cpu.Push_nn(&cpu.R.A, &cpu.R.F)
-	case 0xC5: //PUSH BC
-		cpu.Push_nn(&cpu.R.B, &cpu.R.C)
-	case 0xD5: //PUSH DE
-		cpu.Push_nn(&cpu.R.D, &cpu.R.E)
-	case 0xE5: //PUSH HL
-		cpu.Push_nn(&cpu.R.H, &cpu.R.L)
-
-	case 0x8F: //ADC A, A
-		cpu.AddCA_r(&cpu.R.A)
-	case 0x88: //ADC A, B
-		cpu.AddCA_r(&cpu.R.B)
-	case 0x89: //ADC A, C
-		cpu.AddCA_r(&cpu.R.C)
-	case 0x8A: //ADC A, D
-		cpu.AddCA_r(&cpu.R.D)
-	case 0x8B: //ADC A, E
-		cpu.AddCA_r(&cpu.R.E)
-	case 0x8C: //ADC A, H
-		cpu.AddCA_r(&cpu.R.H)
-	case 0x8D: //ADC A, L
-		cpu.AddCA_r(&cpu.R.L)
-	case 0x8E: //ADC A, (HL)
-		cpu.AddCA_hl()
-	case 0xCE: //ADC A, n
-		cpu.AddCA_n()
-
-	case 0xF1: //POP AF
-		cpu.Pop_nn(&cpu.R.A, &cpu.R.F)
-	case 0xC1: //POP BC
-		cpu.Pop_nn(&cpu.R.B, &cpu.R.C)
-	case 0xD1: //POP DE
-		cpu.Pop_nn(&cpu.R.D, &cpu.R.E)
-	case 0xE1: //POP HL
-		cpu.Pop_nn(&cpu.R.H, &cpu.R.L)
-
-	case 0x08: //LD nn, SP
-		cpu.LDnn_SP()
-	case 0x3E: //LD A, n
-		cpu.LDrn(&cpu.R.A)
 	case 0x06: //LD B,n
 		cpu.LDrn(&cpu.R.B)
-	case 0x0E: //LD C,n
-		cpu.LDrn(&cpu.R.C)
-	case 0x16: //LD D,n
-		cpu.LDrn(&cpu.R.D)
-	case 0x1E: //LD E,n
-		cpu.LDrn(&cpu.R.E)
-	case 0x26: //LD H,n
-		cpu.LDrn(&cpu.R.H)
-	case 0x2E: //LD L,n
-		cpu.LDrn(&cpu.R.L)
-
-	case 0x7E: //LD A, (HL)
-		cpu.LDr_hl(&cpu.R.A)
+	case 0x07: //RLCA
+		cpu.RLCA()
+	case 0x08: //LD nn, SP
+		cpu.LDnn_SP()
+	case 0x09: //ADD HL,BC
+		cpu.Addhl_rr(&cpu.R.B, &cpu.R.C)
 	case 0x0A: //LD A, (BC)
 		cpu.LDr_bc(&cpu.R.A)
+	case 0x0B: //DEC BC
+		cpu.Dec_rr(&cpu.R.B, &cpu.R.C)
+	case 0x0C: //INC C
+		cpu.Inc_r(&cpu.R.C)
+	case 0x0D: //DEC C
+		cpu.Dec_r(&cpu.R.C)
+	case 0x0E: //LD C,n
+		cpu.LDrn(&cpu.R.C)
+	case 0x0F: //RRCA
+		cpu.RRCA()
+	case 0x11: //LD DE, nn
+		cpu.LDn_nn(&cpu.R.D, &cpu.R.E)
+	case 0x12: //LD (DE), A
+		cpu.LDde_r(&cpu.R.A)
+	case 0x13: //INC DE
+		cpu.Inc_rr(&cpu.R.D, &cpu.R.E)
+	case 0x14: //INC D
+		cpu.Inc_r(&cpu.R.D)
+	case 0x15: //DEC D
+		cpu.Dec_r(&cpu.R.D)
+	case 0x16: //LD D,n
+		cpu.LDrn(&cpu.R.D)
+	case 0x17: //RLA
+		cpu.RLA()
+	case 0x18: //JR n
+		cpu.JR_n()
+	case 0x19: //ADD HL,DE
+		cpu.Addhl_rr(&cpu.R.D, &cpu.R.E)
 	case 0x1A: //LD A, (DE)
 		cpu.LDr_de(&cpu.R.A)
-	case 0xFA: //LD A, (nn)
-		cpu.LDr_nn(&cpu.R.A)
-
-	case 0x7F: //LD A, A
-		cpu.LDrr(&cpu.R.A, &cpu.R.A)
-	case 0x78: //LD A, B
-		cpu.LDrr(&cpu.R.A, &cpu.R.B)
-	case 0x79: //LD A, C
-		cpu.LDrr(&cpu.R.A, &cpu.R.C)
-	case 0x7A: //LD A, D
-		cpu.LDrr(&cpu.R.A, &cpu.R.D)
-	case 0x7B: //LD A, E
-		cpu.LDrr(&cpu.R.A, &cpu.R.E)
-	case 0x7C: //LD A, H
-		cpu.LDrr(&cpu.R.A, &cpu.R.H)
-	case 0x7D: //LD A, L
-		cpu.LDrr(&cpu.R.A, &cpu.R.L)
-
-	case 0x47: //LD B, A
-		cpu.LDrr(&cpu.R.B, &cpu.R.A)
+	case 0x1B: //DEC DE
+		cpu.Dec_rr(&cpu.R.D, &cpu.R.E)
+	case 0x1C: //INC E
+		cpu.Inc_r(&cpu.R.E)
+	case 0x1D: //DEC E
+		cpu.Dec_r(&cpu.R.E)
+	case 0x1E: //LD E,n
+		cpu.LDrn(&cpu.R.E)
+	case 0x1F: //RRA
+		cpu.RRA()
+	case 0x20: //JR NZ,n
+		cpu.JRcc_nn(Z, false)
+	case 0x21: //LD HL, nn
+		cpu.LDn_nn(&cpu.R.H, &cpu.R.L)
+	case 0x22: //LDI (HL), A
+		cpu.LDIhl_r(&cpu.R.A)
+	case 0x23: //INC HL
+		cpu.Inc_rr(&cpu.R.H, &cpu.R.L)
+	case 0x24: //INC H
+		cpu.Inc_r(&cpu.R.H)
+	case 0x25: //DEC H
+		cpu.Dec_r(&cpu.R.H)
+	case 0x26: //LD H,n
+		cpu.LDrn(&cpu.R.H)
+	case 0x27: //DAA
+		cpu.Daa()
+	case 0x28: //JR Z,n
+		cpu.JRcc_nn(Z, true)
+	case 0x29: //ADD HL,HL
+		cpu.Addhl_rr(&cpu.R.H, &cpu.R.L)
+	case 0x2A: //LDI A, (HL)
+		cpu.LDIr_hl(&cpu.R.A)
+	case 0x2B: //DEC HL
+		cpu.Dec_rr(&cpu.R.H, &cpu.R.L)
+	case 0x2C: //INC L
+		cpu.Inc_r(&cpu.R.L)
+	case 0x2D: //DEC L
+		cpu.Dec_r(&cpu.R.L)
+	case 0x2E: //LD L,n
+		cpu.LDrn(&cpu.R.L)
+	case 0x2F: //CPL
+		cpu.CPL()
+	case 0x30: //JR NZ,n
+		cpu.JRcc_nn(C, false)
+	case 0x31: //LD SP, nn
+		cpu.LDSP_nn()
+	case 0x32: //LDD (HL), A
+		cpu.LDDhl_r(&cpu.R.A)
+	case 0x33: //INC SP
+		cpu.Inc_sp()
+	case 0x34: //INC (HL)
+		cpu.Inc_hl()
+	case 0x35: //DEC (HL)
+		cpu.Dec_hl()
+	case 0x36: //LD (HL), n
+		cpu.LDhl_n()
+	case 0x37: //SCF
+		cpu.SCF()
+	case 0x38: //JR C,n
+		cpu.JRcc_nn(C, true)
+	case 0x39: //ADD HL,SP
+		cpu.Addhl_sp()
+	case 0x3A: //LDD A, (HL)
+		cpu.LDDr_hl(&cpu.R.A)
+	case 0x3B: //DEC SP
+		cpu.Dec_sp()
+	case 0x3C: //INC A
+		cpu.Inc_r(&cpu.R.A)
+	case 0x3D: //DEC A
+		cpu.Dec_r(&cpu.R.A)
+	case 0x3E: //LD A, n
+		cpu.LDrn(&cpu.R.A)
+	case 0x3F: //CCF
+		cpu.CCF()
 	case 0x40: //LD B, B
 		cpu.LDrr(&cpu.R.B, &cpu.R.B)
 	case 0x41: //LD B, C
@@ -743,9 +507,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.B, &cpu.R.L)
 	case 0x46: //LD B, (HL)
 		cpu.LDr_hl(&cpu.R.B)
-
-	case 0x4F: //LD C, A
-		cpu.LDrr(&cpu.R.C, &cpu.R.A)
+	case 0x47: //LD B, A
+		cpu.LDrr(&cpu.R.B, &cpu.R.A)
 	case 0x48: //LD C, B
 		cpu.LDrr(&cpu.R.C, &cpu.R.B)
 	case 0x49: //LD C, C
@@ -760,9 +523,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.C, &cpu.R.L)
 	case 0x4E: //LD C, (HL)
 		cpu.LDr_hl(&cpu.R.C)
-
-	case 0x57: //LD D, A
-		cpu.LDrr(&cpu.R.D, &cpu.R.A)
+	case 0x4F: //LD C, A
+		cpu.LDrr(&cpu.R.C, &cpu.R.A)
 	case 0x50: //LD D, B
 		cpu.LDrr(&cpu.R.D, &cpu.R.B)
 	case 0x51: //LD D, C
@@ -777,9 +539,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.D, &cpu.R.L)
 	case 0x56: //LD D, (HL)
 		cpu.LDr_hl(&cpu.R.D)
-
-	case 0x5F: //LD E, A
-		cpu.LDrr(&cpu.R.E, &cpu.R.A)
+	case 0x57: //LD D, A
+		cpu.LDrr(&cpu.R.D, &cpu.R.A)
 	case 0x58: //LD E, B
 		cpu.LDrr(&cpu.R.E, &cpu.R.B)
 	case 0x59: //LD E, C
@@ -794,9 +555,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.E, &cpu.R.L)
 	case 0x5E: //LD E, (HL)
 		cpu.LDr_hl(&cpu.R.E)
-
-	case 0x67: //LD H, A
-		cpu.LDrr(&cpu.R.H, &cpu.R.A)
+	case 0x5F: //LD E, A
+		cpu.LDrr(&cpu.R.E, &cpu.R.A)
 	case 0x60: //LD H, B
 		cpu.LDrr(&cpu.R.H, &cpu.R.B)
 	case 0x61: //LD H, C
@@ -811,9 +571,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.H, &cpu.R.L)
 	case 0x66: //LD H, (HL)
 		cpu.LDr_hl(&cpu.R.H)
-
-	case 0x6F: //LD L, A
-		cpu.LDrr(&cpu.R.L, &cpu.R.A)
+	case 0x67: //LD H, A
+		cpu.LDrr(&cpu.R.H, &cpu.R.A)
 	case 0x68: //LD L, B
 		cpu.LDrr(&cpu.R.L, &cpu.R.B)
 	case 0x69: //LD L, C
@@ -828,9 +587,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrr(&cpu.R.L, &cpu.R.L)
 	case 0x6E: //LD L, (HL)
 		cpu.LDr_hl(&cpu.R.L)
-
-	case 0x77: //LD (HL), A
-		cpu.LDhl_r(&cpu.R.A)
+	case 0x6F: //LD L, A
+		cpu.LDrr(&cpu.R.L, &cpu.R.A)
 	case 0x70: //LD (HL), B
 		cpu.LDhl_r(&cpu.R.B)
 	case 0x71: //LD (HL), C
@@ -843,51 +601,26 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDhl_r(&cpu.R.H)
 	case 0x75: //LD (HL), L
 		cpu.LDhl_r(&cpu.R.L)
-
-	case 0x02: //LD (BC), A
-		cpu.LDbc_r(&cpu.R.A)
-	case 0x12: //LD (DE), A
-		cpu.LDde_r(&cpu.R.A)
-	case 0xEA: //LD (nn), A
-		cpu.LDnn_r(&cpu.R.A)
-
-	case 0x36: //LD (HL), n
-		cpu.LDhl_n()
-
-	case 0xF2: //LD A,(C)
-		cpu.LDr_ffplusc(&cpu.R.A)
-	case 0xE2: //LD (C),A
-		cpu.LDffplusc_r(&cpu.R.A)
-
-	case 0x3A: //LDD A, (HL)
-		cpu.LDDr_hl(&cpu.R.A)
-	case 0x32: //LDD (HL), A
-		cpu.LDDhl_r(&cpu.R.A)
-
-	case 0x2A: //LDI A, (HL)
-		cpu.LDIr_hl(&cpu.R.A)
-	case 0x22: //LDI (HL), A
-		cpu.LDIhl_r(&cpu.R.A)
-
-	case 0xE0: //LDH n, r
-		cpu.LDHn_r(&cpu.R.A)
-	case 0xF0: //LDH r, n
-		cpu.LDHr_n(&cpu.R.A)
-
-	case 0x01: //LD BC, nn
-		cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
-	case 0x11: //LD DE, nn
-		cpu.LDn_nn(&cpu.R.D, &cpu.R.E)
-	case 0x21: //LD HL, nn
-		cpu.LDn_nn(&cpu.R.H, &cpu.R.L)
-	case 0x31: //LD SP, nn
-		cpu.LDSP_nn()
-	case 0xF8: //LDHL SP, n
-		cpu.LDHLSP_n()
-	case 0xF9: //LD SP, HL
-		cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
-	case 0x87: //ADD A, A
-		cpu.AddA_r(&cpu.R.A)
+	case 0x76: //HALT
+		cpu.HALT()
+	case 0x77: //LD (HL), A
+		cpu.LDhl_r(&cpu.R.A)
+	case 0x78: //LD A, B
+		cpu.LDrr(&cpu.R.A, &cpu.R.B)
+	case 0x79: //LD A, C
+		cpu.LDrr(&cpu.R.A, &cpu.R.C)
+	case 0x7A: //LD A, D
+		cpu.LDrr(&cpu.R.A, &cpu.R.D)
+	case 0x7B: //LD A, E
+		cpu.LDrr(&cpu.R.A, &cpu.R.E)
+	case 0x7C: //LD A, H
+		cpu.LDrr(&cpu.R.A, &cpu.R.H)
+	case 0x7D: //LD A, L
+		cpu.LDrr(&cpu.R.A, &cpu.R.L)
+	case 0x7E: //LD A, (HL)
+		cpu.LDr_hl(&cpu.R.A)
+	case 0x7F: //LD A, A
+		cpu.LDrr(&cpu.R.A, &cpu.R.A)
 	case 0x80: //ADD A, B
 		cpu.AddA_r(&cpu.R.B)
 	case 0x81: //ADD A, C
@@ -902,8 +635,224 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.AddA_r(&cpu.R.L)
 	case 0x86: //ADD A,(HL)
 		cpu.AddA_hl()
+	case 0x87: //ADD A, A
+		cpu.AddA_r(&cpu.R.A)
+	case 0x88: //ADC A, B
+		cpu.AddCA_r(&cpu.R.B)
+	case 0x89: //ADC A, C
+		cpu.AddCA_r(&cpu.R.C)
+	case 0x8A: //ADC A, D
+		cpu.AddCA_r(&cpu.R.D)
+	case 0x8B: //ADC A, E
+		cpu.AddCA_r(&cpu.R.E)
+	case 0x8C: //ADC A, H
+		cpu.AddCA_r(&cpu.R.H)
+	case 0x8D: //ADC A, L
+		cpu.AddCA_r(&cpu.R.L)
+	case 0x8E: //ADC A, (HL)
+		cpu.AddCA_hl()
+	case 0x8F: //ADC A, A
+		cpu.AddCA_r(&cpu.R.A)
+	case 0x90: // SUB A, B
+		cpu.SubA_r(&cpu.R.B)
+	case 0x91: // SUB A, C
+		cpu.SubA_r(&cpu.R.C)
+	case 0x92: // SUB A, D
+		cpu.SubA_r(&cpu.R.D)
+	case 0x93: // SUB A, E
+		cpu.SubA_r(&cpu.R.E)
+	case 0x94: // SUB A, H
+		cpu.SubA_r(&cpu.R.H)
+	case 0x95: // SUB A, L
+		cpu.SubA_r(&cpu.R.L)
+	case 0x96: //SUB A, (HL)
+		cpu.SubA_hl()
+	case 0x97: // SUB A, A
+		cpu.SubA_r(&cpu.R.A)
+	case 0x98: // SBC A, B
+		cpu.SubAC_r(&cpu.R.B)
+	case 0x99: // SBC A, C
+		cpu.SubAC_r(&cpu.R.C)
+	case 0x9A: // SBC A, D
+		cpu.SubAC_r(&cpu.R.D)
+	case 0x9B: // SBC A, E
+		cpu.SubAC_r(&cpu.R.E)
+	case 0x9C: // SBC A, H
+		cpu.SubAC_r(&cpu.R.H)
+	case 0x9D: // SBC A, L
+		cpu.SubAC_r(&cpu.R.L)
+	case 0x9E: //SBC A, (HL)
+		cpu.SubAC_hl()
+	case 0x9F: // SBC A, A
+		cpu.SubAC_r(&cpu.R.A)
+	case 0xA0: //AND A, B
+		cpu.AndA_r(&cpu.R.B)
+	case 0xA1: //AND A, C
+		cpu.AndA_r(&cpu.R.C)
+	case 0xA2: //AND A, D
+		cpu.AndA_r(&cpu.R.D)
+	case 0xA3: //AND A, E
+		cpu.AndA_r(&cpu.R.E)
+	case 0xA4: //AND A, H
+		cpu.AndA_r(&cpu.R.H)
+	case 0xA5: //AND A, L
+		cpu.AndA_r(&cpu.R.L)
+	case 0xA6: //AND A, (HL)
+		cpu.AndA_hl()
+	case 0xA7: //AND A, A
+		cpu.AndA_r(&cpu.R.A)
+	case 0xA8: //XOR A, B
+		cpu.XorA_r(&cpu.R.B)
+	case 0xA9: //XOR A, C
+		cpu.XorA_r(&cpu.R.C)
+	case 0xAA: //XOR A, D
+		cpu.XorA_r(&cpu.R.D)
+	case 0xAB: //XOR A, E
+		cpu.XorA_r(&cpu.R.E)
+	case 0xAC: //XOR A, H
+		cpu.XorA_r(&cpu.R.H)
+	case 0xAD: //XOR A, L
+		cpu.XorA_r(&cpu.R.L)
+	case 0xAE: //XOR A,(HL)
+		cpu.XorA_hl()
+	case 0xAF: //XOR A, A
+		cpu.XorA_r(&cpu.R.A)
+	case 0xB0: //OR A, B
+		cpu.OrA_r(&cpu.R.B)
+	case 0xB1: //OR A, C
+		cpu.OrA_r(&cpu.R.C)
+	case 0xB2: //OR A, D
+		cpu.OrA_r(&cpu.R.D)
+	case 0xB3: //OR A, E
+		cpu.OrA_r(&cpu.R.E)
+	case 0xB4: //OR A, H
+		cpu.OrA_r(&cpu.R.H)
+	case 0xB5: //OR A, L
+		cpu.OrA_r(&cpu.R.L)
+	case 0xB6: //OR A,(HL)
+		cpu.OrA_hl()
+	case 0xB7: //OR A, A
+		cpu.OrA_r(&cpu.R.A)
+	case 0xB8: //CP A, B
+		cpu.CPA_r(&cpu.R.B)
+	case 0xB9: //CP A, C
+		cpu.CPA_r(&cpu.R.C)
+	case 0xBA: //CP A, D
+		cpu.CPA_r(&cpu.R.D)
+	case 0xBB: //CP A, E
+		cpu.CPA_r(&cpu.R.E)
+	case 0xBC: //CP A, H
+		cpu.CPA_r(&cpu.R.H)
+	case 0xBD: //CP A, L
+		cpu.CPA_r(&cpu.R.L)
+	case 0xBE: //CP A, (HL)
+		cpu.CPA_hl()
+	case 0xBF: //CP A, A
+		cpu.CPA_r(&cpu.R.A)
+	case 0xC0: //RET NZ
+		cpu.Retcc(Z, false)
+	case 0xC1: //POP BC
+		cpu.Pop_nn(&cpu.R.B, &cpu.R.C)
+	case 0xC2: //JP NZ,nn
+		cpu.JPcc_nn(Z, false)
+	case 0xC3: //JP nn
+		cpu.JP_nn()
+	case 0xC4: //CALL NZ, nn
+		cpu.Callcc_nn(Z, false)
+	case 0xC5: //PUSH BC
+		cpu.Push_nn(&cpu.R.B, &cpu.R.C)
 	case 0xC6: //ADD A,#
 		cpu.AddA_n()
+	case 0xC7: //RST n
+		cpu.Rst(0x00)
+	case 0xC8: //RET Z
+		cpu.Retcc(Z, true)
+	case 0xC9: //RET
+		cpu.Ret()
+	case 0xCA: //JP Z,nn
+		cpu.JPcc_nn(Z, true)
+	case 0xCC: //CALL Z, nn
+		cpu.Callcc_nn(Z, true)
+	case 0xCD: //CALL nn
+		cpu.Call_nn()
+	case 0xCE: //ADC A, n
+		cpu.AddCA_n()
+	case 0xCF: //RST n
+		cpu.Rst(0x08)
+	case 0xD0: //RET NC
+		cpu.Retcc(C, false)
+	case 0xD1: //POP DE
+		cpu.Pop_nn(&cpu.R.D, &cpu.R.E)
+	case 0xD2: //JP NC,nn
+		cpu.JPcc_nn(C, false)
+	case 0xD4: //CALL NC, nn
+		cpu.Callcc_nn(C, false)
+	case 0xD5: //PUSH DE
+		cpu.Push_nn(&cpu.R.D, &cpu.R.E)
+	case 0xD6: //SUB A, n
+		cpu.SubA_n()
+	case 0xD7: //RST n
+		cpu.Rst(0x10)
+	case 0xD8: //RET C
+		cpu.Retcc(C, true)
+	case 0xD9: //RETI
+		cpu.Ret_i()
+	case 0xDA: //JP C,nn
+		cpu.JPcc_nn(C, true)
+	case 0xDC: //CALL C, nn
+		cpu.Callcc_nn(C, true)
+	case 0xDE: //SBC A, n
+		cpu.SubAC_n()
+	case 0xDF: //RST n
+		cpu.Rst(0x18)
+	case 0xE0: //LDH n, r
+		cpu.LDHn_r(&cpu.R.A)
+	case 0xE1: //POP HL
+		cpu.Pop_nn(&cpu.R.H, &cpu.R.L)
+	case 0xE2: //LD (C),A
+		cpu.LDffplusc_r(&cpu.R.A)
+	case 0xE5: //PUSH HL
+		cpu.Push_nn(&cpu.R.H, &cpu.R.L)
+	case 0xE6: //AND A, n
+		cpu.AndA_n()
+	case 0xE7: //RST n
+		cpu.Rst(0x20)
+	case 0xE8: //ADD SP,n
+		cpu.Addsp_n()
+	case 0xE9: //JP (HL)
+		cpu.JP_hl()
+	case 0xEA: //LD (nn), A
+		cpu.LDnn_r(&cpu.R.A)
+	case 0xEE: //XOR A, n
+		cpu.XorA_n()
+	case 0xEF: //RST n
+		cpu.Rst(0x28)
+	case 0xF0: //LDH r, n
+		cpu.LDHr_n(&cpu.R.A)
+	case 0xF1: //POP AF
+		cpu.Pop_nn(&cpu.R.A, &cpu.R.F)
+	case 0xF2: //LD A,(C)
+		cpu.LDr_ffplusc(&cpu.R.A)
+	case 0xF3: //DI
+		cpu.DI()
+	case 0xF5: //PUSH AF
+		cpu.Push_nn(&cpu.R.A, &cpu.R.F)
+	case 0xF6: //OR A, n
+		cpu.OrA_n()
+	case 0xF7: //RST n
+		cpu.Rst(0x30)
+	case 0xF8: //LDHL SP, n
+		cpu.LDHLSP_n()
+	case 0xF9: //LD SP, HL
+		cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
+	case 0xFA: //LD A, (nn)
+		cpu.LDr_nn(&cpu.R.A)
+	case 0xFB: //EI
+		cpu.EI()
+	case 0xFE: //CP A, n
+		cpu.CPA_n()
+	case 0xFF: //RST n
+		cpu.Rst(0x38)
 	default:
 		log.Fatalf("Invalid/Unknown instruction %X", Opcode)
 	}
