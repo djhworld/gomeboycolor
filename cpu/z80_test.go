@@ -3158,6 +3158,59 @@ func TestRetcc(t *testing.T) {
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
+//RETI tests
+func TestRet_i(t *testing.T) {
+	var expectedPC types.Word = 0xFF39
+	reset()
+	cpu.PC = 0x9284
+	cpu.InterruptsEnabled = false
+	cpu.pushWordToStack(expectedPC)
+	cpu.Ret_i()
+	assert.True(t, cpu.InterruptsEnabled)
+	assert.Equal(t, cpu.PC, expectedPC)
+
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+}
+
+//EI tests
+func TestEI(t *testing.T) {
+	reset()
+	cpu.InterruptsEnabled = false
+	cpu.EI()
+
+	assert.True(t, cpu.InterruptsEnabled)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+
+}
+
+//DI tests
+func TestDI(t *testing.T) {
+	reset()
+	cpu.InterruptsEnabled = true
+	cpu.DI()
+
+	assert.False(t, cpu.InterruptsEnabled)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+}
+
+//HALT tests
+func TestHalt(t *testing.T) {
+	reset()
+	cpu.Running = true
+	cpu.HALT()
+
+	assert.False(t, cpu.Running)
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
+}
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 
@@ -3166,6 +3219,8 @@ func TestReset(t *testing.T) {
 	cpu.R.B = 0x10
 	cpu.SP = 0x4374
 	cpu.R.H = 0x22
+	cpu.InterruptsEnabled = false
+	cpu.Running = false
 	cpu.Reset()
 	assert.Equal(t, cpu.PC, ZEROW)
 	assert.Equal(t, cpu.SP, ZEROW)
@@ -3177,6 +3232,8 @@ func TestReset(t *testing.T) {
 	assert.Equal(t, cpu.R.F, ZEROB)
 	assert.Equal(t, cpu.R.H, ZEROB)
 	assert.Equal(t, cpu.R.L, ZEROB)
+	assert.True(t, cpu.InterruptsEnabled)
+	assert.True(t, cpu.Running)
 	assert.Equal(t, cpu.MachineCycles.m, ZEROW)
 	assert.Equal(t, cpu.MachineCycles.t, ZEROW)
 	assert.Equal(t, cpu.LastInstrCycle.m, ZEROW)

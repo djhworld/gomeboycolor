@@ -47,12 +47,14 @@ func (c *Clock) String() string {
 }
 
 type Z80 struct {
-	PC             types.Word // Program Counter
-	SP             types.Word // Stack Pointer
-	R              Registers
-	MachineCycles  Clock
-	LastInstrCycle Clock
-	mmu            mmu.MemoryMappedUnit
+	PC                types.Word // Program Counter
+	SP                types.Word // Stack Pointer
+	R                 Registers
+	Running           bool
+	InterruptsEnabled bool
+	MachineCycles     Clock
+	LastInstrCycle    Clock
+	mmu               mmu.MemoryMappedUnit
 }
 
 func NewCPU(m mmu.MemoryMappedUnit) *Z80 {
@@ -76,6 +78,8 @@ func (cpu *Z80) Reset() {
 	cpu.R.F = 0
 	cpu.R.H = 0
 	cpu.R.L = 0
+	cpu.InterruptsEnabled = true
+	cpu.Running = true
 	cpu.MachineCycles.Reset()
 	cpu.LastInstrCycle.Reset()
 }
@@ -107,6 +111,7 @@ func (cpu *Z80) String() string {
 		fmt.Sprintf("--------------------------------------------------------\n") +
 		fmt.Sprintf("\tPC		= %X\n", cpu.PC) +
 		fmt.Sprintf("\tSP		= %X\n", cpu.SP) +
+		fmt.Sprintf("\tINTS?	= %v\n", cpu.InterruptsEnabled) +
 		fmt.Sprintf("\tLast Cycle	= %v\n", cpu.LastInstrCycle.String()) +
 		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +
 		fmt.Sprintf("\tFlags		= %v\n", flags) +
@@ -459,6 +464,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 
 	case 0xC9: //RET
 		cpu.Ret()
+	case 0xD9: //RETI
+		cpu.Ret_i()
 
 	case 0xC2: //JP NZ,nn
 		cpu.JPcc_nn(Z, false)
@@ -2295,8 +2302,8 @@ func (cpu *Z80) NOP() {
 //Halt CPU
 func (cpu *Z80) HALT() {
 	log.Println("HALT")
+	cpu.Running = false
 
-	//TODO: Implement
 	//set clock values
 	cpu.LastInstrCycle.Set(1, 4)
 }
@@ -2305,7 +2312,7 @@ func (cpu *Z80) HALT() {
 //Disable interrupts 
 func (cpu *Z80) DI() {
 	log.Println("DI")
-	//TODO: Implement 
+	cpu.InterruptsEnabled = false
 
 	//set clock values
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2315,7 +2322,7 @@ func (cpu *Z80) DI() {
 //Enable interrupts 
 func (cpu *Z80) EI() {
 	log.Println("EI")
-	//TODO: Implement 
+	cpu.InterruptsEnabled = true
 
 	//set clock values
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2479,19 +2486,27 @@ func (cpu *Z80) Rst(n byte) {
 	cpu.LastInstrCycle.Set(8, 32)
 }
 
-// RET n
+// RET
 func (cpu *Z80) Ret() {
 	log.Println("RET")
 	cpu.PC = cpu.popWordFromStack()
 	cpu.LastInstrCycle.Set(2, 8)
 }
 
-// RET n
+// RET cc
 func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 	log.Println("RET cc")
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
 	}
+	cpu.LastInstrCycle.Set(2, 8)
+}
+
+// RETI 
+func (cpu *Z80) Ret_i() {
+	log.Println("RETI")
+	cpu.PC = cpu.popWordFromStack()
+	cpu.InterruptsEnabled = true
 	cpu.LastInstrCycle.Set(2, 8)
 }
 
