@@ -3274,3 +3274,8 @@ func (m *MockMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (
 
 func (m *MockMMU) SetInBootMode(mode bool) {
 }
+
+
+func (m *MockMMU) Reset() {
+	m.memory = make(map[types.Word]byte)
+}

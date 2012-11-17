@@ -27,6 +27,7 @@ type MemoryMappedUnit interface {
 	ReadWord(address types.Word) types.Word
 	SetInBootMode(mode bool)
 	LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error)
+	Reset()
 }
 
 type GbcMMU struct {
@@ -37,6 +38,10 @@ type GbcMMU struct {
 	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
 	zeroPageRAM      [128]byte   //0xFF80 - 0xFFFF
 	inBootMode       bool
+}
+
+func (mmu *GbcMMU) Reset() {
+	mmu.inBootMode = true
 }
 
 func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
@@ -50,6 +55,9 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		}
 	//ROM Bank 0
 	case addr >= 0x0100 && addr <= 0x3FFF:
+		if mmu.inBootMode {
+			mmu.SetInBootMode(false)
+		}
 		return mmu.cartrom[addr]
 	//ROM Bank 1
 	case addr >= 0x4000 && addr <= 0x7FFF:

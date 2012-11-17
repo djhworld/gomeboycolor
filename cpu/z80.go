@@ -78,6 +78,7 @@ func (cpu *Z80) Reset() {
 	cpu.R.F = 0
 	cpu.R.H = 0
 	cpu.R.L = 0
+	cpu.mmu.Reset()
 	cpu.InterruptsEnabled = true
 	cpu.Running = true
 	cpu.MachineCycles.Reset()
