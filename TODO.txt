@@ -1,2 +1,2 @@
 TODO
-CB instructions are wrong, e.g. BIT/SET/RESET
+JP cc,nn is wrong, I believe it takes signed integers so will need to look at twos complement
