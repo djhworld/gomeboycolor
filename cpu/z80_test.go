@@ -2747,15 +2747,12 @@ func TestRRA(t *testing.T) {
 
 //BIT b,r tests
 func TestBitb_r(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	reset()
 	cpu.PC = 0x0001
 	cpu.R.A = 0x31
 	cpu.SetFlag(N)
-	cpu.mmu.WriteByte(cpu.PC, 0x01)
-	cpu.Bitb_r(&cpu.R.A)
+	cpu.Bitb_r(0x01, &cpu.R.A)
 
-	assert.Equal(t, cpu.PC, expectedPC)
 	//ensure flag is set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//ensure flag reset
@@ -2773,8 +2770,7 @@ func TestBitb_r(t *testing.T) {
 		cpu.PC = 0x0001
 		cpu.R.A = 0x31
 		cpu.SetFlag(N)
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
-		cpu.Bitb_r(&cpu.R.A)
+		cpu.Bitb_r(byte(i), &cpu.R.A)
 		results[j] = cpu.IsFlagSet(Z)
 		j--
 	}
@@ -2783,7 +2779,6 @@ func TestBitb_r(t *testing.T) {
 
 //BIT b,(HL) tests
 func TestBitb_hl(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	var addr types.Word = 0x3044
 	reset()
 	cpu.PC = 0x0001
@@ -2791,10 +2786,8 @@ func TestBitb_hl(t *testing.T) {
 	cpu.R.L = 0x44
 	cpu.SetFlag(N)
 	cpu.mmu.WriteByte(addr, 0x21)
-	cpu.mmu.WriteByte(cpu.PC, 0x01)
-	cpu.Bitb_hl()
+	cpu.Bitb_hl(0x01)
 
-	assert.Equal(t, cpu.PC, expectedPC)
 	//ensure flag is set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//ensure flag reset
@@ -2814,8 +2807,7 @@ func TestBitb_hl(t *testing.T) {
 		cpu.R.L = 0x44
 		cpu.SetFlag(N)
 		cpu.mmu.WriteByte(addr, 0x31)
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
-		cpu.Bitb_hl()
+		cpu.Bitb_hl(byte(i))
 		results[j] = cpu.IsFlagSet(Z)
 		j--
 	}
@@ -2933,13 +2925,10 @@ func TestJR_n(t *testing.T) {
 
 //SET b,r tests
 func TestSetb_r(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	reset()
 	cpu.PC = 0x0001
-	cpu.Setb_r(&cpu.R.A)
+	cpu.Setb_r(0x00, &cpu.R.A)
 
-	//check pc incremented
-	assert.Equal(t, cpu.PC, expectedPC)
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
@@ -2950,21 +2939,16 @@ func TestSetb_r(t *testing.T) {
 		reset()
 		cpu.PC = 0x0001
 		cpu.R.A = 0x00
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
-		cpu.Setb_r(&cpu.R.A)
+		cpu.Setb_r(byte(i), &cpu.R.A)
 		assert.Equal(t, cpu.R.A, expectedA)
 	}
 }
 
 //SET (HL) tests
 func TestSetb_hl(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	reset()
 	cpu.PC = 0x0001
-	cpu.Setb_hl()
-
-	//check pc incremented
-	assert.Equal(t, cpu.PC, expectedPC)
+	cpu.Setb_hl(0x00)
 
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
@@ -2979,22 +2963,18 @@ func TestSetb_hl(t *testing.T) {
 		cpu.PC = 0x0001
 		cpu.R.H = 0x38
 		cpu.R.L = 0x27
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
 		cpu.mmu.WriteByte(hlAddr, hlValue)
-		cpu.Setb_hl()
+		cpu.Setb_hl(byte(i))
 		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
 	}
 }
 
 //RES b,r tests
 func TestResb_r(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	reset()
 	cpu.PC = 0x0001
-	cpu.Resb_r(&cpu.R.A)
+	cpu.Resb_r(0x00, &cpu.R.A)
 
-	//check pc incremented
-	assert.Equal(t, cpu.PC, expectedPC)
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
@@ -3006,21 +2986,17 @@ func TestResb_r(t *testing.T) {
 		reset()
 		cpu.PC = 0x0001
 		cpu.R.A = A
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
-		cpu.Resb_r(&cpu.R.A)
+		cpu.Resb_r(byte(i), &cpu.R.A)
 		assert.Equal(t, cpu.R.A, expectedA)
 	}
 }
 
 //RES b, (HL) tests
 func TestResb_hl(t *testing.T) {
-	var expectedPC types.Word = 0x0002
 	reset()
 	cpu.PC = 0x0001
-	cpu.Resb_hl()
+	cpu.Resb_hl(0x01)
 
-	//check pc incremented
-	assert.Equal(t, cpu.PC, expectedPC)
 
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
@@ -3035,9 +3011,8 @@ func TestResb_hl(t *testing.T) {
 		cpu.PC = 0x0001
 		cpu.R.H = 0x38
 		cpu.R.L = 0x27
-		cpu.mmu.WriteByte(cpu.PC, byte(i))
 		cpu.mmu.WriteByte(hlAddr, hlValue)
-		cpu.Resb_hl()
+		cpu.Resb_hl(byte(i))
 		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
 	}
 }
