@@ -983,8 +983,8 @@ func TestLDn_nn(t *testing.T) {
 
 	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
 
-	assert.Equal(t, cpu.R.B, expected1)
-	assert.Equal(t, cpu.R.C, expected2)
+	assert.Equal(t, cpu.R.C, expected1)
+	assert.Equal(t, cpu.R.B, expected2)
 }
 
 func TestLDn_nnCheckPCIncremented(t *testing.T) {
@@ -1008,7 +1008,7 @@ func TestLDSP_nn(t *testing.T) {
 	reset()
 	var expected types.Word = 0xA3F0
 	cpu.PC = 0x0003
-	cpu.mmu.WriteWord(0x0003, expected)
+	cpu.mmu.WriteWord(0x0003, 0xF0A3)
 
 	cpu.LDSP_nn()
 
@@ -2751,12 +2751,14 @@ func TestBitb_r(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.R.A = 0x31
 	cpu.SetFlag(N)
-	cpu.Bitb_r(0x01, &cpu.R.A)
+	cpu.SetFlag(Z)
+	cpu.Bitb_r(0x00, &cpu.R.A)
 
 	//ensure flag is set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//ensure flag reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
+	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	//Check timings are correct
 	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
 	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
@@ -2879,7 +2881,7 @@ func TestJPcc_nn(t *testing.T) {
 
 //JR cc nn tests
 func TestJRcc_nn(t *testing.T) {
-	var expectedPC types.Word = 0x000A
+	var expectedPC types.Word = 0x000B
 	reset()
 	cpu.PC = 0x0000
 	cpu.mmu.WriteByte(cpu.PC, 0x0A)
@@ -2887,7 +2889,7 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.JRcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	expectedPC = 0x2001
+	expectedPC = 0x2002
 	reset()
 	cpu.PC = 0x2001
 	cpu.mmu.WriteWord(cpu.PC, expectedPC)
@@ -2895,7 +2897,7 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	expectedPC = 0x000A
+	expectedPC = 0x000B
 	reset()
 	cpu.PC = 0x0001
 	cpu.mmu.WriteByte(cpu.PC, 0x09)
@@ -2909,7 +2911,7 @@ func TestJRcc_nn(t *testing.T) {
 
 //JR n tests
 func TestJR_n(t *testing.T) {
-	var expectedPC byte = 0x000A
+	var expectedPC byte = 0x000B
 	reset()
 	cpu.PC = 0x0002
 	cpu.mmu.WriteByte(cpu.PC, 0x08)

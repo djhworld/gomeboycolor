@@ -120,7 +120,7 @@ func (cpu *Z80) String() string {
 		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +
 		fmt.Sprintf("\tFlags		= %v\n", flags) +
 		fmt.Sprintf("\n\tRegisters\n") +
-		fmt.Sprintf("\tA:%X\tB:%X\tC:%X\tD:%X\n\tE:%X\tF:%X\tH:%X\tL:%X", cpu.R.A, cpu.R.B, cpu.R.C, cpu.R.D, cpu.R.E, cpu.R.F, cpu.R.H, cpu.R.L) +
+		fmt.Sprintf("\tA:%X\tB:%X\tC:%X\tD:%X\n\tE:%X\tH:%X\tL:%X", cpu.R.A, cpu.R.B, cpu.R.C, cpu.R.D, cpu.R.E, cpu.R.H, cpu.R.L) +
 		fmt.Sprintf("\n--------------------------------------------------------\n\n")
 }
 
@@ -1492,9 +1492,9 @@ func (cpu *Z80) LDn_nn(r1, r2 *byte) {
 	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.IncrementPC(2)
 
-	//TODO: Is this correct? 
-	*r1 = v1
-	*r2 = v2
+	//LS nibble first
+	*r2 = v1
+	*r1 = v2
 
 	cpu.LastInstrCycle.Set(3, 12)
 }
@@ -1502,9 +1502,11 @@ func (cpu *Z80) LDn_nn(r1, r2 *byte) {
 //LD SP, nn
 func (cpu *Z80) LDSP_nn() {
 	log.Printf("LD SP, nn")
-	var value types.Word = cpu.mmu.ReadWord(cpu.PC)
+	var v1 byte = cpu.mmu.ReadByte(cpu.PC)
+	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.IncrementPC(2)
 
+	var value types.Word = types.Word(utils.JoinBytes(v2,v1))
 	cpu.SP = value
 
 	cpu.LastInstrCycle.Set(3, 12)
@@ -2484,6 +2486,8 @@ func (cpu *Z80) Bitb_r(b byte, r *byte) {
 
 	if (*r & b) != b {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -2584,6 +2588,7 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 func (cpu *Z80) JR_n() {
 	log.Println("JR n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
 	cpu.PC += types.Word(value)
 
 	//set clock values
@@ -2594,6 +2599,7 @@ func (cpu *Z80) JR_n() {
 func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	log.Println("JR cc,n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
+	cpu.IncrementPC(1)
 
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		cpu.PC += types.Word(n)
