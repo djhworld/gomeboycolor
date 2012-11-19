@@ -1214,6 +1214,9 @@ func (cpu *Z80) Step() {
 	cpu.MachineCycles.m += cpu.LastInstrCycle.m
 	cpu.MachineCycles.t += cpu.LastInstrCycle.t
 	cpu.LastInstrCycle.Reset()
+	if cpu.PC >= 0x0100 {
+		cpu.mmu.SetInBootMode(false)
+	}
 }
 
 // INSTRUCTIONS START
@@ -1465,13 +1468,11 @@ func (cpu *Z80) LDIhl_r(r *byte) {
 }
 
 //LDH n, r
-//Load value (n) located in memory address in FF00+PC and store it in register (r). Increment PC by 1
 func (cpu *Z80) LDHn_r(r *byte) {
 	log.Println("LDH n, r")
-	var n byte = cpu.mmu.ReadByte(types.Word(0xFF00) + cpu.PC)
-	*r = n
+	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
-
+	cpu.mmu.WriteByte(types.Word(0xFF00) + types.Word(n), *r)
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
@@ -2601,8 +2602,13 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
+
 	if cpu.IsFlagSet(flag) == jumpWhen {
-		cpu.PC += types.Word(n)
+		if n > 127 {
+			cpu.PC -= types.Word(-n)
+		} else {
+			cpu.PC += types.Word(n)
+		}
 	}
 
 	//set clock values

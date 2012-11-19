@@ -918,13 +918,15 @@ func TestLDIhl_rClockTimings(t *testing.T) {
 //------------------------------------------
 func TestLDHn_r(t *testing.T) {
 	reset()
-	var expected byte = 0x77
-	var valueAddr types.Word = 0xFF03
+	var expected byte = 0x21
+	var n byte = 0x77
+	var valueAddr types.Word = 0xFF77
 	cpu.PC = 0x0003
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.R.A = 0x21
+	cpu.mmu.WriteByte(cpu.PC, n)
 	cpu.LDHn_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.R.A, expected)
+	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
 }
 
 func TestLDHn_rCheckPCIncremented(t *testing.T) {

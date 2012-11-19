@@ -36,6 +36,7 @@ type GbcMMU struct {
 	externalRAM      [8192]byte  //0xA000 -> 0xBFFF
 	workingRAM       [8192]byte  //0xC000 -> 0xDFFF
 	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
+	mmIO			 [128]byte //0xFF00 -> 0xFF7F //TODO 
 	zeroPageRAM      [128]byte   //0xFF80 - 0xFFFF
 	inBootMode       bool
 }
@@ -55,9 +56,6 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		}
 	//ROM Bank 0
 	case addr >= 0x0100 && addr <= 0x3FFF:
-		if mmu.inBootMode {
-			mmu.SetInBootMode(false)
-		}
 		return mmu.cartrom[addr]
 	//ROM Bank 1
 	case addr >= 0x4000 && addr <= 0x7FFF:
@@ -81,8 +79,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return 0
 	//Mem. mapped IO
 	case addr >= 0xFF00 && addr <= 0xFF7F:
-		//TODO
-		return 0
+		return mmu.mmIO[addr&(0xFF7F-0xFF00)]
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
@@ -114,8 +111,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		return
 	//Mem. mapped IO
 	case addr >= 0xFF00 && addr <= 0xFF7F:
-		//TODO
-		return
+		mmu.mmIO[addr&(0xFF7F-0xFF00)] = value
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value

@@ -1,2 +1,4 @@
 TODO
-JP cc,nn is wrong, I believe it takes signed integers so will need to look at twos complement
+CALL_nn is wrong
+
+
