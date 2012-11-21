@@ -3270,6 +3270,42 @@ func TestRl_hl(t *testing.T) {
 	assert.True(t, cpu.IsFlagSet(Z))
 }
 
+//RR r
+func TestRR_r(t *testing.T) {
+	var expectedR byte = 0x7B
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.R.C = 0xF6
+	cpu.Rr_r(&cpu.R.C)
+	assert.Equal(t, cpu.R.C, expectedR)
+
+	//check flags are reset
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
+
+	//check with carry flag set
+	reset()
+	expectedR = 0xFB
+	cpu.R.C = 0xF6
+	cpu.SetFlag(C)
+	cpu.Rr_r(&cpu.R.C)
+	assert.Equal(t, cpu.R.C, expectedR)
+	assert.False(t, cpu.IsFlagSet(C))
+
+	//check zero flag
+	reset()
+	expectedR = 0x00
+	cpu.R.C = 0x00
+	cpu.Rr_r(&cpu.R.C)
+	assert.Equal(t, cpu.R.C, expectedR)
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
 

@@ -2956,9 +2956,31 @@ func (cpu *Z80) Rrc_hl() {
 //RR r
 func (cpu *Z80) Rr_r(r *byte) {
 	log.Println("RR r")
-	//TODO: Implement
+	var oldV byte = *r
+	*r = *r>>1 | *r<<(8-1)
 
-	log.Fatalf("Unimplemented")
+	if cpu.IsFlagSet(C) {
+		*r ^= 0x80
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	//carry flag
+	if (oldV & 0x01) == 0x01 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if *r == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //RR (HL) 
