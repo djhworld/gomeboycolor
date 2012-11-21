@@ -697,9 +697,6 @@ func (cpu *Z80) DispatchCB(Opcode byte) {
 	case 0xFF: //SET 7, A
 		cpu.Setb_r(0x07, &cpu.R.A)
 
-
-
-
 	default:
 		log.Fatalf("Invalid/Unknown instruction %X", Opcode)
 	}
@@ -1304,7 +1301,9 @@ func (cpu *Z80) LDde_r(r *byte) {
 //Load value from register (r) and put it in memory address (nn) taken from the next 2 bytes of memory from the PC. Increment the PC by 2
 func (cpu *Z80) LDnn_r(r *byte) {
 	log.Println("LD nn,r")
-	var resultAddr types.Word = cpu.mmu.ReadWord(cpu.PC)
+	var ls byte = cpu.mmu.ReadByte(cpu.PC)
+	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
+	var resultAddr types.Word = types.Word(utils.JoinBytes(hs, ls))
 	cpu.IncrementPC(2)
 
 	cpu.mmu.WriteByte(resultAddr, *r)
@@ -1472,7 +1471,7 @@ func (cpu *Z80) LDHn_r(r *byte) {
 	log.Println("LDH n, r")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
-	cpu.mmu.WriteByte(types.Word(0xFF00) + types.Word(n), *r)
+	cpu.mmu.WriteByte(types.Word(0xFF00)+types.Word(n), *r)
 	cpu.LastInstrCycle.Set(3, 12)
 }
 
@@ -1480,8 +1479,10 @@ func (cpu *Z80) LDHn_r(r *byte) {
 //Load value (n) in register (r) and store it in memory address FF00+PC. Increment PC by 1
 func (cpu *Z80) LDHr_n(r *byte) {
 	log.Println("LDH r, n")
-	cpu.mmu.WriteByte(types.Word(0xFF00)+cpu.PC, *r)
+	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
+
+	*r = cpu.mmu.ReadByte(types.Word(0xFF00) + types.Word(n))
 
 	cpu.LastInstrCycle.Set(3, 12)
 }
@@ -1507,7 +1508,7 @@ func (cpu *Z80) LDSP_nn() {
 	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.IncrementPC(2)
 
-	var value types.Word = types.Word(utils.JoinBytes(v2,v1))
+	var value types.Word = types.Word(utils.JoinBytes(v2, v1))
 	cpu.SP = value
 
 	cpu.LastInstrCycle.Set(3, 12)
@@ -1538,11 +1539,15 @@ func (cpu *Z80) LDHLSP_n() {
 	//set carry flag
 	if cpu.SP+n < cpu.SP {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set half-carry flag
 	if (((cpu.SP & 0xf) + (n & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(3, 12)
@@ -1594,15 +1599,21 @@ func (cpu *Z80) AddA_r(r *byte) {
 	//set carry flag
 	if (oldA + *r) < oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	if (((oldA & 0xf) + (*r & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	//set clock values
@@ -1624,16 +1635,22 @@ func (cpu *Z80) AddA_hl() {
 	//set carry flag
 	if (oldA + value) < oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	//set clock values
@@ -1655,16 +1672,22 @@ func (cpu *Z80) AddA_n() {
 	//set carry flag
 	if (oldA + value) < oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	//set clock values
@@ -1689,16 +1712,22 @@ func (cpu *Z80) AddCA_r(r *byte) {
 	//set carry flag
 	if cpu.R.A < oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldA & 0xf) + ((*r + carryFlag) & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -1724,18 +1753,23 @@ func (cpu *Z80) AddCA_hl() {
 
 	//set carry flag
 	if cpu.R.A < oldA {
-		//TODO: Should carry flag be reset first if it is already set?
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1761,18 +1795,23 @@ func (cpu *Z80) AddCA_n() {
 
 	//set carry flag
 	if cpu.R.A < oldA {
-		//TODO: Should carry flag be reset first if it is already set?
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//set zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1791,17 +1830,23 @@ func (cpu *Z80) SubA_r(r *byte) {
 	//set zero flag if needed
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//Set Carry flag
 	if cpu.R.A > oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//Set half carry flag if needed
 	//TODO: don't think this calculation for half carry is quite correct....
 	if (((oldA & 0x0F) - (*r & 0x0F)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -1822,17 +1867,23 @@ func (cpu *Z80) SubA_hl() {
 	//set zero flag if needed
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//Set Carry flag
 	if cpu.R.A > oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//Set half carry flag if needed
 	//TODO: don't think this calculation for half carry is quite correct....
 	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1853,17 +1904,23 @@ func (cpu *Z80) SubA_n() {
 	//set zero flag if needed
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//Set Carry flag
 	if cpu.R.A > oldA {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//Set half carry flag if needed
 	//TODO: don't think this calculation for half carry is quite correct....
 	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1880,6 +1937,8 @@ func (cpu *Z80) AndA_r(r *byte) {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -1899,6 +1958,8 @@ func (cpu *Z80) AndA_hl() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1919,6 +1980,8 @@ func (cpu *Z80) AndA_n() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1935,6 +1998,8 @@ func (cpu *Z80) OrA_r(r *byte) {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -1954,6 +2019,8 @@ func (cpu *Z80) OrA_hl() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1974,6 +2041,8 @@ func (cpu *Z80) OrA_n() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -1990,6 +2059,8 @@ func (cpu *Z80) XorA_r(r *byte) {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2009,6 +2080,8 @@ func (cpu *Z80) XorA_hl() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -2029,6 +2102,8 @@ func (cpu *Z80) XorA_n() {
 
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(2, 8)
@@ -2041,12 +2116,16 @@ func (cpu *Z80) CPA_r(r *byte) {
 
 	if calculation == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.SetFlag(N)
 
 	if calculation > cpu.R.A {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//TODO: Half carry flag 
@@ -2064,12 +2143,16 @@ func (cpu *Z80) CPA_hl() {
 
 	if calculation == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.SetFlag(N)
 
 	if calculation > cpu.R.A {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//TODO: Half carry flag 
@@ -2082,16 +2165,20 @@ func (cpu *Z80) CPA_n() {
 	log.Println("CP A, n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
-	var calculation byte = cpu.R.A - value
+	//	var calculation byte = cpu.R.A - value
 
-	if calculation == 0x00 {
+	if cpu.R.A == value {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.SetFlag(N)
 
-	if calculation > cpu.R.A {
+	if cpu.R.A < value {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//TODO: Half carry flag 
@@ -2113,11 +2200,15 @@ func (cpu *Z80) Inc_r(r *byte) {
 	//set zero flag
 	if *r == 0 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldR & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2138,11 +2229,15 @@ func (cpu *Z80) Inc_hl() {
 	//set zero flag
 	if inc == 0 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
 	if (((oldValue & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
 		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
 	}
 
 	cpu.LastInstrCycle.Set(3, 12)
@@ -2158,6 +2253,8 @@ func (cpu *Z80) Dec_r(r *byte) {
 
 	if *r == 0 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//TODO HALF Carry flag
@@ -2179,6 +2276,8 @@ func (cpu *Z80) Dec_hl() {
 	//set zero flag
 	if dec == 0 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	//TODO HALF Carry flag
@@ -2201,6 +2300,8 @@ func (cpu *Z80) Addhl_rr(r1, r2 *byte) {
 	//set carry flag
 	if HL < oldHL {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//TODO Half Carry flag
@@ -2222,6 +2323,8 @@ func (cpu *Z80) Addhl_sp() {
 	//set carry flag
 	if HL < oldHL {
 		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
 	}
 
 	//TODO Half Carry flag
@@ -2389,6 +2492,8 @@ func (cpu *Z80) RLCA() {
 	//zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2417,6 +2522,8 @@ func (cpu *Z80) RLA() {
 	//zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2442,6 +2549,8 @@ func (cpu *Z80) RRCA() {
 	//zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2471,6 +2580,8 @@ func (cpu *Z80) RRA() {
 	//zero flag
 	if cpu.R.A == 0x00 {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(1, 4)
@@ -2508,6 +2619,8 @@ func (cpu *Z80) Bitb_hl(b byte) {
 
 	if (value & b) != b {
 		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
 	}
 
 	cpu.LastInstrCycle.Set(4, 16)
@@ -2554,8 +2667,9 @@ func (cpu *Z80) EI() {
 //JP nn
 func (cpu *Z80) JP_nn() {
 	log.Println("JP nn")
-	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
-	cpu.PC = nn
+	var ls byte = cpu.mmu.ReadByte(cpu.PC)
+	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
+	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 
 	//set clock values
 	cpu.LastInstrCycle.Set(3, 12)
@@ -2575,10 +2689,13 @@ func (cpu *Z80) JP_hl() {
 //JP cc, nn
 func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 	log.Println("JP cc,nn")
-	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	var ls byte = cpu.mmu.ReadByte(cpu.PC)
+	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
+
 	cpu.IncrementPC(2)
+
 	if cpu.IsFlagSet(flag) == jumpWhen {
-		cpu.PC = nn
+		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 	}
 
 	//set clock values
@@ -2588,9 +2705,13 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 //JR n
 func (cpu *Z80) JR_n() {
 	log.Println("JR n")
-	var value byte = cpu.mmu.ReadByte(cpu.PC)
+	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
-	cpu.PC += types.Word(value)
+	if n > 127 {
+		cpu.PC -= types.Word(-n)
+	} else {
+		cpu.PC += types.Word(n)
+	}
 
 	//set clock values
 	cpu.LastInstrCycle.Set(2, 8)
@@ -2601,7 +2722,6 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	log.Println("JR cc,n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
-
 
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		if n > 127 {
@@ -2674,11 +2794,11 @@ func (cpu *Z80) Resb_hl(b byte) {
 //Push address of next instruction onto stack and then jump to address nn
 func (cpu *Z80) Call_nn() {
 	log.Println("CALL nn")
-	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
-	cpu.IncrementPC(2)
-	var nextInstr types.Word = cpu.PC
+	var ls byte = cpu.mmu.ReadByte(cpu.PC)
+	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
+	var nextInstr types.Word = cpu.PC + 2
 	cpu.pushWordToStack(nextInstr)
-	cpu.PC = nn
+	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 
 	//set clock values
 	cpu.LastInstrCycle.Set(3, 12)
@@ -2687,12 +2807,14 @@ func (cpu *Z80) Call_nn() {
 // CALL cc,nn
 func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 	log.Println("CALL cc, nn")
-	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
+	var ls byte = cpu.mmu.ReadByte(cpu.PC)
+	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
+	var nextInstr types.Word = cpu.PC + 2
 	cpu.IncrementPC(2)
 
 	if cpu.IsFlagSet(flag) == callWhen {
-		cpu.pushWordToStack(cpu.PC)
-		cpu.PC = nn
+		cpu.pushWordToStack(nextInstr)
+		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 	}
 
 	//set clock values
@@ -2750,17 +2872,69 @@ func (cpu *Z80) Rlc_hl() {
 //RL r
 func (cpu *Z80) Rl_r(r *byte) {
 	log.Println("RL r")
-	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	var oldV byte = *r
+	*r = *r<<1 | *r>>(8-1)
+
+	if cpu.IsFlagSet(C) {
+		*r ^= 0x01
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	//carry flag
+	if (oldV & 0x80) == 0x80 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if *r == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //RL (HL) 
 func (cpu *Z80) Rl_hl() {
 	log.Println("RL (HL)")
-	//TODO: Implement
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var oldValue byte = cpu.mmu.ReadByte(HL)
+	var value byte = oldValue
 
-	log.Fatalf("Unimplemented")
+	value = value<<1 | value>>(8-1)
+
+	if cpu.IsFlagSet(C) {
+		value ^= 0x01
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	//carry flag
+	if (oldValue & 0x80) == 0x80 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if value == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	cpu.mmu.WriteByte(HL, value)
+
+	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //RRC r

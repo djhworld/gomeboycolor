@@ -246,7 +246,7 @@ func TestImplementsInterface(t *testing.T) {
 }
 
 func TestReadByte(t *testing.T) {
-	rom := make([]byte, 32768,32768)
+	rom := make([]byte, 32768, 32768)
 	for i := 32767; i >= 0; i-- {
 		rom[i] = byte(i)
 	}

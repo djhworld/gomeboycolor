@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
+	"log"
 )
 
 /*
@@ -36,7 +37,7 @@ type GbcMMU struct {
 	externalRAM      [8192]byte  //0xA000 -> 0xBFFF
 	workingRAM       [8192]byte  //0xC000 -> 0xDFFF
 	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
-	mmIO			 [128]byte //0xFF00 -> 0xFF7F //TODO 
+	mmIO             [128]byte   //0xFF00 -> 0xFF7F //TODO 
 	zeroPageRAM      [128]byte   //0xFF80 - 0xFFFF
 	inBootMode       bool
 }
@@ -116,7 +117,8 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
 	default:
-		panic("Address is unwritable/uknown")
+		log.Printf("Address %X is unwritable/unknown", addr)
+		panic("Address is unwritable/unknown")
 	}
 }
 
