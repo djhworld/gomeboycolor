@@ -2986,9 +2986,37 @@ func (cpu *Z80) Rr_r(r *byte) {
 //RR (HL) 
 func (cpu *Z80) Rr_hl() {
 	log.Println("RR (HL)")
-	//TODO: Implement
+	var HLAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.mmu.ReadByte(HLAddr)
+	var oldV byte = value
 
-	log.Fatalf("Unimplemented")
+	value = value>>1 | value<<(8-1)
+
+	if cpu.IsFlagSet(C) {
+		value ^= 0x80
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	//carry flag
+	if (oldV & 0x01) == 0x01 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if value == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	cpu.mmu.WriteByte(HLAddr, value)
+
+	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //SLA r

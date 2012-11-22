@@ -3305,6 +3305,50 @@ func TestRR_r(t *testing.T) {
 	assert.True(t, cpu.IsFlagSet(Z))
 }
 
+//RR (HL) 
+func TestRr_hl(t *testing.T) {
+	var expectedR byte = 0x7B
+	var hlAddr types.Word = 0xF1F2
+	reset()
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+	cpu.R.H = 0xF1
+	cpu.R.L = 0xF2
+	cpu.mmu.WriteByte(hlAddr, 0xF6)
+	cpu.Rr_hl()
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+
+	//check flags are reset
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+	//Check timings are correct
+	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
+	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
+
+	//check with carry flag set
+	reset()
+	expectedR = 0xFB
+	cpu.SetFlag(C)
+
+	cpu.R.H = 0xF1
+	cpu.R.L = 0xF2
+	cpu.mmu.WriteByte(hlAddr, 0xF6)
+	cpu.Rr_hl()
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.False(t, cpu.IsFlagSet(C))
+
+	//check zero flag
+	reset()
+	expectedR = 0x00
+	cpu.R.H = 0xF1
+	cpu.R.L = 0xF2
+	cpu.mmu.WriteByte(hlAddr, 0x00)
+	cpu.Rr_hl()
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+
 
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
