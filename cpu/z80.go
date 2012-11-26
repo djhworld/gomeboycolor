@@ -2675,9 +2675,10 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
+		cpu.LastInstrCycle.M = 4
+	} else {
+		cpu.LastInstrCycle.M = 3
 	}
-
-	//set clock values
 }
 
 //JR n
@@ -2700,15 +2701,17 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
+	//set clock to 12 cycles if jumped, 8 cycles if not
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		if n > 127 {
 			cpu.PC -= types.Word(-n)
 		} else {
 			cpu.PC += types.Word(n)
 		}
+		cpu.LastInstrCycle.M = 3
+	} else {
+		cpu.LastInstrCycle.M = 2
 	}
-
-	//set clock values
 }
 
 // SET b, r
@@ -2786,7 +2789,10 @@ func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 	if cpu.IsFlagSet(flag) == callWhen {
 		cpu.pushWordToStack(nextInstr)
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
-	}
+		cpu.LastInstrCycle.M = 6
+	} else {
+		cpu.LastInstrCycle.M = 3
+	} 
 
 	//set clock values
 }
@@ -2809,6 +2815,9 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 	log.Println("RET cc")
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
+		cpu.LastInstrCycle.M = 5
+	} else {
+		cpu.LastInstrCycle.M = 2
 	}
 }
 

@@ -2512,6 +2512,7 @@ func TestJPcc_nn(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.JPcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 16)
 
 	expectedPC = 0x2003
 	reset()
@@ -2520,6 +2521,7 @@ func TestJPcc_nn(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.JPcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 12)
 
 	expectedPC = 0x5672
 	reset()
@@ -2528,6 +2530,7 @@ func TestJPcc_nn(t *testing.T) {
 	cpu.mmu.WriteByte(cpu.PC+1, 0x56)
 	cpu.JPcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 16)
 
 }
 
@@ -2540,6 +2543,7 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.JRcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 12)
 
 	expectedPC = 0x2002
 	reset()
@@ -2548,6 +2552,7 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 8)
 
 	expectedPC = 0x000B
 	reset()
@@ -2555,6 +2560,7 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.mmu.WriteByte(cpu.PC, 0x09)
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 12)
 
 }
 
@@ -2680,6 +2686,7 @@ func TestCallcc_nn(t *testing.T) {
 	cpu.Callcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
 	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstructionAddress)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 24)
 
 	reset()
 	expectedPC = 0x0003
@@ -2690,6 +2697,7 @@ func TestCallcc_nn(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.Callcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 12)
 
 }
 
@@ -2735,6 +2743,7 @@ func TestRetcc(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.Retcc(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 20)
 
 	reset()
 	expectedPC = 0xFF39
@@ -2742,6 +2751,7 @@ func TestRetcc(t *testing.T) {
 	cpu.PC = 0x9284
 	cpu.Retcc(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
+	assert.Equal(t, cpu.LastInstrCycle.T(), 20)
 
 	reset()
 	expectedPC = 0x9284
@@ -2750,7 +2760,7 @@ func TestRetcc(t *testing.T) {
 	cpu.SetFlag(Z)
 	cpu.Retcc(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
-
+	assert.Equal(t, cpu.LastInstrCycle.T(), 8)
 }
 
 //RETI tests
