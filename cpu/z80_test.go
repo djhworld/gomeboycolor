@@ -299,7 +299,6 @@ func TestLDrn_PCIncrementCheck(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-
 //LD r,r tests
 //------------------------------------------
 func TestLDrr(t *testing.T) {
@@ -439,7 +438,6 @@ func TestLDrr(t *testing.T) {
 
 }
 
-
 //LD r,(HL) tests
 //------------------------------------------
 func TestLDr_hl(t *testing.T) {
@@ -534,7 +532,6 @@ func TestLDr_bc(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expected)
 }
 
-
 //LD r,(DE) tests
 //------------------------------------------
 func TestLDr_de(t *testing.T) {
@@ -550,7 +547,6 @@ func TestLDr_de(t *testing.T) {
 	cpu.LDr_de(&cpu.R.A)
 	assert.Equal(t, cpu.R.A, expected)
 }
-
 
 //LD r,nn tests
 //------------------------------------------
@@ -588,7 +584,6 @@ func TestLDbc_r(t *testing.T) {
 	cpu.LDbc_r(&cpu.R.A)
 	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
 }
-
 
 //LD (DE),r tests
 //------------------------------------------
@@ -2158,7 +2153,6 @@ func TestCPL(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 
-
 	expectedA = 0x00
 	reset()
 	cpu.R.A = 0xFF
@@ -2190,7 +2184,6 @@ func TestCCF(t *testing.T) {
 	cpu.CCF()
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
-
 
 }
 
@@ -2227,7 +2220,6 @@ func TestSwap_r(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
-
 	//check zero flag
 	expectedA = 0x00
 	reset()
@@ -2258,7 +2250,6 @@ func TestSwap_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
-
 	addr = 0x1001
 	expected = 0x00
 	reset()
@@ -2286,7 +2277,6 @@ func TestRLCA(t *testing.T) {
 	//ensure flags are reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
-
 
 	//check carry flag
 	reset()
@@ -2316,7 +2306,6 @@ func TestRLA(t *testing.T) {
 	//ensure flags are reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
-
 
 	//check carry flag
 	reset()
@@ -2356,7 +2345,6 @@ func TestRRCA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-
 	//check carry flag
 	reset()
 	cpu.R.A = 0x33
@@ -2385,7 +2373,6 @@ func TestRRA(t *testing.T) {
 	//ensure flags are reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
-
 
 	//check carry flag
 	reset()
@@ -2583,7 +2570,6 @@ func TestSetb_r(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Setb_r(0x00, &cpu.R.A)
 
-
 	//now do actual test
 	expectedAs := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
 	for i, expectedA := range expectedAs {
@@ -2600,7 +2586,6 @@ func TestSetb_hl(t *testing.T) {
 	reset()
 	cpu.PC = 0x0001
 	cpu.Setb_hl(0x00)
-
 
 	//now do actual test
 	var hlAddr types.Word = 0x3827
@@ -2623,7 +2608,6 @@ func TestResb_r(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Resb_r(0x00, &cpu.R.A)
 
-
 	//now do actual test
 	As := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
 	var expectedA byte = 0x00
@@ -2641,7 +2625,6 @@ func TestResb_hl(t *testing.T) {
 	reset()
 	cpu.PC = 0x0001
 	cpu.Resb_hl(0x01)
-
 
 	//now do actual test
 	var hlAddr types.Word = 0x3827
@@ -2707,7 +2690,6 @@ func TestRst(t *testing.T) {
 	reset()
 	cpu.PC = currentPC
 	cpu.Rst(0x00)
-
 
 	//check top of stack is currentPC
 	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), currentPC)
@@ -2947,8 +2929,6 @@ func TestRr_hl(t *testing.T) {
 	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
 	assert.True(t, cpu.IsFlagSet(Z))
 }
-
-
 
 //-----------------------------------------------------------------------
 //INSTRUCTIONS END
