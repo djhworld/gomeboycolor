@@ -38,3 +38,9 @@ func BitToValue(b byte) byte {
 	}
 	return 0x01
 }
+
+func CalculateCycles(timings [16][16]int, instruction byte) int {
+	i, j := int(instruction&0xF0)>>4, int(instruction&0x0F)
+	return timings[i][j]
+}
+

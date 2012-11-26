@@ -108,15 +108,6 @@ func TestAddA_rForSubtractFlagReset(t *testing.T) {
 
 }
 
-func TestAddA_rClockTimings(t *testing.T) {
-	reset()
-	cpu.R.B = 0x10
-	cpu.AddA_r(&cpu.R.B)
-
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(4))
-}
-
 //ADD A,(HL) tests
 //------------------------------------------
 func TestAddA_hl(t *testing.T) {
@@ -179,14 +170,6 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 	//Check flag is set when result does not
 	cpu.AddA_hl()
 	assert.Equal(t, (cpu.R.F & 0x10), byte(0x00))
-}
-
-func TestAddA_hlClockTimings(t *testing.T) {
-	reset()
-	cpu.AddA_hl()
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-
 }
 
 //ADD A,n tests
@@ -257,13 +240,6 @@ func TestAddA_nForCarryFlag(t *testing.T) {
 	assert.Equal(t, (cpu.R.F & 0x10), byte(0x00))
 }
 
-func TestAddA_nClockTimings(t *testing.T) {
-	reset()
-	cpu.AddA_n()
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LD r,n tests
 //------------------------------------------
 func TestLDrn(t *testing.T) {
@@ -323,12 +299,6 @@ func TestLDrn_PCIncrementCheck(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDrn_ClockTimings(t *testing.T) {
-	reset()
-	cpu.LDrn(&cpu.R.B)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
 
 //LD r,r tests
 //------------------------------------------
@@ -469,12 +439,6 @@ func TestLDrr(t *testing.T) {
 
 }
 
-func TestLDrr_ClockTimings(t *testing.T) {
-	reset()
-	cpu.LDrr(&cpu.R.A, &cpu.R.B)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(4))
-}
 
 //LD r,(HL) tests
 //------------------------------------------
@@ -498,13 +462,6 @@ func TestLDr_hl(t *testing.T) {
 	//C <- (HL)
 	cpu.LDr_hl(&cpu.R.C)
 	assert.Equal(t, cpu.R.C, expected)
-}
-
-func TestLDr_hlClockTimings(t *testing.T) {
-	reset()
-	cpu.LDr_hl(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
 }
 
 //LD (HL),r tests
@@ -535,13 +492,6 @@ func TestLDhl_r(t *testing.T) {
 	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
 }
 
-func TestLDhl_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDhl_r(&cpu.R.B)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LD (HL),n tests
 //------------------------------------------
 func TestLDhl_n(t *testing.T) {
@@ -568,13 +518,6 @@ func TestLDhl_nPCIncrementCheck(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDhl_nClockTimings(t *testing.T) {
-	reset()
-	cpu.LDhl_n()
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
-}
-
 //LD r,(BC) tests
 //------------------------------------------
 func TestLDr_bc(t *testing.T) {
@@ -591,12 +534,6 @@ func TestLDr_bc(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expected)
 }
 
-func TestLDr_bcClockTimings(t *testing.T) {
-	reset()
-	cpu.LDr_bc(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
 
 //LD r,(DE) tests
 //------------------------------------------
@@ -614,12 +551,6 @@ func TestLDr_de(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expected)
 }
 
-func TestLDr_deClockTimings(t *testing.T) {
-	reset()
-	cpu.LDr_de(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
 
 //LD r,nn tests
 //------------------------------------------
@@ -644,13 +575,6 @@ func TestLDr_nnPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDr_nnClockTimings(t *testing.T) {
-	reset()
-	cpu.LDr_nn(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(16))
-}
-
 //LD (BC),r tests
 //------------------------------------------
 func TestLDbc_r(t *testing.T) {
@@ -665,12 +589,6 @@ func TestLDbc_r(t *testing.T) {
 	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
 }
 
-func TestLDbc_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDbc_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
 
 //LD (DE),r tests
 //------------------------------------------
@@ -684,13 +602,6 @@ func TestLDde_r(t *testing.T) {
 	cpu.R.A = expected
 	cpu.LDde_r(&cpu.R.A)
 	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
-}
-
-func TestLDde_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDde_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
 }
 
 //LD nn,r tests
@@ -720,14 +631,6 @@ func TestLDnn_rPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDnn_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDnn_r(&cpu.R.A)
-
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(16))
-}
-
 //LD r,(C) tests
 //------------------------------------------
 func TestLDr_ffplusc(t *testing.T) {
@@ -743,13 +646,6 @@ func TestLDr_ffplusc(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expected)
 }
 
-func TestLDr_ffpluscClockTimings(t *testing.T) {
-	reset()
-	cpu.LDr_ffplusc(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LD (C),r tests
 //------------------------------------------
 func TestLDffplusc_r(t *testing.T) {
@@ -763,13 +659,6 @@ func TestLDffplusc_r(t *testing.T) {
 	cpu.LDffplusc_r(&cpu.R.A)
 	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
 
-}
-
-func TestLDffplusc_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDffplusc_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
 }
 
 //LDD r, (HL) tests
@@ -799,13 +688,6 @@ func TestLDDr_hl(t *testing.T) {
 	assert.Equal(t, cpu.R.L, byte(0xFF))
 }
 
-func TestLDDr_hlClockTimings(t *testing.T) {
-	reset()
-	cpu.LDDr_hl(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LDI r, (HL) tests
 //------------------------------------------
 func TestLDIr_hl(t *testing.T) {
@@ -831,13 +713,6 @@ func TestLDIr_hl(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expected)
 	assert.Equal(t, cpu.R.H, byte(0x9A))
 	assert.Equal(t, cpu.R.L, byte(0x00))
-}
-
-func TestLDIr_hlClockTimings(t *testing.T) {
-	reset()
-	cpu.LDIr_hl(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
 }
 
 //LDD (HL), r tests
@@ -870,13 +745,6 @@ func TestLDDhl_r(t *testing.T) {
 	assert.Equal(t, cpu.R.L, byte(0xFF))
 }
 
-func TestLDDhl_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDDhl_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LDI (HL), r tests
 //------------------------------------------
 func TestLDIhl_r(t *testing.T) {
@@ -907,13 +775,6 @@ func TestLDIhl_r(t *testing.T) {
 	assert.Equal(t, cpu.R.L, byte(0x00))
 }
 
-func TestLDIhl_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDIhl_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
-}
-
 //LDH n, r tests
 //------------------------------------------
 func TestLDHn_r(t *testing.T) {
@@ -937,13 +798,6 @@ func TestLDHn_rCheckPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDHn_rClockTimings(t *testing.T) {
-	reset()
-	cpu.LDHn_r(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
-}
-
 //LDH r, n tests
 //------------------------------------------
 func TestLDHr_n(t *testing.T) {
@@ -964,13 +818,6 @@ func TestLDHr_nCheckPCIncremented(t *testing.T) {
 	cpu.LDHr_n(&cpu.R.A)
 	assert.Equal(t, cpu.PC, expected)
 
-}
-
-func TestLDHr_nClockTimings(t *testing.T) {
-	reset()
-	cpu.LDHr_n(&cpu.R.A)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
 }
 
 //LD n,nn tests
@@ -997,13 +844,6 @@ func TestLDn_nnCheckPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDn_nnClockTimings(t *testing.T) {
-	reset()
-	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
-}
-
 //LD SP,nn tests
 //------------------------------------------
 func TestLDSP_nn(t *testing.T) {
@@ -1025,13 +865,6 @@ func TestLDSP_nnCheckPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDSP_nnClockTimings(t *testing.T) {
-	reset()
-	cpu.LDSP_nn()
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
-}
-
 //LD SP, rr tests
 //------------------------------------------
 func TestLDSP_rr(t *testing.T) {
@@ -1044,14 +877,6 @@ func TestLDSP_rr(t *testing.T) {
 
 	assert.Equal(t, cpu.SP, expected)
 
-}
-
-func TestLDSP_rrClockTimings(t *testing.T) {
-	reset()
-	cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
-
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(8))
 }
 
 //LDHL SP, n tests
@@ -1106,14 +931,6 @@ func TestLDHLSP_nFlags(t *testing.T) {
 	assert.Equal(t, cpu.R.F, expected)
 }
 
-func TestLDHLSP_nClockTimings(t *testing.T) {
-	reset()
-	cpu.LDHLSP_n()
-
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(12))
-}
-
 //LD nn, SP tests
 //------------------------------------------
 func TestLDnn_SP(t *testing.T) {
@@ -1135,20 +952,11 @@ func TestLDnn_SPCheckPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expected)
 }
 
-func TestLDnn_SPClockTimings(t *testing.T) {
-	reset()
-	cpu.LDnn_SP()
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(5))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(20))
-}
-
 //NOP
 //------------------------------------------
 func TestNOP(t *testing.T) {
 	reset()
 	cpu.NOP()
-	assert.Equal(t, cpu.LastInstrCycle.m, types.Word(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, types.Word(4))
 }
 
 //PUSH nn tests
@@ -1166,13 +974,6 @@ func TestPushnn(t *testing.T) {
 	assert.Equal(t, cpu.mmu.ReadByte(0x0002), cpu.R.C)
 }
 
-func TestPushnnClockTimings(t *testing.T) {
-	reset()
-	cpu.Push_nn(&cpu.R.B, &cpu.R.C)
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
-}
-
 //POP nn tests
 //------------------------------------------
 func TestPopnn(t *testing.T) {
@@ -1188,13 +989,6 @@ func TestPopnn(t *testing.T) {
 	assert.Equal(t, cpu.SP, expectedSP)
 	assert.Equal(t, cpu.R.H, cpu.R.B)
 	assert.Equal(t, cpu.R.L, cpu.R.C)
-}
-
-func TestPopnnClockTimings(t *testing.T) {
-	reset()
-	cpu.Pop_nn(&cpu.R.B, &cpu.R.C)
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
 //ADDC A,r tests
@@ -1279,13 +1073,6 @@ func TestADDCA_rSubtractFlagReset(t *testing.T) {
 	reset()
 	cpu.AddCA_r(&cpu.R.B)
 	assert.Equal(t, cpu.IsFlagSet(N), false)
-}
-
-func TestADDCA_rClockTimings(t *testing.T) {
-	reset()
-	cpu.AddCA_r(&cpu.R.B)
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
 //ADDC A,(HL) tests
@@ -1387,13 +1174,6 @@ func TestADDCA_hlSubtractFlagReset(t *testing.T) {
 	cpu.mmu.WriteByte(0xFF11, 0x03)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(N), false)
-}
-
-func TestADDCA_hlClockTimings(t *testing.T) {
-	reset()
-	cpu.AddCA_hl()
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //ADDC A,n tests
@@ -1499,13 +1279,6 @@ func TestADDCA_nPCIncremented(t *testing.T) {
 	assert.Equal(t, cpu.PC, expectedPC)
 }
 
-func TestADDCA_nClockTimings(t *testing.T) {
-	reset()
-	cpu.AddCA_n()
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
-}
-
 // NOTE: Just going to encorporate all checks and things in one test from now it, it's becoming a PITA to write 4-5 tests per instruction!
 
 //SUB A,r tests 
@@ -1520,9 +1293,6 @@ func TestSUBA_r(t *testing.T) {
 	cpu.R.B = 0x02
 	cpu.SubA_r(&cpu.R.B)
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 	//Check N flag is set 
 	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
 	//Check other flags are not set 
@@ -1579,9 +1349,6 @@ func TestSUBA_hl(t *testing.T) {
 	cpu.mmu.WriteByte(0x0102, 0x02)
 	cpu.SubA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//Check N flag is set 
 	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
 	//Check other flags are not set 
@@ -1648,9 +1415,6 @@ func TestSUBA_n(t *testing.T) {
 
 	//check PC has been incremented
 	assert.Equal(t, cpu.PC, expectedPC)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//Check N flag is set 
 	assert.Equal(t, cpu.IsFlagSet(N), true, "Subract flag (N) is not set!")
 	//Check other flags are not set 
@@ -1708,9 +1472,6 @@ func TestAndA_r(t *testing.T) {
 	cpu.R.B = 0x0F
 	cpu.AndA_r(&cpu.R.B)
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 	//H flag should be set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//result should not be zero so Z flag should not be set
@@ -1747,9 +1508,6 @@ func TestAndA_hl(t *testing.T) {
 	cpu.mmu.WriteByte(0x0102, 0x0F)
 	cpu.AndA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//H flag should be set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//result should not be zero so Z flag should not be set
@@ -1791,9 +1549,6 @@ func TestAndA_n(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
 	assert.Equal(t, cpu.PC, expectedPC)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//H flag should be set
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//result should not be zero so Z flag should not be set
@@ -1828,9 +1583,6 @@ func TestOrA_r(t *testing.T) {
 	cpu.R.B = 0x0F
 	cpu.OrA_r(&cpu.R.B)
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -1865,9 +1617,6 @@ func TestOrA_hl(t *testing.T) {
 	cpu.mmu.WriteByte(0x0102, 0x0F)
 	cpu.OrA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -1907,9 +1656,6 @@ func TestOrA_n(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
 	assert.Equal(t, cpu.PC, expectedPC)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -1942,9 +1688,6 @@ func TestXorA_r(t *testing.T) {
 	cpu.R.B = 0x0F
 	cpu.XorA_r(&cpu.R.B)
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -1979,9 +1722,6 @@ func TestXorA_hl(t *testing.T) {
 	cpu.mmu.WriteByte(0x0102, 0x0F)
 	cpu.XorA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -2021,9 +1761,6 @@ func TestXorA_n(t *testing.T) {
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
 	assert.Equal(t, cpu.PC, expectedPC)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	//all flags should be disabled
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
@@ -2053,9 +1790,6 @@ func TestCPA_r(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.B = 0x05
 	cpu.CPA_r(&cpu.R.B)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2066,7 +1800,6 @@ func TestCPA_r(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.B = 0xAA
 	cpu.CPA_r(&cpu.R.B)
-	//Check timings are correct
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2083,9 +1816,6 @@ func TestCPA_hl(t *testing.T) {
 	cpu.mmu.WriteByte(0x03AA, 0x05)
 	cpu.CPA_hl()
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2098,7 +1828,6 @@ func TestCPA_hl(t *testing.T) {
 	cpu.R.L = 0xAA
 	cpu.mmu.WriteByte(0x03AA, 0xAA)
 	cpu.CPA_hl()
-	//Check timings are correct
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2117,9 +1846,6 @@ func TestCPA_n(t *testing.T) {
 
 	//Check PC incremented
 	assert.Equal(t, cpu.PC, expectedPC)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2131,7 +1857,6 @@ func TestCPA_n(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.mmu.WriteByte(cpu.PC, 0xAA)
 	cpu.CPA_n()
-	//Check timings are correct
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
@@ -2153,9 +1878,6 @@ func TestInc_r(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	reset()
 	cpu.R.B = 0xFF
@@ -2188,9 +1910,6 @@ func TestInc_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 
 	reset()
 	cpu.R.H = 0x03
@@ -2224,9 +1943,6 @@ func TestDec_r(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	reset()
 	cpu.R.B = 0x01
@@ -2253,9 +1969,6 @@ func TestDec_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(C), true)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 
 	reset()
 	cpu.R.H = 0x03
@@ -2284,9 +1997,6 @@ func TestAddhl_rr(t *testing.T) {
 	assert.Equal(t, cpu.R.L, expectedL)
 	//Check N flag is reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//carry flag
 	reset()
@@ -2325,9 +2035,6 @@ func TestAddhl_sp(t *testing.T) {
 	assert.Equal(t, cpu.R.L, expectedL)
 	//Check N flag is reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//carry flag
 	reset()
@@ -2364,9 +2071,6 @@ func TestAddsp_n(t *testing.T) {
 	//Check Z and N flags are reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 	//Check PC incremented
 	assert.Equal(t, cpu.PC, expectedPC)
 
@@ -2381,9 +2085,6 @@ func TestAddsp_n(t *testing.T) {
 	//Check carry flag is set
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 }
 
 //INC rr tests 
@@ -2401,9 +2102,6 @@ func TestInc_rr(t *testing.T) {
 	assert.Equal(t, expectedH, cpu.R.H)
 	assert.Equal(t, expectedL, cpu.R.L)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //INC SP tests 
@@ -2417,9 +2115,6 @@ func TestInc_sp(t *testing.T) {
 
 	assert.Equal(t, expectedSP, cpu.SP)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //DEC rr tests 
@@ -2437,9 +2132,6 @@ func TestDec_rr(t *testing.T) {
 	assert.Equal(t, expectedH, cpu.R.H)
 	assert.Equal(t, expectedL, cpu.R.L)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //DEC SP tests 
@@ -2453,9 +2145,6 @@ func TestDec_sp(t *testing.T) {
 
 	assert.Equal(t, expectedSP, cpu.SP)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //CPL Tests
@@ -2469,9 +2158,6 @@ func TestCPL(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), true)
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	expectedA = 0x00
 	reset()
@@ -2505,9 +2191,6 @@ func TestCCF(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 }
 
@@ -2525,9 +2208,6 @@ func TestSCF(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
 //SWAP r Tests
@@ -2547,9 +2227,6 @@ func TestSwap_r(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//check zero flag
 	expectedA = 0x00
@@ -2581,9 +2258,6 @@ func TestSwap_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	addr = 0x1001
 	expected = 0x00
@@ -2613,9 +2287,6 @@ func TestRLCA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	//check carry flag
 	reset()
@@ -2646,9 +2317,6 @@ func TestRLA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	//check carry flag
 	reset()
@@ -2688,9 +2356,6 @@ func TestRRCA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	//check carry flag
 	reset()
@@ -2721,9 +2386,6 @@ func TestRRA(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 	//check carry flag
 	reset()
@@ -2761,9 +2423,6 @@ func TestBitb_r(t *testing.T) {
 	//ensure flag reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	var expected []bool = []bool{true, true, false, false, true, true, true, false}
 
@@ -2796,9 +2455,6 @@ func TestBitb_hl(t *testing.T) {
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 	//ensure flag reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	var expected []bool = []bool{true, true, false, false, true, true, true, false}
 
@@ -2830,9 +2486,6 @@ func TestJP_nn(t *testing.T) {
 
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
 //JP (HL) tests
@@ -2847,9 +2500,6 @@ func TestJP_hl(t *testing.T) {
 
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
 //JP cc nn tests
@@ -2879,9 +2529,6 @@ func TestJPcc_nn(t *testing.T) {
 	cpu.JPcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
 //JR cc nn tests
@@ -2909,9 +2556,6 @@ func TestJRcc_nn(t *testing.T) {
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //JR n tests
@@ -2925,9 +2569,6 @@ func TestJR_n(t *testing.T) {
 	//check PC 
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //SET b,r tests
@@ -2936,9 +2577,6 @@ func TestSetb_r(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Setb_r(0x00, &cpu.R.A)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//now do actual test
 	expectedAs := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
@@ -2957,9 +2595,6 @@ func TestSetb_hl(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Setb_hl(0x00)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	//now do actual test
 	var hlAddr types.Word = 0x3827
@@ -2982,9 +2617,6 @@ func TestResb_r(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Resb_r(0x00, &cpu.R.A)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//now do actual test
 	As := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
@@ -3004,9 +2636,6 @@ func TestResb_hl(t *testing.T) {
 	cpu.PC = 0x0001
 	cpu.Resb_hl(0x01)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	//now do actual test
 	var hlAddr types.Word = 0x3827
@@ -3037,9 +2666,6 @@ func TestCall_nn(t *testing.T) {
 	assert.Equal(t, cpu.PC, expectedPC)
 	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstructionAddress)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
 //CALL cc,nn tests
@@ -3065,9 +2691,6 @@ func TestCallcc_nn(t *testing.T) {
 	cpu.Callcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(3))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(12))
 }
 
 //RST n tests
@@ -3077,9 +2700,6 @@ func TestRst(t *testing.T) {
 	cpu.PC = currentPC
 	cpu.Rst(0x00)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(8))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(32))
 
 	//check top of stack is currentPC
 	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), currentPC)
@@ -3104,9 +2724,6 @@ func TestRet(t *testing.T) {
 	cpu.Ret()
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //RET cc tests
@@ -3134,9 +2751,6 @@ func TestRetcc(t *testing.T) {
 	cpu.Retcc(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //RETI tests
@@ -3150,9 +2764,6 @@ func TestRet_i(t *testing.T) {
 	assert.True(t, cpu.InterruptsEnabled)
 	assert.Equal(t, cpu.PC, expectedPC)
 
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 }
 
 //EI tests
@@ -3162,9 +2773,6 @@ func TestEI(t *testing.T) {
 	cpu.EI()
 
 	assert.True(t, cpu.InterruptsEnabled)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 
 }
 
@@ -3175,9 +2783,6 @@ func TestDI(t *testing.T) {
 	cpu.DI()
 
 	assert.False(t, cpu.InterruptsEnabled)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
 //HALT tests
@@ -3187,9 +2792,6 @@ func TestHalt(t *testing.T) {
 	cpu.HALT()
 
 	assert.False(t, cpu.Running)
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(1))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(4))
 }
 
 //RL r
@@ -3205,9 +2807,6 @@ func TestRl_r(t *testing.T) {
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
 	assert.False(t, cpu.IsFlagSet(H))
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//check with carry flag set
 	reset()
@@ -3243,9 +2842,6 @@ func TestRl_hl(t *testing.T) {
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
 	assert.False(t, cpu.IsFlagSet(H))
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	//check with carry flag set
 	reset()
@@ -3283,9 +2879,6 @@ func TestRR_r(t *testing.T) {
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
 	assert.False(t, cpu.IsFlagSet(H))
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(2))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(8))
 
 	//check with carry flag set
 	reset()
@@ -3321,9 +2914,6 @@ func TestRr_hl(t *testing.T) {
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
 	assert.False(t, cpu.IsFlagSet(H))
-	//Check timings are correct
-	assert.Equal(t, cpu.LastInstrCycle.m, byte(4))
-	assert.Equal(t, cpu.LastInstrCycle.t, byte(16))
 
 	//check with carry flag set
 	reset()
@@ -3373,10 +2963,8 @@ func TestReset(t *testing.T) {
 	assert.Equal(t, cpu.R.L, ZEROB)
 	assert.True(t, cpu.InterruptsEnabled)
 	assert.True(t, cpu.Running)
-	assert.Equal(t, cpu.MachineCycles.m, ZEROW)
-	assert.Equal(t, cpu.MachineCycles.t, ZEROW)
-	assert.Equal(t, cpu.LastInstrCycle.m, ZEROW)
-	assert.Equal(t, cpu.LastInstrCycle.t, ZEROW)
+	assert.Equal(t, cpu.MachineCycles.M, 0)
+	assert.Equal(t, cpu.MachineCycles.T(), 0)
 }
 
 type MockMMU struct {

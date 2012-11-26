@@ -8,6 +8,44 @@ import (
 	"log"
 )
 
+var instrTimings [16][16]int = [16][16]int{
+	[16]int{1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1},
+	[16]int{1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1},
+	[16]int{0, 3, 2, 2, 1, 1, 2, 1, 0, 2, 2, 2, 1, 1, 2, 1},
+	[16]int{0, 3, 2, 2, 3, 3, 3, 1, 0, 2, 2, 2, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
+	[16]int{0, 3, 0, 4, 0, 4, 2, 4, 0, 4, 0, 4, 0, 6, 2, 4},
+	[16]int{0, 3, 0, -1, 0, 4, 2, 4, 0, 4, 0, -1, 0, -1, 2, 4},
+	[16]int{3, 3, 2, -1, -1, 4, 2, 4, 4, 1, 4, -1, -1, -1, 2, 4},
+	[16]int{3, 3, 2, 1, -1, 4, 2, 4, 3, 2, 4, 1, -1, -1, 2, 4},
+}
+
+var extendedInstrTimings [16][16]int = [16][16]int{
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+	[16]int{2,2,2,2, 2,2,4,2, 2,2,2,2, 2,2,4,2},
+}
+
 //flags
 const (
 	_ = iota
@@ -16,6 +54,9 @@ const (
 	N
 	Z
 )
+
+//hz
+const CLOCK_RATE int = 4194304
 
 type Registers struct {
 	A byte
@@ -30,20 +71,20 @@ type Registers struct {
 
 //See ZILOG z80 cpu manual p.80  (http://www.zilog.com/docs/z80/um0080.pdf)
 type Clock struct {
-	m types.Word
-	t types.Word
+	M int
+	t int
 }
 
-func (c *Clock) Set(m, t types.Word) {
-	c.m, c.t = m, t
+func (c *Clock) T() int {
+	return c.M*4
 }
 
 func (c *Clock) Reset() {
-	c.m, c.t = 0, 0
+	c.M, c.t = 0, 0
 }
 
 func (c *Clock) String() string {
-	return fmt.Sprintf("[M: %X, T: %X]", c.m, c.t)
+	return fmt.Sprintf("[M: %X, T: %X]", c.M, c.t)
 }
 
 type Z80 struct {
@@ -1195,7 +1236,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	}
 }
 
-func (cpu *Z80) Step() {
+func (cpu *Z80) Step() int {
 	var Opcode byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.CurrentInstruction = Opcode
 	cpu.IncrementPC(1)
@@ -1204,16 +1245,29 @@ func (cpu *Z80) Step() {
 		Opcode = cpu.mmu.ReadByte(cpu.PC)
 		cpu.IncrementPC(1)
 		cpu.DispatchCB(Opcode)
+		cycles := utils.CalculateCycles(extendedInstrTimings, Opcode)
+		if cycles < 0 {
+			log.Fatalf("Attempting to get cycles for unknown instruction")
+		} else {
+			cpu.LastInstrCycle.M += cycles
+		}
 	} else {
 		cpu.Dispatch(Opcode)
+		cycles := utils.CalculateCycles(instrTimings, Opcode)
+		if cycles < 0 {
+			log.Fatalf("Attempting to get cycles for unknown instruction")
+		} else {
+			cpu.LastInstrCycle.M += cycles
+		}
 	}
 
-	cpu.MachineCycles.m += cpu.LastInstrCycle.m
-	cpu.MachineCycles.t += cpu.LastInstrCycle.t
+	cpu.MachineCycles.M += cpu.LastInstrCycle.M
+	t := cpu.LastInstrCycle.T()
 	cpu.LastInstrCycle.Reset()
 	if cpu.PC >= 0x0100 {
 		cpu.mmu.SetInBootMode(false)
 	}
+	return t
 }
 
 // INSTRUCTIONS START
@@ -1229,7 +1283,6 @@ func (cpu *Z80) LDrn(r *byte) {
 	*r = value
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD r,r
@@ -1239,7 +1292,6 @@ func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 	*r1 = *r2
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //LD r,(HL)
@@ -1253,7 +1305,6 @@ func (cpu *Z80) LDr_hl(r *byte) {
 	*r = value
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD (HL),r
@@ -1266,7 +1317,6 @@ func (cpu *Z80) LDhl_r(r *byte) {
 	cpu.mmu.WriteByte(HL, value)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD (BC),r
@@ -1280,7 +1330,6 @@ func (cpu *Z80) LDbc_r(r *byte) {
 	cpu.mmu.WriteByte(BC, value)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD (DE),r
@@ -1294,7 +1343,6 @@ func (cpu *Z80) LDde_r(r *byte) {
 	cpu.mmu.WriteByte(DE, value)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD nn,r
@@ -1308,7 +1356,6 @@ func (cpu *Z80) LDnn_r(r *byte) {
 
 	cpu.mmu.WriteByte(resultAddr, *r)
 
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //LD (HL),n
@@ -1322,7 +1369,6 @@ func (cpu *Z80) LDhl_n() {
 	cpu.mmu.WriteByte(HL, value)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LD r, (BC)
@@ -1336,7 +1382,6 @@ func (cpu *Z80) LDr_bc(r *byte) {
 	*r = value
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD r, (DE)
@@ -1350,7 +1395,6 @@ func (cpu *Z80) LDr_de(r *byte) {
 	*r = value
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD r, nn
@@ -1366,7 +1410,6 @@ func (cpu *Z80) LDr_nn(r *byte) {
 	*r = value
 
 	//set clock values
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //LD r,(C)
@@ -1377,7 +1420,6 @@ func (cpu *Z80) LDr_ffplusc(r *byte) {
 	*r = cpu.mmu.ReadByte(valueAddr)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LD (C),r
@@ -1388,7 +1430,6 @@ func (cpu *Z80) LDffplusc_r(r *byte) {
 	cpu.mmu.WriteByte(valueAddr, *r)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LDD r, (HL)
@@ -1407,7 +1448,6 @@ func (cpu *Z80) LDDr_hl(r *byte) {
 	}
 
 	//set clock timings
-	cpu.LastInstrCycle.Set(2, 8)
 
 }
 
@@ -1426,7 +1466,6 @@ func (cpu *Z80) LDDhl_r(r *byte) {
 		cpu.R.H -= 1
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LDI r, (HL)
@@ -1445,7 +1484,6 @@ func (cpu *Z80) LDIr_hl(r *byte) {
 	}
 
 	//set clock timings
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LDI (HL), r
@@ -1463,7 +1501,6 @@ func (cpu *Z80) LDIhl_r(r *byte) {
 		cpu.R.H += 1
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LDH n, r
@@ -1472,7 +1509,6 @@ func (cpu *Z80) LDHn_r(r *byte) {
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 	cpu.mmu.WriteByte(types.Word(0xFF00)+types.Word(n), *r)
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LDH r, n
@@ -1484,7 +1520,6 @@ func (cpu *Z80) LDHr_n(r *byte) {
 
 	*r = cpu.mmu.ReadByte(types.Word(0xFF00) + types.Word(n))
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LD n, nn
@@ -1498,7 +1533,6 @@ func (cpu *Z80) LDn_nn(r1, r2 *byte) {
 	*r2 = v1
 	*r1 = v2
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LD SP, nn
@@ -1511,7 +1545,6 @@ func (cpu *Z80) LDSP_nn() {
 	var value types.Word = types.Word(utils.JoinBytes(v2, v1))
 	cpu.SP = value
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LD SP, rr
@@ -1519,7 +1552,6 @@ func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
 	log.Printf("LD SP, rr")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.SP = HL
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //LDHL SP, n 
@@ -1550,7 +1582,6 @@ func (cpu *Z80) LDHLSP_n() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //LDHL SP, n 
@@ -1562,7 +1593,6 @@ func (cpu *Z80) LDnn_SP() {
 	cpu.mmu.WriteWord(nn, cpu.SP)
 
 	cpu.IncrementPC(2)
-	cpu.LastInstrCycle.Set(5, 20)
 }
 
 //PUSH nn 
@@ -1573,7 +1603,6 @@ func (cpu *Z80) Push_nn(r1, r2 *byte) {
 	cpu.mmu.WriteByte(cpu.SP, *r1)
 	cpu.SP--
 	cpu.mmu.WriteByte(cpu.SP, *r2)
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //POP nn 
@@ -1584,7 +1613,6 @@ func (cpu *Z80) Pop_nn(r1, r2 *byte) {
 	cpu.SP++
 	*r1 = cpu.mmu.ReadByte(cpu.SP)
 	cpu.SP++
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //ADD A,r
@@ -1617,7 +1645,6 @@ func (cpu *Z80) AddA_r(r *byte) {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //ADD A,(HL)
@@ -1654,7 +1681,6 @@ func (cpu *Z80) AddA_hl() {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //ADD A,n
@@ -1691,7 +1717,6 @@ func (cpu *Z80) AddA_n() {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //ADDC A,r
@@ -1730,7 +1755,6 @@ func (cpu *Z80) AddCA_r(r *byte) {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //ADDC A,(HL)
@@ -1772,7 +1796,6 @@ func (cpu *Z80) AddCA_hl() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //ADDC A,n
@@ -1814,7 +1837,6 @@ func (cpu *Z80) AddCA_n() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //SUB A,r
@@ -1849,7 +1871,6 @@ func (cpu *Z80) SubA_r(r *byte) {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //SUB A,hl
@@ -1886,7 +1907,6 @@ func (cpu *Z80) SubA_hl() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //SUB A,n
@@ -1923,7 +1943,6 @@ func (cpu *Z80) SubA_n() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //AND A, r
@@ -1941,7 +1960,6 @@ func (cpu *Z80) AndA_r(r *byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //AND A, (HL)
@@ -1962,7 +1980,6 @@ func (cpu *Z80) AndA_hl() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 
 }
 
@@ -1984,7 +2001,6 @@ func (cpu *Z80) AndA_n() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //OR A, r
@@ -2002,7 +2018,6 @@ func (cpu *Z80) OrA_r(r *byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //OR A, (HL)
@@ -2023,7 +2038,6 @@ func (cpu *Z80) OrA_hl() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 
 }
 
@@ -2045,7 +2059,6 @@ func (cpu *Z80) OrA_n() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //XOR A, r
@@ -2063,7 +2076,6 @@ func (cpu *Z80) XorA_r(r *byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //XOR A, (HL)
@@ -2084,7 +2096,6 @@ func (cpu *Z80) XorA_hl() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 
 }
 
@@ -2106,7 +2117,6 @@ func (cpu *Z80) XorA_n() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //CP A, r
@@ -2130,7 +2140,6 @@ func (cpu *Z80) CPA_r(r *byte) {
 
 	//TODO: Half carry flag 
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //CP A, (HL) 
@@ -2157,7 +2166,6 @@ func (cpu *Z80) CPA_hl() {
 
 	//TODO: Half carry flag 
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //CP A, n
@@ -2183,7 +2191,6 @@ func (cpu *Z80) CPA_n() {
 
 	//TODO: Half carry flag 
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //INC r
@@ -2211,7 +2218,6 @@ func (cpu *Z80) Inc_r(r *byte) {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //INC (HL)
@@ -2240,7 +2246,6 @@ func (cpu *Z80) Inc_hl() {
 		cpu.ResetFlag(H)
 	}
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //DEC r
@@ -2259,7 +2264,6 @@ func (cpu *Z80) Dec_r(r *byte) {
 
 	//TODO HALF Carry flag
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //DEC (HL)
@@ -2282,7 +2286,6 @@ func (cpu *Z80) Dec_hl() {
 
 	//TODO HALF Carry flag
 
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //ADD HL,rr
@@ -2306,7 +2309,6 @@ func (cpu *Z80) Addhl_rr(r1, r2 *byte) {
 
 	//TODO Half Carry flag
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //ADD HL,SP
@@ -2329,7 +2331,6 @@ func (cpu *Z80) Addhl_sp() {
 
 	//TODO Half Carry flag
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //ADD SP,n
@@ -2355,7 +2356,6 @@ func (cpu *Z80) Addsp_n() {
 	//TODO Half carry flag
 
 	//set clock values
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //INC rr
@@ -2364,14 +2364,12 @@ func (cpu *Z80) Inc_rr(r1, r2 *byte) {
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR += 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //INC SP
 func (cpu *Z80) Inc_sp() {
 	log.Println("INC SP")
 	cpu.SP += 1
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //DEC rr
@@ -2380,14 +2378,12 @@ func (cpu *Z80) Dec_rr(r1, r2 *byte) {
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR -= 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //DEC SP
 func (cpu *Z80) Dec_sp() {
 	log.Println("DEC SP")
 	cpu.SP -= 1
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //DAA
@@ -2404,7 +2400,6 @@ func (cpu *Z80) CPL() {
 	cpu.R.A ^= 0xFF
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //CCF
@@ -2421,7 +2416,6 @@ func (cpu *Z80) CCF() {
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //SCF
@@ -2434,7 +2428,6 @@ func (cpu *Z80) SCF() {
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //SWAP r
@@ -2450,7 +2443,6 @@ func (cpu *Z80) Swap_r(r *byte) {
 	if *r == 0x00 {
 		cpu.SetFlag(Z)
 	}
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //SWAP (HL)
@@ -2469,7 +2461,6 @@ func (cpu *Z80) Swap_hl() {
 		cpu.SetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //RLCA
@@ -2496,7 +2487,6 @@ func (cpu *Z80) RLCA() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RLA
@@ -2526,7 +2516,6 @@ func (cpu *Z80) RLA() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RRCA
@@ -2553,7 +2542,6 @@ func (cpu *Z80) RRCA() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //RRA
@@ -2584,7 +2572,6 @@ func (cpu *Z80) RRA() {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //BIT b, r
@@ -2602,7 +2589,6 @@ func (cpu *Z80) Bitb_r(b byte, r *byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //BIT b,(HL) 
@@ -2623,7 +2609,6 @@ func (cpu *Z80) Bitb_hl(b byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //NOP
@@ -2631,7 +2616,6 @@ func (cpu *Z80) Bitb_hl(b byte) {
 func (cpu *Z80) NOP() {
 	log.Println("NOP")
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //HALT
@@ -2641,7 +2625,6 @@ func (cpu *Z80) HALT() {
 	cpu.Running = false
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //DI
@@ -2651,7 +2634,6 @@ func (cpu *Z80) DI() {
 	cpu.InterruptsEnabled = false
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //EI
@@ -2661,7 +2643,6 @@ func (cpu *Z80) EI() {
 	cpu.InterruptsEnabled = true
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //JP nn
@@ -2672,7 +2653,6 @@ func (cpu *Z80) JP_nn() {
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 
 	//set clock values
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //JP (HL)
@@ -2683,7 +2663,6 @@ func (cpu *Z80) JP_hl() {
 	cpu.PC = addr
 
 	//set clock values
-	cpu.LastInstrCycle.Set(1, 4)
 }
 
 //JP cc, nn
@@ -2699,7 +2678,6 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 //JR n
@@ -2714,7 +2692,6 @@ func (cpu *Z80) JR_n() {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //JR cc, nn
@@ -2732,7 +2709,6 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 // SET b, r
@@ -2743,7 +2719,6 @@ func (cpu *Z80) Setb_r(b byte, r *byte) {
 	*r = *r ^ b
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 // SET b, (HL) 
@@ -2759,7 +2734,6 @@ func (cpu *Z80) Setb_hl(b byte) {
 	cpu.mmu.WriteByte(HL, HLValue)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 // RES b, r
@@ -2771,7 +2745,6 @@ func (cpu *Z80) Resb_r(b byte, r *byte) {
 	*r = *r &^ b
 
 	//set clock values
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 // RES b, (HL) 
@@ -2787,7 +2760,6 @@ func (cpu *Z80) Resb_hl(b byte) {
 	cpu.mmu.WriteByte(HL, HLValue)
 
 	//set clock values
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 // CALL nn
@@ -2801,7 +2773,6 @@ func (cpu *Z80) Call_nn() {
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 
 	//set clock values
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 // CALL cc,nn
@@ -2818,7 +2789,6 @@ func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 	}
 
 	//set clock values
-	cpu.LastInstrCycle.Set(3, 12)
 }
 
 // RST n
@@ -2826,14 +2796,12 @@ func (cpu *Z80) Rst(n byte) {
 	log.Println("RST n")
 	cpu.pushWordToStack(cpu.PC)
 	cpu.PC = 0x0000 + types.Word(n)
-	cpu.LastInstrCycle.Set(8, 32)
 }
 
 // RET
 func (cpu *Z80) Ret() {
 	log.Println("RET")
 	cpu.PC = cpu.popWordFromStack()
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 // RET cc
@@ -2842,7 +2810,6 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
 	}
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 // RETI 
@@ -2850,7 +2817,6 @@ func (cpu *Z80) Ret_i() {
 	log.Println("RETI")
 	cpu.PC = cpu.popWordFromStack()
 	cpu.InterruptsEnabled = true
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //RLC r
@@ -2898,7 +2864,6 @@ func (cpu *Z80) Rl_r(r *byte) {
 		cpu.ResetFlag(Z)
 	}
 
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //RL (HL) 
@@ -2934,7 +2899,6 @@ func (cpu *Z80) Rl_hl() {
 
 	cpu.mmu.WriteByte(HL, value)
 
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //RRC r
@@ -2980,7 +2944,6 @@ func (cpu *Z80) Rr_r(r *byte) {
 	} else {
 		cpu.ResetFlag(Z)
 	}
-	cpu.LastInstrCycle.Set(2, 8)
 }
 
 //RR (HL) 
@@ -3016,7 +2979,6 @@ func (cpu *Z80) Rr_hl() {
 
 	cpu.mmu.WriteByte(HLAddr, value)
 
-	cpu.LastInstrCycle.Set(4, 16)
 }
 
 //SLA r
