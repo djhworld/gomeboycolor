@@ -101,12 +101,14 @@ type Z80 struct {
 
 func NewCPU(m mmu.MemoryMappedUnit) *Z80 {
 	cpu := new(Z80)
-	cpu.mmu = m
+	cpu.LinkMMU(m)
 	cpu.Reset()
-
-	//TODO: startup. additional setup here
-
 	return cpu
+}
+
+func (cpu *Z80) LinkMMU(m mmu.MemoryMappedUnit) {
+	log.Println("Linked MMU to CPU")
+	cpu.mmu = m
 }
 
 func (cpu *Z80) Reset() {

@@ -4,6 +4,7 @@ import (
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/stretchrcom/testify/assert"
 	"testing"
+	"log"
 )
 
 func TestWriteByteToExternalRAM(t *testing.T) {
@@ -15,29 +16,33 @@ func TestWriteByteToExternalRAM(t *testing.T) {
 	var normalisedLoc int = 0
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
+	log.Println("1 - Test write byte")
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.externalRAM[normalisedLoc], value)
 
 	//middle
+
+	log.Println("2 - Test write byte")
 	address = 0xAFFF
 	value = 0x33
 	normalisedLoc = 4095
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.externalRAM[normalisedLoc], value)
 
 	//high
+	log.Println("3 - Test write byte")
 	address = 0xBFFF
 	value = 0xA2
 	normalisedLoc = 8191
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.externalRAM[normalisedLoc], value)
@@ -53,7 +58,7 @@ func TestWriteByteToWorkingRAM(t *testing.T) {
 	var normalisedShadowLoc int = 0
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.workingRAM[normalisedLoc], value)
@@ -67,7 +72,7 @@ func TestWriteByteToWorkingRAM(t *testing.T) {
 	normalisedShadowLoc = 3583
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.workingRAM[normalisedLoc], value)
@@ -80,7 +85,7 @@ func TestWriteByteToWorkingRAM(t *testing.T) {
 	normalisedLoc = 8191
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.workingRAM[normalisedLoc], value)
@@ -96,7 +101,7 @@ func TestWriteByteToZeroPageRAM(t *testing.T) {
 	var normalisedLoc int = 0
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.zeroPageRAM[normalisedLoc], value)
@@ -107,7 +112,7 @@ func TestWriteByteToZeroPageRAM(t *testing.T) {
 	normalisedLoc = 63
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.zeroPageRAM[normalisedLoc], value)
@@ -118,14 +123,14 @@ func TestWriteByteToZeroPageRAM(t *testing.T) {
 	normalisedLoc = 127
 
 	t.Logf("Writing %X to %X", value, address)
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	gbc.inBootMode = false
 	gbc.WriteByte(address, value)
 	assert.Equal(t, gbc.zeroPageRAM[normalisedLoc], value)
 }
 
 func TestWriteByteToBootRegion(t *testing.T) {
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.inBootMode = true
 
 	//should panic as you can't write to ROM!
@@ -135,7 +140,7 @@ func TestWriteByteToBootRegion(t *testing.T) {
 }
 
 func TestWriteByteToROMRegion(t *testing.T) {
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.inBootMode = false
 
 	//should panic as you can't write to ROM!
@@ -145,7 +150,7 @@ func TestWriteByteToROMRegion(t *testing.T) {
 }
 
 func TestRegionBoundaries(t *testing.T) {
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.boot[0] = 1
 	gbc.boot[255] = 1
 
@@ -168,7 +173,7 @@ func TestRegionBoundaries(t *testing.T) {
 
 func TestReadByteFromBoot(t *testing.T) {
 	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.SetInBootMode(true)
 	gbc.LoadROM(0, BOOT, ROM)
 	assert.Equal(t, gbc.ReadByte(0x0002), ROM[2])
@@ -176,7 +181,7 @@ func TestReadByteFromBoot(t *testing.T) {
 
 func TestReadByteFromCart(t *testing.T) {
 	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.SetInBootMode(false)
 	gbc.LoadROM(0x1000, CARTROM, ROM)
 	assert.Equal(t, gbc.ReadByte(0x1002), ROM[2])
@@ -185,7 +190,7 @@ func TestReadByteFromCart(t *testing.T) {
 func TestReadWriteByte(t *testing.T) {
 	var value byte = 0xFC
 	var addr types.Word = 0xC476
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.WriteByte(addr, value)
 	assert.Equal(t, gbc.ReadByte(addr), value)
 }
@@ -193,13 +198,13 @@ func TestReadWriteByte(t *testing.T) {
 func TestLoadBootROM(t *testing.T) {
 	var startAddr types.Word = 0
 	var ROM []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3}
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.LoadROM(startAddr, BOOT, ROM)
 	//check whether start address -> end of ROM is equal to ROM
 	assert.Equal(t, gbc.boot[startAddr:len(ROM)], ROM)
 
 	//check that error is returned if ROM is loaded that will over extend BOOT region
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	startAddr = 253
 	ok, err := gbc.LoadROM(startAddr, BOOT, ROM)
 	assert.False(t, ok)
@@ -207,7 +212,7 @@ func TestLoadBootROM(t *testing.T) {
 	assert.Equal(t, ROMWillOverextendAddressableRegion, err)
 
 	//check that error is returned if ROM is loaded that will over extend BOOT region
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	startAddr = 0
 	ok, err = gbc.LoadROM(startAddr, BOOT, make([]byte, 3000))
 	assert.False(t, ok)
@@ -218,13 +223,13 @@ func TestLoadBootROM(t *testing.T) {
 func TestLoadCartROM(t *testing.T) {
 	var startAddr types.Word = 0
 	var rom []byte = []byte{0x03, 0x77, 0x04, 0xFF, 0xA3, 0xA2, 0xB3, 0xFF, 0x2C}
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.LoadROM(startAddr, CARTROM, rom)
 	//check whether start address -> end of ROM is equal to ROM
 	assert.Equal(t, gbc.cartrom[startAddr:len(rom)], rom)
 
 	//check that error is returned if ROM is loaded that will over extend BOOT region
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	startAddr = 32765
 	ok, err := gbc.LoadROM(startAddr, CARTROM, rom)
 	assert.False(t, ok)
@@ -232,7 +237,7 @@ func TestLoadCartROM(t *testing.T) {
 	assert.Equal(t, ROMWillOverextendAddressableRegion, err)
 
 	//check that error is returned if ROM is loaded that will over extend BOOT region
-	gbc = new(GbcMMU)
+	gbc = NewGbcMMU()
 	startAddr = 0
 	ok, err = gbc.LoadROM(startAddr, CARTROM, make([]byte, 42765))
 	assert.False(t, ok)
@@ -241,7 +246,7 @@ func TestLoadCartROM(t *testing.T) {
 }
 
 func TestImplementsInterface(t *testing.T) {
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	assert.Implements(t, (*MemoryMappedUnit)(nil), gbc)
 }
 
@@ -250,7 +255,7 @@ func TestReadByte(t *testing.T) {
 	for i := 32767; i >= 0; i-- {
 		rom[i] = byte(i)
 	}
-	gbc := new(GbcMMU)
+	gbc := NewGbcMMU()
 	gbc.SetInBootMode(false)
 	gbc.LoadROM(0x0000, CARTROM, rom)
 

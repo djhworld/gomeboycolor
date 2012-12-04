@@ -21,6 +21,13 @@ const (
 	CARTROM = 0x01
 )
 
+//Peripherals
+const (
+	_ = iota
+	GPU
+	APU
+)
+
 type MemoryMappedUnit interface {
 	WriteByte(address types.Word, value byte)
 	WriteWord(address types.Word, value types.Word)
@@ -37,13 +44,53 @@ type GbcMMU struct {
 	externalRAM      [8192]byte  //0xA000 -> 0xBFFF
 	workingRAM       [8192]byte  //0xC000 -> 0xDFFF
 	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
-	mmIO             [128]byte   //0xFF00 -> 0xFF7F //TODO 
 	zeroPageRAM      [128]byte   //0xFF80 - 0xFFFF
 	inBootMode       bool
+	peripherals      map[byte]Peripheral
+}
+
+func NewGbcMMU() *GbcMMU {
+	var mmu *GbcMMU = new(GbcMMU)
+	mmu.peripherals = make(map[byte]Peripheral)
+	mmu.Reset()
+	return mmu
 }
 
 func (mmu *GbcMMU) Reset() {
 	mmu.inBootMode = true
+}
+
+func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
+	switch {
+	//Graphics VRAM
+	case addr >= 0x8000 && addr <= 0x9FFF:
+		mmu.peripherals[GPU].Write(addr, value)
+	//Cartridge External RAM
+	case addr >= 0xA000 && addr <= 0xBFFF:
+		mmu.externalRAM[addr&(0xBFFF-0xA000)] = value
+	//GB Working RAM 
+	case addr >= 0xC000 && addr <= 0xDFFF:
+		mmu.workingRAM[addr&(0xDFFF-0xC000)] = value
+		//copy value to shadow if within shadow range
+		if addr >= 0xC000 && addr <= 0xDDFF {
+			mmu.workingRAMShadow[addr&(0xDDFF-0xC000)] = value
+		}
+	//Graphics sprite information
+	case addr >= 0xFE00 && addr <= 0xFE9F:
+		mmu.peripherals[GPU].Write(addr, value)
+	//Mem. mapped IO
+	case addr >= 0xFF00 && addr <= 0xFF7F:
+		//Graphics registers
+		if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
+			mmu.peripherals[GPU].Write(addr, value)
+		}
+	//Zero page RAM
+	case addr >= 0xFF80 && addr <= 0xFFFF:
+		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
+	default:
+		log.Printf("Address %X is unwritable/unknown", addr)
+		panic("Address is unwritable/unknown")
+	}
 }
 
 func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
@@ -63,8 +110,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.cartrom[addr]
 	//Graphics VRAM
 	case addr >= 0x8000 && addr <= 0x9FFF:
-		//TODO - needs GPU setup
-		return 0x00
+		return mmu.peripherals[GPU].Read(addr)
 	//Cartridge External RAM
 	case addr >= 0xA000 && addr <= 0xBFFF:
 		return mmu.externalRAM[addr&(0xBFFF-0xA000)]
@@ -76,11 +122,13 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.workingRAM[addr&(0xFDFF-0xE000)]
 	//Graphics sprite information
 	case addr >= 0xFE00 && addr <= 0xFE9F:
-		//TODO - needs GPU setup
-		return 0
+		return mmu.peripherals[GPU].Read(addr)
 	//Mem. mapped IO
 	case addr >= 0xFF00 && addr <= 0xFF7F:
-		return mmu.mmIO[addr&(0xFF7F-0xFF00)]
+		//Graphics registers
+		if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
+			mmu.peripherals[GPU].Read(addr)
+		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
@@ -88,38 +136,6 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	}
 
 	return 0
-}
-
-func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
-	switch {
-	//Graphics VRAM
-	case addr >= 0x8000 && addr <= 0x9FFF:
-		//TODO - needs gpu setup
-		return
-	//Cartridge External RAM
-	case addr >= 0xA000 && addr <= 0xBFFF:
-		mmu.externalRAM[addr&(0xBFFF-0xA000)] = value
-	//GB Working RAM 
-	case addr >= 0xC000 && addr <= 0xDFFF:
-		mmu.workingRAM[addr&(0xDFFF-0xC000)] = value
-		//copy value to shadow if within shadow range
-		if addr >= 0xC000 && addr <= 0xDDFF {
-			mmu.workingRAMShadow[addr&(0xDDFF-0xC000)] = value
-		}
-	//Graphics sprite information
-	case addr >= 0xFE00 && addr <= 0xFE9F:
-		//TODO - needs GPU setup
-		return
-	//Mem. mapped IO
-	case addr >= 0xFF00 && addr <= 0xFF7F:
-		mmu.mmIO[addr&(0xFF7F-0xFF00)] = value
-	//Zero page RAM
-	case addr >= 0xFF80 && addr <= 0xFFFF:
-		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
-	default:
-		log.Printf("Address %X is unwritable/unknown", addr)
-		panic("Address is unwritable/unknown")
-	}
 }
 
 func (mmu *GbcMMU) ReadWord(addr types.Word) types.Word {
@@ -136,6 +152,11 @@ func (mmu *GbcMMU) WriteWord(addr types.Word, value types.Word) {
 
 func (mmu *GbcMMU) SetInBootMode(mode bool) {
 	mmu.inBootMode = mode
+}
+
+func (mmu *GbcMMU) LinkGPU(p Peripheral) {
+	log.Println("Linking GPU to MMU")
+	mmu.peripherals[GPU] = p
 }
 
 func (mmu *GbcMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error) {
