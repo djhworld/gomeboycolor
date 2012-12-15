@@ -107,7 +107,6 @@ func NewCPU(m mmu.MemoryMappedUnit) *Z80 {
 }
 
 func (cpu *Z80) LinkMMU(m mmu.MemoryMappedUnit) {
-	//log.Println("Linked MMU to CPU")
 	cpu.mmu = m
 }
 
@@ -1263,7 +1262,6 @@ func (cpu *Z80) Step() int {
 	}
 	cpu.CurrentInstruction = Opcode
 
-
 	cpu.MachineCycles.M += cpu.LastInstrCycle.M
 	t := cpu.LastInstrCycle.T()
 	cpu.LastInstrCycle.Reset()
@@ -1276,7 +1274,6 @@ func (cpu *Z80) Step() int {
 //LD r,n
 //Load value (n) from memory address in the PC into register (r) and increment PC by 1 
 func (cpu *Z80) LDrn(r *byte) {
-	//log.Println("LD r,n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -1288,7 +1285,6 @@ func (cpu *Z80) LDrn(r *byte) {
 //LD r,r
 //Load value from register (r2) into register (r1)
 func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
-	//log.Println("LD r,r")
 	*r1 = *r2
 
 	//set clock values
@@ -1297,7 +1293,6 @@ func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 //LD r,(HL)
 //Load value from memory address located in register pair (HL) into register (r)
 func (cpu *Z80) LDr_hl(r *byte) {
-	//log.Println("LD r,(HL)")
 
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
@@ -1310,7 +1305,6 @@ func (cpu *Z80) LDr_hl(r *byte) {
 //LD (HL),r
 //Load value from register (r) into memory address located at register pair (HL)
 func (cpu *Z80) LDhl_r(r *byte) {
-	//log.Println("LD (HL),r")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = *r
 
@@ -1322,7 +1316,6 @@ func (cpu *Z80) LDhl_r(r *byte) {
 //LD (BC),r
 //Load value from register (r) into memory address located at register pair (BC)
 func (cpu *Z80) LDbc_r(r *byte) {
-	//log.Println("LD (BC),r")
 
 	var BC types.Word = types.Word(utils.JoinBytes(cpu.R.B, cpu.R.C))
 	var value byte = *r
@@ -1335,7 +1328,6 @@ func (cpu *Z80) LDbc_r(r *byte) {
 //LD (DE),r
 //Load value from register (r) into memory address located at register pair (DE)
 func (cpu *Z80) LDde_r(r *byte) {
-	//log.Println("LD (DE),r")
 
 	var DE types.Word = types.Word(utils.JoinBytes(cpu.R.D, cpu.R.E))
 	var value byte = *r
@@ -1348,7 +1340,6 @@ func (cpu *Z80) LDde_r(r *byte) {
 //LD nn,r
 //Load value from register (r) and put it in memory address (nn) taken from the next 2 bytes of memory from the PC. Increment the PC by 2
 func (cpu *Z80) LDnn_r(r *byte) {
-	//log.Println("LD nn,r")
 	var ls byte = cpu.mmu.ReadByte(cpu.PC)
 	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	var resultAddr types.Word = types.Word(utils.JoinBytes(hs, ls))
@@ -1361,7 +1352,6 @@ func (cpu *Z80) LDnn_r(r *byte) {
 //LD (HL),n
 //Load the value (n) from the memory address in the PC and put it in the memory address designated by register pair (HL)
 func (cpu *Z80) LDhl_n() {
-	//log.Println("LD (HL),n")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
@@ -1374,7 +1364,6 @@ func (cpu *Z80) LDhl_n() {
 //LD r, (BC)
 //Load the value (n) located in memory address stored in register pair (BC) and put it in register (r)
 func (cpu *Z80) LDr_bc(r *byte) {
-	//log.Println("LD r,(BC)")
 
 	var BC types.Word = types.Word(utils.JoinBytes(cpu.R.B, cpu.R.C))
 	var value byte = cpu.mmu.ReadByte(BC)
@@ -1387,7 +1376,6 @@ func (cpu *Z80) LDr_bc(r *byte) {
 //LD r, (DE)
 //Load the value (n) located in memory address stored in register pair (DE) and put it in register (r)
 func (cpu *Z80) LDr_de(r *byte) {
-	//log.Println("LD r,(DE)")
 
 	var DE types.Word = types.Word(utils.JoinBytes(cpu.R.D, cpu.R.E))
 	var value byte = cpu.mmu.ReadByte(DE)
@@ -1400,7 +1388,6 @@ func (cpu *Z80) LDr_de(r *byte) {
 //LD r, nn
 //Load the value in memory address defined from the next two bytes relative to the PC and store it in register (r). Increment the PC by 2
 func (cpu *Z80) LDr_nn(r *byte) {
-	//log.Println("LD r,(nn)")
 
 	//read 2 bytes from PC
 	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
@@ -1415,7 +1402,6 @@ func (cpu *Z80) LDr_nn(r *byte) {
 //LD r,(C)
 //Load the value from memory addressed 0xFF00 + value in register C. Store it in register (r)
 func (cpu *Z80) LDr_ffplusc(r *byte) {
-	//log.Println("LD r,(C)")
 	var valueAddr types.Word = 0xFF00 + types.Word(cpu.R.C)
 	*r = cpu.mmu.ReadByte(valueAddr)
 
@@ -1425,7 +1411,6 @@ func (cpu *Z80) LDr_ffplusc(r *byte) {
 //LD (C),r
 //Load the value from register (r) and store it in memory addressed 0xFF00 + value in register C. 
 func (cpu *Z80) LDffplusc_r(r *byte) {
-	//log.Println("LD (C),r")
 	var valueAddr types.Word = 0xFF00 + types.Word(cpu.R.C)
 	cpu.mmu.WriteByte(valueAddr, *r)
 
@@ -1435,7 +1420,6 @@ func (cpu *Z80) LDffplusc_r(r *byte) {
 //LDD r, (HL)
 //Load the value from memory addressed in register pair (HL) and store it in register R. Decrement the HL registers
 func (cpu *Z80) LDDr_hl(r *byte) {
-	//log.Println("LDD r, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	*r = cpu.mmu.ReadByte(HL)
 
@@ -1454,7 +1438,6 @@ func (cpu *Z80) LDDr_hl(r *byte) {
 //LDD (HL), r
 //Load the value in register (r) and store in memory addressed in register pair (HL). Decrement the HL registers
 func (cpu *Z80) LDDhl_r(r *byte) {
-	//log.Println("LDD (HL), r")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.mmu.WriteByte(HL, *r)
 
@@ -1471,7 +1454,6 @@ func (cpu *Z80) LDDhl_r(r *byte) {
 //LDI r, (HL)
 //Load the value from memory addressed in register pair (HL) and store it in register R. Increment the HL registers
 func (cpu *Z80) LDIr_hl(r *byte) {
-	//log.Println("LDI r, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	*r = cpu.mmu.ReadByte(HL)
 
@@ -1489,7 +1471,6 @@ func (cpu *Z80) LDIr_hl(r *byte) {
 //LDI (HL), r
 //Load the value in register (r) and store in memory addressed in register pair (HL). Increment the HL registers
 func (cpu *Z80) LDIhl_r(r *byte) {
-	//log.Println("LDI (HL), r")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.mmu.WriteByte(HL, *r)
 
@@ -1505,7 +1486,6 @@ func (cpu *Z80) LDIhl_r(r *byte) {
 
 //LDH n, r
 func (cpu *Z80) LDHn_r(r *byte) {
-	//log.Println("LDH n, r")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 	cpu.mmu.WriteByte(types.Word(0xFF00)+types.Word(n), *r)
@@ -1514,7 +1494,6 @@ func (cpu *Z80) LDHn_r(r *byte) {
 //LDH r, n
 //Load value (n) in register (r) and store it in memory address FF00+PC. Increment PC by 1
 func (cpu *Z80) LDHr_n(r *byte) {
-	//log.Println("LDH r, n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -1524,7 +1503,6 @@ func (cpu *Z80) LDHr_n(r *byte) {
 
 //LD n, nn
 func (cpu *Z80) LDn_nn(r1, r2 *byte) {
-	//log.Printf("LD n, nn")
 	var v1 byte = cpu.mmu.ReadByte(cpu.PC)
 	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.IncrementPC(2)
@@ -1537,7 +1515,6 @@ func (cpu *Z80) LDn_nn(r1, r2 *byte) {
 
 //LD SP, nn
 func (cpu *Z80) LDSP_nn() {
-	//log.Printf("LD SP, nn")
 	var v1 byte = cpu.mmu.ReadByte(cpu.PC)
 	var v2 byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.IncrementPC(2)
@@ -1549,14 +1526,12 @@ func (cpu *Z80) LDSP_nn() {
 
 //LD SP, rr
 func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
-	//log.Printf("LD SP, rr")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.SP = HL
 }
 
 //LDHL SP, n 
 func (cpu *Z80) LDHLSP_n() {
-	//log.Println("LDHL SP,n")
 	var n types.Word = types.Word(cpu.mmu.ReadByte(cpu.PC))
 	cpu.IncrementPC(1)
 
@@ -1586,7 +1561,6 @@ func (cpu *Z80) LDHLSP_n() {
 
 //LDHL SP, n 
 func (cpu *Z80) LDnn_SP() {
-	//log.Println("LD nn,SP")
 
 	var nn types.Word = cpu.mmu.ReadWord(cpu.PC)
 
@@ -1598,7 +1572,6 @@ func (cpu *Z80) LDnn_SP() {
 //PUSH nn 
 //Push register pair nn onto the stack and decrement the SP twice
 func (cpu *Z80) Push_nn(r1, r2 *byte) {
-	//log.Println("PUSH nn")
 	cpu.SP--
 	cpu.mmu.WriteByte(cpu.SP, *r1)
 	cpu.SP--
@@ -1608,7 +1581,6 @@ func (cpu *Z80) Push_nn(r1, r2 *byte) {
 //POP nn 
 //Pop the stack twice onto register pair nn 
 func (cpu *Z80) Pop_nn(r1, r2 *byte) {
-	//log.Println("Pop nn")
 	*r2 = cpu.mmu.ReadByte(cpu.SP)
 	cpu.SP++
 	*r1 = cpu.mmu.ReadByte(cpu.SP)
@@ -1618,7 +1590,6 @@ func (cpu *Z80) Pop_nn(r1, r2 *byte) {
 //ADD A,r
 //Add the value in register (r) to register A
 func (cpu *Z80) AddA_r(r *byte) {
-	//log.Println("ADD A,r")
 	var oldA byte = cpu.R.A
 	cpu.R.A += *r
 
@@ -1650,7 +1621,6 @@ func (cpu *Z80) AddA_r(r *byte) {
 //ADD A,(HL)
 //Add the value in memory addressed in register pair (HL) to register A
 func (cpu *Z80) AddA_hl() {
-	//log.Println("ADD A,(HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
@@ -1686,7 +1656,6 @@ func (cpu *Z80) AddA_hl() {
 //ADD A,n
 //Add the value in memory addressed PC to register A. Increment the PC by 1
 func (cpu *Z80) AddA_n() {
-	//log.Println("ADD A,n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -1721,7 +1690,6 @@ func (cpu *Z80) AddA_n() {
 
 //ADDC A,r
 func (cpu *Z80) AddCA_r(r *byte) {
-	//log.Println("ADDC A, r")
 	var oldA byte = cpu.R.A
 	var carryFlag byte = 0
 
@@ -1759,7 +1727,6 @@ func (cpu *Z80) AddCA_r(r *byte) {
 
 //ADDC A,(HL)
 func (cpu *Z80) AddCA_hl() {
-	//log.Println("ADDC A, (HL)")
 
 	var oldA byte = cpu.R.A
 	var carryFlag byte = 0
@@ -1800,7 +1767,6 @@ func (cpu *Z80) AddCA_hl() {
 
 //ADDC A,n
 func (cpu *Z80) AddCA_n() {
-	//log.Println("ADDC A, n")
 
 	var oldA byte = cpu.R.A
 	var carryFlag byte = 0
@@ -1841,7 +1807,6 @@ func (cpu *Z80) AddCA_n() {
 
 //SUB A,r
 func (cpu *Z80) SubA_r(r *byte) {
-	//log.Println("SUB A,r")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A -= *r
@@ -1875,7 +1840,6 @@ func (cpu *Z80) SubA_r(r *byte) {
 
 //SUB A,hl
 func (cpu *Z80) SubA_hl() {
-	//log.Println("SUB A,(HL)")
 	var oldA byte = cpu.R.A
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
@@ -1911,7 +1875,6 @@ func (cpu *Z80) SubA_hl() {
 
 //SUB A,n
 func (cpu *Z80) SubA_n() {
-	//log.Println("SUB A,n")
 	var oldA byte = cpu.R.A
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
@@ -1947,7 +1910,6 @@ func (cpu *Z80) SubA_n() {
 
 //AND A, r
 func (cpu *Z80) AndA_r(r *byte) {
-	//log.Println("AND A, r")
 	cpu.R.A = cpu.R.A & *r
 
 	cpu.SetFlag(H)
@@ -1964,7 +1926,6 @@ func (cpu *Z80) AndA_r(r *byte) {
 
 //AND A, (HL)
 func (cpu *Z80) AndA_hl() {
-	//log.Println("AND A, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
@@ -1984,7 +1945,6 @@ func (cpu *Z80) AndA_hl() {
 
 //AND A, n
 func (cpu *Z80) AndA_n() {
-	//log.Println("AND A, n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -2004,7 +1964,6 @@ func (cpu *Z80) AndA_n() {
 
 //OR A, r
 func (cpu *Z80) OrA_r(r *byte) {
-	//log.Println("OR A, r")
 	cpu.R.A = cpu.R.A | *r
 
 	cpu.ResetFlag(H)
@@ -2021,7 +1980,6 @@ func (cpu *Z80) OrA_r(r *byte) {
 
 //OR A, (HL)
 func (cpu *Z80) OrA_hl() {
-	//log.Println("OR A, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
@@ -2041,7 +1999,6 @@ func (cpu *Z80) OrA_hl() {
 
 //OR A, n
 func (cpu *Z80) OrA_n() {
-	//log.Println("OR A, n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -2061,7 +2018,6 @@ func (cpu *Z80) OrA_n() {
 
 //XOR A, r
 func (cpu *Z80) XorA_r(r *byte) {
-	//log.Println("XOR A, r")
 	cpu.R.A = cpu.R.A ^ *r
 
 	cpu.ResetFlag(H)
@@ -2078,7 +2034,6 @@ func (cpu *Z80) XorA_r(r *byte) {
 
 //XOR A, (HL)
 func (cpu *Z80) XorA_hl() {
-	//log.Println("XOR A, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
@@ -2098,7 +2053,6 @@ func (cpu *Z80) XorA_hl() {
 
 //XOR A, n
 func (cpu *Z80) XorA_n() {
-	//log.Println("XOR A, n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -2118,7 +2072,6 @@ func (cpu *Z80) XorA_n() {
 
 //CP A, r
 func (cpu *Z80) CPA_r(r *byte) {
-	//log.Println("CP A, r")
 	var calculation byte = cpu.R.A - *r
 
 	if calculation == 0x00 {
@@ -2141,7 +2094,6 @@ func (cpu *Z80) CPA_r(r *byte) {
 
 //CP A, (HL) 
 func (cpu *Z80) CPA_hl() {
-	//log.Println("CP A, (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
 
@@ -2167,7 +2119,6 @@ func (cpu *Z80) CPA_hl() {
 
 //CP A, n
 func (cpu *Z80) CPA_n() {
-	//log.Println("CP A, n")
 	var value byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 	//	var calculation byte = cpu.R.A - value
@@ -2193,7 +2144,6 @@ func (cpu *Z80) CPA_n() {
 //INC r
 func (cpu *Z80) Inc_r(r *byte) {
 
-	//log.Println("INC r")
 	var oldR byte = *r
 
 	*r += 1
@@ -2219,7 +2169,6 @@ func (cpu *Z80) Inc_r(r *byte) {
 
 //INC (HL)
 func (cpu *Z80) Inc_hl() {
-	//log.Println("INC (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var oldValue byte = cpu.mmu.ReadByte(HL)
 	var inc byte = (oldValue + 1)
@@ -2247,7 +2196,6 @@ func (cpu *Z80) Inc_hl() {
 
 //DEC r
 func (cpu *Z80) Dec_r(r *byte) {
-	//log.Println("DEC r")
 
 	*r -= 1
 
@@ -2265,7 +2213,6 @@ func (cpu *Z80) Dec_r(r *byte) {
 
 //DEC (HL)
 func (cpu *Z80) Dec_hl() {
-	//log.Println("DEC (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var oldValue byte = cpu.mmu.ReadByte(HL)
 	var dec byte = (oldValue - 1)
@@ -2287,7 +2234,6 @@ func (cpu *Z80) Dec_hl() {
 
 //ADD HL,rr
 func (cpu *Z80) Addhl_rr(r1, r2 *byte) {
-	//log.Println("ADD HL, rr")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var oldHL types.Word = HL
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
@@ -2310,7 +2256,6 @@ func (cpu *Z80) Addhl_rr(r1, r2 *byte) {
 
 //ADD HL,SP
 func (cpu *Z80) Addhl_sp() {
-	//log.Println("ADD HL, SP")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var oldHL types.Word = HL
 	HL += cpu.SP
@@ -2332,7 +2277,6 @@ func (cpu *Z80) Addhl_sp() {
 
 //ADD SP,n
 func (cpu *Z80) Addsp_n() {
-	//log.Println("ADD SP,n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -2357,7 +2301,6 @@ func (cpu *Z80) Addsp_n() {
 
 //INC rr
 func (cpu *Z80) Inc_rr(r1, r2 *byte) {
-	//log.Println("INC rr")
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR += 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
@@ -2365,13 +2308,11 @@ func (cpu *Z80) Inc_rr(r1, r2 *byte) {
 
 //INC SP
 func (cpu *Z80) Inc_sp() {
-	//log.Println("INC SP")
 	cpu.SP += 1
 }
 
 //DEC rr
 func (cpu *Z80) Dec_rr(r1, r2 *byte) {
-	//log.Println("DEC rr")
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR -= 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
@@ -2379,20 +2320,17 @@ func (cpu *Z80) Dec_rr(r1, r2 *byte) {
 
 //DEC SP
 func (cpu *Z80) Dec_sp() {
-	//log.Println("DEC SP")
 	cpu.SP -= 1
 }
 
 //DAA
 func (cpu *Z80) Daa() {
-	//log.Println("DAA")
 	//TODO: implement
 	log.Fatalf("Unimplemented")
 }
 
 //CPL
 func (cpu *Z80) CPL() {
-	//log.Println("CPL")
 
 	cpu.R.A ^= 0xFF
 	cpu.SetFlag(N)
@@ -2401,7 +2339,6 @@ func (cpu *Z80) CPL() {
 
 //CCF
 func (cpu *Z80) CCF() {
-	//log.Println("CCF")
 
 	if cpu.IsFlagSet(C) {
 		cpu.ResetFlag(C)
@@ -2417,7 +2354,6 @@ func (cpu *Z80) CCF() {
 
 //SCF
 func (cpu *Z80) SCF() {
-	//log.Println("SCF")
 
 	cpu.SetFlag(C)
 
@@ -2429,7 +2365,6 @@ func (cpu *Z80) SCF() {
 
 //SWAP r
 func (cpu *Z80) Swap_r(r *byte) {
-	//log.Println("SWAP r")
 	var a byte = *r
 	*r = utils.SwapNibbles(a)
 
@@ -2444,7 +2379,6 @@ func (cpu *Z80) Swap_r(r *byte) {
 
 //SWAP (HL)
 func (cpu *Z80) Swap_hl() {
-	//log.Println("SWAP (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var a byte = cpu.mmu.ReadByte(HL)
 	var result byte = utils.SwapNibbles(a)
@@ -2462,7 +2396,6 @@ func (cpu *Z80) Swap_hl() {
 
 //RLCA
 func (cpu *Z80) RLCA() {
-	//log.Println("RLCA")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A = cpu.R.A<<1 | cpu.R.A>>(8-1)
@@ -2488,7 +2421,6 @@ func (cpu *Z80) RLCA() {
 
 //RLA
 func (cpu *Z80) RLA() {
-	//log.Println("RLA")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A = cpu.R.A<<1 | cpu.R.A>>(8-1)
@@ -2517,7 +2449,6 @@ func (cpu *Z80) RLA() {
 
 //RRCA
 func (cpu *Z80) RRCA() {
-	//log.Println("RRCA")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
@@ -2543,7 +2474,6 @@ func (cpu *Z80) RRCA() {
 
 //RRA
 func (cpu *Z80) RRA() {
-	//log.Println("RRA")
 	var oldA byte = cpu.R.A
 
 	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
@@ -2573,7 +2503,6 @@ func (cpu *Z80) RRA() {
 
 //BIT b, r
 func (cpu *Z80) Bitb_r(b byte, r *byte) {
-	//log.Println("BIT b, r")
 
 	cpu.ResetFlag(N)
 	cpu.SetFlag(H)
@@ -2590,7 +2519,6 @@ func (cpu *Z80) Bitb_r(b byte, r *byte) {
 
 //BIT b,(HL) 
 func (cpu *Z80) Bitb_hl(b byte) {
-	//log.Println("BIT b, (HL)")
 
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HL)
@@ -2611,14 +2539,12 @@ func (cpu *Z80) Bitb_hl(b byte) {
 //NOP
 //No operation
 func (cpu *Z80) NOP() {
-	//log.Println("NOP")
 	//set clock values
 }
 
 //HALT
 //Halt CPU
 func (cpu *Z80) HALT() {
-	//log.Println("HALT")
 	cpu.Running = false
 
 	//set clock values
@@ -2627,7 +2553,6 @@ func (cpu *Z80) HALT() {
 //DI
 //Disable interrupts 
 func (cpu *Z80) DI() {
-	//log.Println("DI")
 	cpu.InterruptsEnabled = false
 
 	//set clock values
@@ -2636,7 +2561,6 @@ func (cpu *Z80) DI() {
 //EI
 //Enable interrupts 
 func (cpu *Z80) EI() {
-	//log.Println("EI")
 	cpu.InterruptsEnabled = true
 
 	//set clock values
@@ -2644,7 +2568,6 @@ func (cpu *Z80) EI() {
 
 //JP nn
 func (cpu *Z80) JP_nn() {
-	//log.Println("JP nn")
 	var ls byte = cpu.mmu.ReadByte(cpu.PC)
 	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
@@ -2654,7 +2577,6 @@ func (cpu *Z80) JP_nn() {
 
 //JP (HL)
 func (cpu *Z80) JP_hl() {
-	//log.Println("JP (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var addr types.Word = cpu.mmu.ReadWord(HL)
 	cpu.PC = addr
@@ -2664,7 +2586,6 @@ func (cpu *Z80) JP_hl() {
 
 //JP cc, nn
 func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
-	//log.Println("JP cc,nn")
 	var ls byte = cpu.mmu.ReadByte(cpu.PC)
 	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
 
@@ -2680,7 +2601,6 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 
 //JR n
 func (cpu *Z80) JR_n() {
-	//log.Println("JR n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 	if n > 127 {
@@ -2694,7 +2614,6 @@ func (cpu *Z80) JR_n() {
 
 //JR cc, nn
 func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
-	//log.Println("JR cc,n")
 	var n byte = cpu.mmu.ReadByte(cpu.PC)
 	cpu.IncrementPC(1)
 
@@ -2713,7 +2632,6 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 
 // SET b, r
 func (cpu *Z80) Setb_r(b byte, r *byte) {
-	//log.Println("SET b,r")
 	b = utils.BitToValue(b)
 
 	*r = *r ^ b
@@ -2723,7 +2641,6 @@ func (cpu *Z80) Setb_r(b byte, r *byte) {
 
 // SET b, (HL) 
 func (cpu *Z80) Setb_hl(b byte) {
-	//log.Println("SET b,(HL)")
 	b = utils.BitToValue(b)
 
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
@@ -2738,7 +2655,6 @@ func (cpu *Z80) Setb_hl(b byte) {
 
 // RES b, r
 func (cpu *Z80) Resb_r(b byte, r *byte) {
-	//log.Println("RES b,r")
 
 	b = utils.BitToValue(b)
 
@@ -2749,7 +2665,6 @@ func (cpu *Z80) Resb_r(b byte, r *byte) {
 
 // RES b, (HL) 
 func (cpu *Z80) Resb_hl(b byte) {
-	//log.Println("RES b,(HL)")
 	b = utils.BitToValue(b)
 
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
@@ -2765,7 +2680,6 @@ func (cpu *Z80) Resb_hl(b byte) {
 // CALL nn
 //Push address of next instruction onto stack and then jump to address nn
 func (cpu *Z80) Call_nn() {
-	//log.Println("CALL nn")
 	var ls byte = cpu.mmu.ReadByte(cpu.PC)
 	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	var nextInstr types.Word = cpu.PC + 2
@@ -2777,7 +2691,6 @@ func (cpu *Z80) Call_nn() {
 
 // CALL cc,nn
 func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
-	//log.Println("CALL cc, nn")
 	var ls byte = cpu.mmu.ReadByte(cpu.PC)
 	var hs byte = cpu.mmu.ReadByte(cpu.PC + 1)
 	var nextInstr types.Word = cpu.PC + 2
@@ -2796,20 +2709,17 @@ func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 
 // RST n
 func (cpu *Z80) Rst(n byte) {
-	//log.Println("RST n")
 	cpu.pushWordToStack(cpu.PC)
 	cpu.PC = 0x0000 + types.Word(n)
 }
 
 // RET
 func (cpu *Z80) Ret() {
-	//log.Println("RET")
 	cpu.PC = cpu.popWordFromStack()
 }
 
 // RET cc
 func (cpu *Z80) Retcc(flag int, returnWhen bool) {
-	//log.Println("RET cc")
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
 		cpu.LastInstrCycle.M = 5
@@ -2820,14 +2730,12 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 
 // RETI 
 func (cpu *Z80) Ret_i() {
-	//log.Println("RETI")
 	cpu.PC = cpu.popWordFromStack()
 	cpu.InterruptsEnabled = true
 }
 
 //RLC r
 func (cpu *Z80) Rlc_r(r *byte) {
-	//log.Println("RLC r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -2835,7 +2743,6 @@ func (cpu *Z80) Rlc_r(r *byte) {
 
 //RLC (HL) 
 func (cpu *Z80) Rlc_hl() {
-	//log.Println("RLC (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -2843,7 +2750,6 @@ func (cpu *Z80) Rlc_hl() {
 
 //RL r
 func (cpu *Z80) Rl_r(r *byte) {
-	//log.Println("RL r")
 
 	var oldV byte = *r
 	*r = *r<<1 | *r>>(8-1)
@@ -2874,7 +2780,6 @@ func (cpu *Z80) Rl_r(r *byte) {
 
 //RL (HL) 
 func (cpu *Z80) Rl_hl() {
-	//log.Println("RL (HL)")
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var oldValue byte = cpu.mmu.ReadByte(HL)
 	var value byte = oldValue
@@ -2909,7 +2814,6 @@ func (cpu *Z80) Rl_hl() {
 
 //RRC r
 func (cpu *Z80) Rrc_r(r *byte) {
-	//log.Println("RRC r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -2917,7 +2821,6 @@ func (cpu *Z80) Rrc_r(r *byte) {
 
 //RRC (HL) 
 func (cpu *Z80) Rrc_hl() {
-	//log.Println("RRC (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -2925,7 +2828,6 @@ func (cpu *Z80) Rrc_hl() {
 
 //RR r
 func (cpu *Z80) Rr_r(r *byte) {
-	//log.Println("RR r")
 	var oldV byte = *r
 	*r = *r>>1 | *r<<(8-1)
 
@@ -2954,7 +2856,6 @@ func (cpu *Z80) Rr_r(r *byte) {
 
 //RR (HL) 
 func (cpu *Z80) Rr_hl() {
-	//log.Println("RR (HL)")
 	var HLAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.mmu.ReadByte(HLAddr)
 	var oldV byte = value
@@ -2989,7 +2890,6 @@ func (cpu *Z80) Rr_hl() {
 
 //SLA r
 func (cpu *Z80) Sla_r(r *byte) {
-	//log.Println("SLA r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -2997,7 +2897,6 @@ func (cpu *Z80) Sla_r(r *byte) {
 
 //SLA (HL) 
 func (cpu *Z80) Sla_hl() {
-	//log.Println("SLA (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3005,7 +2904,6 @@ func (cpu *Z80) Sla_hl() {
 
 //SRA r
 func (cpu *Z80) Sra_r(r *byte) {
-	//log.Println("SRA r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3013,7 +2911,6 @@ func (cpu *Z80) Sra_r(r *byte) {
 
 //SRA (HL) 
 func (cpu *Z80) Sra_hl() {
-	//log.Println("SRA (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3021,7 +2918,6 @@ func (cpu *Z80) Sra_hl() {
 
 //SRL r
 func (cpu *Z80) Srl_r(r *byte) {
-	//log.Println("SRL r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3029,7 +2925,6 @@ func (cpu *Z80) Srl_r(r *byte) {
 
 //SRL (HL) 
 func (cpu *Z80) Srl_hl() {
-	//log.Println("SRL (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3037,7 +2932,6 @@ func (cpu *Z80) Srl_hl() {
 
 //SBC A,r
 func (cpu *Z80) SubAC_r(r *byte) {
-	//log.Println("SBC A,r")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3045,7 +2939,6 @@ func (cpu *Z80) SubAC_r(r *byte) {
 
 //SBC A, (HL)
 func (cpu *Z80) SubAC_hl() {
-	//log.Println("SBC A, (HL)")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")
@@ -3053,7 +2946,6 @@ func (cpu *Z80) SubAC_hl() {
 
 //SBC A, n
 func (cpu *Z80) SubAC_n() {
-	//log.Println("SBC A, n")
 	//TODO: Implement
 
 	log.Fatalf("Unimplemented")

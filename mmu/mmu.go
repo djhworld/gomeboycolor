@@ -39,14 +39,15 @@ type MemoryMappedUnit interface {
 }
 
 type GbcMMU struct {
-	boot             [256]byte   //0x0000 -> 0x00FF
-	cartrom          [32768]byte // 0x0000 -> 0x7FFF
-	externalRAM      [8192]byte  //0xA000 -> 0xBFFF
-	workingRAM       [8192]byte  //0xC000 -> 0xDFFF
-	workingRAMShadow [7680]byte  //0xE000 -> 0xFDFF
-	zeroPageRAM      [128]byte   //0xFF80 - 0xFFFF
-	inBootMode       bool
-	peripherals      map[byte]Peripheral
+	boot              [256]byte   //0x0000 -> 0x00FF
+	cartrom           [32768]byte // 0x0000 -> 0x7FFF
+	externalRAM       [8192]byte  //0xA000 -> 0xBFFF
+	workingRAM        [8192]byte  //0xC000 -> 0xDFFF
+	workingRAMShadow  [7680]byte  //0xE000 -> 0xFDFF
+	zeroPageRAM       [128]byte   //0xFF80 - 0xFFFF
+	inBootMode        bool
+	peripherals       map[byte]Peripheral
+	dmgStatusRegister byte
 }
 
 func NewGbcMMU() *GbcMMU {
@@ -80,6 +81,11 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		mmu.peripherals[GPU].Write(addr, value)
 	//Mem. mapped IO
 	case addr >= 0xFF00 && addr <= 0xFF7F:
+		//DMG status register (i.e. in boot mode)
+		if addr == 0xFF50 {
+			mmu.dmgStatusRegister = value
+		}
+
 		//Graphics registers
 		if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
 			mmu.peripherals[GPU].Write(addr, value)
@@ -125,9 +131,12 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.peripherals[GPU].Read(addr)
 	//Mem. mapped IO
 	case addr >= 0xFF00 && addr <= 0xFF7F:
+		if addr == 0xFF50 {
+			return mmu.dmgStatusRegister
+		}
 		//Graphics registers
 		if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
-			mmu.peripherals[GPU].Read(addr)
+			return mmu.peripherals[GPU].Read(addr)
 		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
@@ -155,7 +164,7 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 }
 
 func (mmu *GbcMMU) LinkGPU(p Peripheral) {
-	log.Println("Linking GPU to MMU")
+	log.Println("Linked GPU to MMU")
 	mmu.peripherals[GPU] = p
 }
 

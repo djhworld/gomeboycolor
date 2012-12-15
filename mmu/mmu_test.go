@@ -3,8 +3,8 @@ package mmu
 import (
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/stretchrcom/testify/assert"
-	"testing"
 	"log"
+	"testing"
 )
 
 func TestWriteByteToExternalRAM(t *testing.T) {
