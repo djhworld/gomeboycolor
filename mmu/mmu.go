@@ -16,6 +16,8 @@ based on the memory address given
 var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
 var ROMWillOverextendAddressableRegion = errors.New("ROM will overextend addressable region based on start address and ROM size")
 
+const PREFIX = "MMU:"
+
 const (
 	BOOT    = 0x00
 	CARTROM = 0x01
@@ -164,7 +166,7 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 }
 
 func (mmu *GbcMMU) LinkGPU(p Peripheral) {
-	log.Println("Linked GPU to MMU")
+	log.Println(PREFIX, "Linked GPU to MMU")
 	mmu.peripherals[GPU] = p
 }
 
@@ -187,6 +189,7 @@ func (mmu *GbcMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) 
 			return false, err
 		}
 
+		log.Printf(PREFIX+" Writing data to boot rom sector (start address: 0x%X)", startAddr)
 		for i, b := range data {
 			mmu.boot[startAddr+types.Word(i)] = b
 		}
@@ -196,6 +199,7 @@ func (mmu *GbcMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) 
 			return false, err
 		}
 
+		log.Printf(PREFIX+" Writing data to cartridge rom sector (start address: 0x%X)", startAddr)
 		for i, b := range data {
 			mmu.cartrom[startAddr+types.Word(i)] = b
 		}

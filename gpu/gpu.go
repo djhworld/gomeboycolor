@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+const PREFIX = "GPU:"
+
 const DISPLAY_WIDTH int = 160
 const DISPLAY_HEIGHT int = 144
 
@@ -33,7 +35,7 @@ type RGBA struct {
 	alpha byte
 }
 
-type RawTile [8][2]byte
+type RawTile [16]byte
 type Tile [8][8]int
 
 type GPU struct {
@@ -73,6 +75,7 @@ func NewGPU() *GPU {
 }
 
 func (g *GPU) Init(title string) error {
+	log.Println(PREFIX, "Initialising display")
 	var err error
 
 	err = glfw.Init()
@@ -84,6 +87,7 @@ func (g *GPU) Init(title string) error {
 	if err != nil {
 		return err
 	}
+	glfw.SetWindowTitle(title)
 
 	//resize function
 	onResize := func(w, h int) {
@@ -97,7 +101,7 @@ func (g *GPU) Init(title string) error {
 		gl.LoadIdentity()
 	}
 
-	glfw.SetWindowPos(800, 0)
+	glfw.SetWindowPos(700, 400)
 	glfw.SetWindowSizeCallback(onResize)
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	return nil
@@ -198,7 +202,6 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.palette[1] = int((value >> 2) & 0x03)
 			g.palette[2] = int((value >> 4) & 0x03)
 			g.palette[3] = int((value >> 6) & 0x03)
-			log.Println(g.palette)
 		}
 	}
 }
@@ -233,36 +236,40 @@ func (g *GPU) Read(addr types.Word) byte {
 
 //Update the tile at address with value
 func (g *GPU) UpdateTile(addr types.Word, value byte) {
+
+	//get the ID of the tile being updated (between 0 and 383)
 	var tileId types.Word = (addr & 0x17FF) >> 4
-	g.rawTiledata[tileId][addr%8][addr%2] = value
+	g.rawTiledata[tileId][addr%16] = value
 
-	calcLine := func(l [2]byte) [8]int {
-		var result [8]int
-		lo, hi := int(l[0]), int(l[1])
-
-		var x uint
-		for x = 0; x < 8; x++ {
-			result[x] = (lo >> (7 - x) & 1) | ((hi >> (7 - x) & 1) << 1)
+	recalcTile := func(rawtile RawTile) Tile {
+		var tile Tile
+		for tileY := 0; tileY < 8; tileY++ {
+			lineLo, lineHi := int(rawtile[tileY*2]), int(rawtile[(tileY*2)+1])
+			var tileX uint = 0
+			for ; tileX < 8; tileX++ {
+				tile[tileY][tileX] = ((lineLo >> (7 - tileX) & 1) | (lineHi>>(7-tileX)&1)<<1)
+			}
 		}
 
-		return result
+		return tile
 	}
 
-	g.tiledata[tileId][addr%8] = calcLine(g.rawTiledata[tileId][addr%8])
+	g.tiledata[tileId] = recalcTile(g.rawTiledata[tileId])
 }
 
 func (g *GPU) RenderLine() {
-	var mapoffset types.Word = g.bgTilemap + (((types.Word(g.ly + int(g.scrollY))) >> 3) << 5)
+	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))>>3)<<5
 	var lineoffset types.Word = (types.Word(g.scrollX) >> 3) % 32
 	tileY := (g.ly + int(g.scrollY)) % 8
 	tileX := int(g.scrollX) % 8
 
 	//get the ID of the tile being drawn
+	//TODO: calculate value if in tileset #1
 	tileId := g.Read(types.Word(mapoffset + lineoffset))
 
 	for x := 0; x < DISPLAY_WIDTH; x++ {
 
-		//draw the pixel to the screen data
+		//draw the pixel to the screen data buffer (running through the palette)
 		g.screen[g.ly][x] = g.palette[g.tiledata[tileId][tileY][tileX]]
 
 		//move along line in tile until you reach the end
@@ -270,7 +277,6 @@ func (g *GPU) RenderLine() {
 		if tileX == 8 {
 			tileX = 0
 			lineoffset = (lineoffset + 1) % 32
-
 			//get next tile in line
 			tileId = g.Read(types.Word(mapoffset + lineoffset))
 		}
@@ -286,13 +292,9 @@ func (g *GPU) DrawFrame() {
 		for x := 0; x < DISPLAY_WIDTH; x++ {
 			switch g.screen[y][x] {
 			case 0:
-				gl.Color3d(255, 255, 255)
-			case 1:
-				gl.Color3d(192, 192, 192)
-			case 2:
-				gl.Color3d(96, 96, 96)
-			case 3:
-				gl.Color3d(0, 0, 0)
+				gl.Color3ub(235, 235, 235)
+			case 1, 2, 3:
+				gl.Color3ub(0, 0, 0)
 			}
 
 			gl.Vertex2i(x, y)
@@ -300,4 +302,8 @@ func (g *GPU) DrawFrame() {
 	}
 
 	gl.End()
+}
+
+func (g *GPU) DumpScreen() [144][160]int {
+	return g.screen
 }

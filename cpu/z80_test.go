@@ -7,11 +7,12 @@ import "github.com/djhworld/gomeboycolor/types"
 const ZEROW types.Word = 0
 const ZEROB byte = 0
 
-var cpu *Z80 = NewCPU(NewMockMMU())
+var cpu *Z80 = NewCPU()
 
 func reset() {
 	cpu = nil
-	cpu = NewCPU(NewMockMMU())
+	cpu = NewCPU()
+	cpu.LinkMMU(NewMockMMU())
 	cpu.Reset()
 }
 
@@ -117,7 +118,7 @@ func TestAddA_hl(t *testing.T) {
 	cpu.R.H = 0x22
 	cpu.R.L = 0x23
 
-	cpu.mmu.WriteByte(0x2223, 0x04)
+	cpu.WriteByte(0x2223, 0x04)
 	cpu.AddA_hl()
 	assert.Equal(t, cpu.R.A, byte(0x09))
 }
@@ -127,7 +128,7 @@ func TestAddA_hlForZeroFlag(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0x03
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0302, 0x00)
+	cpu.WriteByte(0x0302, 0x00)
 
 	//Check flag is set when result is zero
 	cpu.AddA_hl()
@@ -138,7 +139,7 @@ func TestAddA_hlForZeroFlag(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0x03
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0302, 0x02)
+	cpu.WriteByte(0x0302, 0x02)
 
 	//Check flag is NOT set when result is not zero
 	cpu.AddA_hl()
@@ -154,7 +155,7 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 	cpu.R.A = 0xFE
 	cpu.R.H = H
 	cpu.R.L = L
-	cpu.mmu.WriteByte(memoryAddr, 0x03)
+	cpu.WriteByte(memoryAddr, 0x03)
 
 	//Check flag is set when result overflows
 	cpu.AddA_hl()
@@ -165,7 +166,7 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 	cpu.R.A = 0xFE
 	cpu.R.H = H
 	cpu.R.L = L
-	cpu.mmu.WriteByte(memoryAddr, 0x01)
+	cpu.WriteByte(memoryAddr, 0x01)
 
 	//Check flag is set when result does not
 	cpu.AddA_hl()
@@ -179,7 +180,7 @@ func TestAddA_n(t *testing.T) {
 
 	cpu.R.A = 0x09
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x01)
+	cpu.WriteByte(0x000E, 0x01)
 
 	cpu.AddA_n()
 	assert.Equal(t, cpu.R.A, byte(0x0A))
@@ -190,7 +191,7 @@ func TestAddA_nCheckPC(t *testing.T) {
 
 	cpu.R.A = 0x09
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x01)
+	cpu.WriteByte(0x000E, 0x01)
 
 	cpu.AddA_n()
 	assert.Equal(t, cpu.PC, types.Word(0x000F))
@@ -202,7 +203,7 @@ func TestAddA_nForZeroFlag(t *testing.T) {
 
 	cpu.R.A = 0x00
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x00)
+	cpu.WriteByte(0x000E, 0x00)
 
 	//Check flag is set when result is zero
 	cpu.AddA_n()
@@ -211,7 +212,7 @@ func TestAddA_nForZeroFlag(t *testing.T) {
 	reset()
 	cpu.R.A = 0x09
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x01)
+	cpu.WriteByte(0x000E, 0x01)
 
 	//Check flag is NOT set when result is not zero
 	cpu.AddA_n()
@@ -223,7 +224,7 @@ func TestAddA_nForCarryFlag(t *testing.T) {
 
 	cpu.R.A = 0xFE
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x03)
+	cpu.WriteByte(0x000E, 0x03)
 
 	//Check flag is set when result overflows
 	cpu.AddA_n()
@@ -233,7 +234,7 @@ func TestAddA_nForCarryFlag(t *testing.T) {
 
 	cpu.R.A = 0xFE
 	cpu.PC = 0x000E
-	cpu.mmu.WriteByte(0x000E, 0x01)
+	cpu.WriteByte(0x000E, 0x01)
 
 	//Check flag is set when result does not
 	cpu.AddA_n()
@@ -249,42 +250,42 @@ func TestLDrn(t *testing.T) {
 	//test B
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.B)
 	assert.Equal(t, cpu.R.B, expected)
 
 	//test C
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.C)
 	assert.Equal(t, cpu.R.C, expected)
 
 	//test D
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.D)
 	assert.Equal(t, cpu.R.D, expected)
 
 	//test E
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.E)
 	assert.Equal(t, cpu.R.E, expected)
 
 	//test H
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.H)
 	assert.Equal(t, cpu.R.H, expected)
 
 	//test L
 	reset()
 	cpu.PC = addr
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.LDrn(&cpu.R.L)
 	assert.Equal(t, cpu.R.L, expected)
 }
@@ -447,7 +448,7 @@ func TestLDr_hl(t *testing.T) {
 	reset()
 	cpu.R.H, cpu.R.L = 0x10, 0x02
 
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 
 	//A <- (HL)
 	cpu.LDr_hl(&cpu.R.A)
@@ -473,21 +474,21 @@ func TestLDhl_r(t *testing.T) {
 	cpu.R.H, cpu.R.L = 0x10, 0x02
 	cpu.R.B = expected
 	cpu.LDhl_r(&cpu.R.B)
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 
 	// (HL) <- C
 	reset()
 	cpu.R.H, cpu.R.L = 0x10, 0x02
 	cpu.R.C = expected
 	cpu.LDhl_r(&cpu.R.C)
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 
 	// (HL) <- D
 	reset()
 	cpu.R.H, cpu.R.L = 0x10, 0x02
 	cpu.R.D = expected
 	cpu.LDhl_r(&cpu.R.D)
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 }
 
 //LD (HL),n tests
@@ -500,10 +501,10 @@ func TestLDhl_n(t *testing.T) {
 	//test B
 	reset()
 	cpu.R.H, cpu.R.L = 0xFF, 0xEE
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 	cpu.PC = addr
 	cpu.LDhl_n()
-	assert.Equal(t, cpu.mmu.ReadByte(HL), expected)
+	assert.Equal(t, cpu.ReadByte(HL), expected)
 }
 
 func TestLDhl_nPCIncrementCheck(t *testing.T) {
@@ -525,7 +526,7 @@ func TestLDr_bc(t *testing.T) {
 	reset()
 	cpu.R.B, cpu.R.C = 0x10, 0x02
 
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 
 	//A <- (BC)
 	cpu.LDr_bc(&cpu.R.A)
@@ -541,7 +542,7 @@ func TestLDr_de(t *testing.T) {
 	reset()
 	cpu.R.D, cpu.R.E = 0x10, 0x02
 
-	cpu.mmu.WriteByte(addr, expected)
+	cpu.WriteByte(addr, expected)
 
 	//A <- (DE)
 	cpu.LDr_de(&cpu.R.A)
@@ -554,9 +555,9 @@ func TestLDr_nn(t *testing.T) {
 	var expected byte = 0x3E
 	var addr types.Word = 0x0002
 	var valueAddr types.Word = 0x3334
-	cpu.mmu.WriteByte(addr, 0x33)
-	cpu.mmu.WriteByte(addr+1, 0x34)
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(addr, 0x33)
+	cpu.WriteByte(addr+1, 0x34)
+	cpu.WriteByte(valueAddr, expected)
 	cpu.PC = addr
 
 	cpu.LDr_nn(&cpu.R.A)
@@ -582,7 +583,7 @@ func TestLDbc_r(t *testing.T) {
 	cpu.R.B, cpu.R.C = 0x10, 0x02
 	cpu.R.A = expected
 	cpu.LDbc_r(&cpu.R.A)
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 }
 
 //LD (DE),r tests
@@ -596,7 +597,7 @@ func TestLDde_r(t *testing.T) {
 	cpu.R.D, cpu.R.E = 0x10, 0x02
 	cpu.R.A = expected
 	cpu.LDde_r(&cpu.R.A)
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 }
 
 //LD nn,r tests
@@ -607,14 +608,14 @@ func TestLDnn_r(t *testing.T) {
 	var addr types.Word = 0x0005
 	var valueAddr types.Word = 0x3031
 
-	cpu.mmu.WriteByte(addr, 0x31)
-	cpu.mmu.WriteByte(addr+1, 0x30)
+	cpu.WriteByte(addr, 0x31)
+	cpu.WriteByte(addr+1, 0x30)
 
 	cpu.PC = addr
 	cpu.R.A = expected
 	cpu.LDnn_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 }
 
 func TestLDnn_rPCIncremented(t *testing.T) {
@@ -634,7 +635,7 @@ func TestLDr_ffplusc(t *testing.T) {
 	var expected byte = 0x03
 	cpu.R.C = expected
 
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
 	cpu.LDr_ffplusc(&cpu.R.A)
 
@@ -652,7 +653,7 @@ func TestLDffplusc_r(t *testing.T) {
 	cpu.R.A = expected
 
 	cpu.LDffplusc_r(&cpu.R.A)
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 
 }
 
@@ -663,7 +664,7 @@ func TestLDDr_hl(t *testing.T) {
 	var valueAddr types.Word = 0x9965
 	var expected byte = 0x2D
 	cpu.R.H, cpu.R.L = 0x99, 0x65
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
 	cpu.LDDr_hl(&cpu.R.A)
 	assert.Equal(t, cpu.R.A, expected)
@@ -675,7 +676,7 @@ func TestLDDr_hl(t *testing.T) {
 	valueAddr = 0x9900
 	expected = 0x2D
 	cpu.R.H, cpu.R.L = 0x99, 0x00
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
 	cpu.LDDr_hl(&cpu.R.A)
 	assert.Equal(t, cpu.R.A, expected)
@@ -690,7 +691,7 @@ func TestLDIr_hl(t *testing.T) {
 	var valueAddr types.Word = 0x9965
 	var expected byte = 0x2D
 	cpu.R.H, cpu.R.L = 0x99, 0x65
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
 	cpu.LDIr_hl(&cpu.R.A)
 	assert.Equal(t, cpu.R.A, expected)
@@ -702,7 +703,7 @@ func TestLDIr_hl(t *testing.T) {
 	valueAddr = 0x99FF
 	expected = 0x2D
 	cpu.R.H, cpu.R.L = 0x99, 0xFF
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
 	cpu.LDIr_hl(&cpu.R.A)
 	assert.Equal(t, cpu.R.A, expected)
@@ -722,7 +723,7 @@ func TestLDDhl_r(t *testing.T) {
 
 	cpu.LDDhl_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 	assert.Equal(t, cpu.R.H, byte(0x75))
 	assert.Equal(t, cpu.R.L, byte(0x30))
 
@@ -735,7 +736,7 @@ func TestLDDhl_r(t *testing.T) {
 
 	cpu.LDDhl_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 	assert.Equal(t, cpu.R.H, byte(0x74))
 	assert.Equal(t, cpu.R.L, byte(0xFF))
 }
@@ -752,7 +753,7 @@ func TestLDIhl_r(t *testing.T) {
 
 	cpu.LDIhl_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 	assert.Equal(t, cpu.R.H, byte(0x75))
 	assert.Equal(t, cpu.R.L, byte(0x32))
 
@@ -765,7 +766,7 @@ func TestLDIhl_r(t *testing.T) {
 
 	cpu.LDIhl_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 	assert.Equal(t, cpu.R.H, byte(0x76))
 	assert.Equal(t, cpu.R.L, byte(0x00))
 }
@@ -779,10 +780,10 @@ func TestLDHn_r(t *testing.T) {
 	var valueAddr types.Word = 0xFF77
 	cpu.PC = 0x0003
 	cpu.R.A = 0x21
-	cpu.mmu.WriteByte(cpu.PC, n)
+	cpu.WriteByte(cpu.PC, n)
 	cpu.LDHn_r(&cpu.R.A)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 }
 
 func TestLDHn_rCheckPCIncremented(t *testing.T) {
@@ -801,9 +802,9 @@ func TestLDHr_n(t *testing.T) {
 	var expected byte = 0x4A
 
 	cpu.PC = 0x0003
-	cpu.mmu.WriteByte(valueAddr, expected)
+	cpu.WriteByte(valueAddr, expected)
 
-	assert.Equal(t, cpu.mmu.ReadByte(valueAddr), expected)
+	assert.Equal(t, cpu.ReadByte(valueAddr), expected)
 }
 
 func TestLDHr_nCheckPCIncremented(t *testing.T) {
@@ -822,8 +823,8 @@ func TestLDn_nn(t *testing.T) {
 	var expected1 byte = 0xA3
 	var expected2 byte = 0xF0
 	cpu.PC = 0x0003
-	cpu.mmu.WriteByte(0x0003, expected1)
-	cpu.mmu.WriteByte(0x0004, expected2)
+	cpu.WriteByte(0x0003, expected1)
+	cpu.WriteByte(0x0004, expected2)
 
 	cpu.LDn_nn(&cpu.R.B, &cpu.R.C)
 
@@ -845,7 +846,7 @@ func TestLDSP_nn(t *testing.T) {
 	reset()
 	var expected types.Word = 0xA3F0
 	cpu.PC = 0x0003
-	cpu.mmu.WriteWord(0x0003, 0xF0A3)
+	cpu.WriteWord(0x0003, 0xF0A3)
 
 	cpu.LDSP_nn()
 
@@ -884,7 +885,7 @@ func TestLDHLSP_n(t *testing.T) {
 	reset()
 	cpu.SP = 0x3033
 	cpu.PC = 0x0003
-	cpu.mmu.WriteByte(0x0003, n)
+	cpu.WriteByte(0x0003, n)
 	cpu.LDHLSP_n()
 
 	assert.Equal(t, cpu.R.H, expectedH)
@@ -909,7 +910,7 @@ func TestLDHLSP_nFlags(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.PC = 0x0003
 	cpu.SP = 0x0003
-	cpu.mmu.WriteByte(0x0003, 0x9F)
+	cpu.WriteByte(0x0003, 0x9F)
 
 	cpu.LDHLSP_n()
 	assert.Equal(t, cpu.R.F, expected)
@@ -920,7 +921,7 @@ func TestLDHLSP_nFlags(t *testing.T) {
 	cpu.R.F = 0x00
 	cpu.PC = 0x0003
 	cpu.SP = 0xFFF3
-	cpu.mmu.WriteByte(0x0003, 0x90)
+	cpu.WriteByte(0x0003, 0x90)
 
 	cpu.LDHLSP_n()
 	assert.Equal(t, cpu.R.F, expected)
@@ -932,10 +933,10 @@ func TestLDnn_SP(t *testing.T) {
 	reset()
 	var expectedSP types.Word = 0x3AF2
 	cpu.PC = 0x0009
-	cpu.mmu.WriteWord(0x0009, 0xF003)
+	cpu.WriteWord(0x0009, 0xF003)
 	cpu.SP = expectedSP
 	cpu.LDnn_SP()
-	assert.Equal(t, cpu.mmu.ReadWord(0xF003), expectedSP)
+	assert.Equal(t, cpu.ReadWord(0xF003), expectedSP)
 
 }
 
@@ -965,8 +966,8 @@ func TestPushnn(t *testing.T) {
 
 	cpu.Push_nn(&cpu.R.B, &cpu.R.C)
 	assert.Equal(t, cpu.SP, expectedSP)
-	assert.Equal(t, cpu.mmu.ReadByte(0x0003), cpu.R.B)
-	assert.Equal(t, cpu.mmu.ReadByte(0x0002), cpu.R.C)
+	assert.Equal(t, cpu.ReadByte(0x0003), cpu.R.B)
+	assert.Equal(t, cpu.ReadByte(0x0002), cpu.R.C)
 }
 
 //POP nn tests
@@ -1081,7 +1082,7 @@ func TestADDCA_hl(t *testing.T) {
 	cpu.R.A = 0x03
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x01)
+	cpu.WriteByte(0xFF11, 0x01)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 
@@ -1091,7 +1092,7 @@ func TestADDCA_hl(t *testing.T) {
 	cpu.R.A = 0x03
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x01)
+	cpu.WriteByte(0xFF11, 0x01)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 }
@@ -1103,7 +1104,7 @@ func TestADDCA_hlZeroFlagSet(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x00)
+	cpu.WriteByte(0xFF11, 0x00)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 
@@ -1112,7 +1113,7 @@ func TestADDCA_hlZeroFlagSet(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x00)
+	cpu.WriteByte(0xFF11, 0x00)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 
@@ -1125,7 +1126,7 @@ func TestADDCA_hlCarryFlagSet(t *testing.T) {
 	cpu.R.A = 0xFC
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x02)
+	cpu.WriteByte(0xFF11, 0x02)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
@@ -1134,7 +1135,7 @@ func TestADDCA_hlCarryFlagSet(t *testing.T) {
 	cpu.R.A = 0xFC
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x06)
+	cpu.WriteByte(0xFF11, 0x06)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 
@@ -1147,7 +1148,7 @@ func TestADDCA_hlHalfCarryFlagSet(t *testing.T) {
 	cpu.R.A = 0xF0
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x03)
+	cpu.WriteByte(0xFF11, 0x03)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
@@ -1156,7 +1157,7 @@ func TestADDCA_hlHalfCarryFlagSet(t *testing.T) {
 	cpu.R.A = 0xA9
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x07)
+	cpu.WriteByte(0xFF11, 0x07)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 
@@ -1166,7 +1167,7 @@ func TestADDCA_hlSubtractFlagReset(t *testing.T) {
 	reset()
 	cpu.R.H = 0xFF
 	cpu.R.L = 0x11
-	cpu.mmu.WriteByte(0xFF11, 0x03)
+	cpu.WriteByte(0xFF11, 0x03)
 	cpu.AddCA_hl()
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 }
@@ -1181,7 +1182,7 @@ func TestADDCA_n(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.R.A = 0x03
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.WriteByte(0x0001, 0x01)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 
@@ -1190,7 +1191,7 @@ func TestADDCA_n(t *testing.T) {
 	expectedA = 0x04
 	cpu.R.A = 0x03
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.WriteByte(0x0001, 0x01)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 
@@ -1202,7 +1203,7 @@ func TestADDCA_nZeroFlagSet(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.R.A = 0x00
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x00)
+	cpu.WriteByte(0x0001, 0x00)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 
@@ -1210,7 +1211,7 @@ func TestADDCA_nZeroFlagSet(t *testing.T) {
 	reset()
 	cpu.R.A = 0x00
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x00)
+	cpu.WriteByte(0x0001, 0x00)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 
@@ -1222,7 +1223,7 @@ func TestADDCA_nCarryFlagSet(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.R.A = 0xFC
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.WriteByte(0x0001, 0x01)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(C), false)
 
@@ -1230,7 +1231,7 @@ func TestADDCA_nCarryFlagSet(t *testing.T) {
 	reset()
 	cpu.R.A = 0xFE
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x0F)
+	cpu.WriteByte(0x0001, 0x0F)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(C), true)
 
@@ -1242,7 +1243,7 @@ func TestADDCA_nHalfCarryFlagSet(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.R.A = 0x89
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.WriteByte(0x0001, 0x01)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 
@@ -1250,7 +1251,7 @@ func TestADDCA_nHalfCarryFlagSet(t *testing.T) {
 	reset()
 	cpu.R.A = 0x89
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x0F)
+	cpu.WriteByte(0x0001, 0x0F)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(H), true)
 }
@@ -1260,7 +1261,7 @@ func TestADDCA_nSubtractFlagReset(t *testing.T) {
 	cpu.R.F = 0x10
 	cpu.R.A = 0x89
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(0x0001, 0x01)
+	cpu.WriteByte(0x0001, 0x01)
 	cpu.AddCA_n()
 	assert.Equal(t, cpu.IsFlagSet(N), false)
 
@@ -1341,7 +1342,7 @@ func TestSUBA_hl(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x02)
+	cpu.WriteByte(0x0102, 0x02)
 	cpu.SubA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//Check N flag is set 
@@ -1357,7 +1358,7 @@ func TestSUBA_hl(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x05)
+	cpu.WriteByte(0x0102, 0x05)
 	cpu.SubA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true, "Zero flag (Z) is not set!")
@@ -1369,7 +1370,7 @@ func TestSUBA_hl(t *testing.T) {
 	cpu.R.A = 0xf1
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x09)
+	cpu.WriteByte(0x0102, 0x09)
 	cpu.SubA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) is not set!")
@@ -1383,7 +1384,7 @@ func TestSUBA_hl(t *testing.T) {
 	cpu.R.A = 0x15
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x17)
+	cpu.WriteByte(0x0102, 0x17)
 	cpu.SubA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(C), true, "Carry flag (C) is not set!")
@@ -1404,7 +1405,7 @@ func TestSUBA_n(t *testing.T) {
 	expectedPC = 0x0002
 	cpu.R.A = 0x05
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x02)
+	cpu.WriteByte(cpu.PC, 0x02)
 	cpu.SubA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 
@@ -1422,7 +1423,7 @@ func TestSUBA_n(t *testing.T) {
 	expectedA = 0x00
 	cpu.R.A = 0x05
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x05)
+	cpu.WriteByte(cpu.PC, 0x05)
 	cpu.SubA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true, "Zero flag (Z) is not set!")
@@ -1433,7 +1434,7 @@ func TestSUBA_n(t *testing.T) {
 	expectedA = 0xe8
 	cpu.R.A = 0xf1
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x09)
+	cpu.WriteByte(cpu.PC, 0x09)
 	cpu.SubA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(H), true, "Half Carry flag (H) is not set!")
@@ -1446,7 +1447,7 @@ func TestSUBA_n(t *testing.T) {
 	expectedA = 0xfe
 	cpu.R.A = 0x15
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x17)
+	cpu.WriteByte(cpu.PC, 0x17)
 	cpu.SubA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(C), true, "Carry flag (C) is not set!")
@@ -1500,7 +1501,7 @@ func TestAndA_hl(t *testing.T) {
 	cpu.R.A = 0xAA
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.WriteByte(0x0102, 0x0F)
 	cpu.AndA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//H flag should be set
@@ -1517,7 +1518,7 @@ func TestAndA_hl(t *testing.T) {
 	cpu.R.A = 0xAA
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.WriteByte(0x0102, 0x00)
 	cpu.AndA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1539,7 +1540,7 @@ func TestAndA_n(t *testing.T) {
 	expectedPC = 0x0103
 	cpu.R.A = 0xAA
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.WriteByte(cpu.PC, 0x0F)
 	cpu.AndA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
@@ -1557,7 +1558,7 @@ func TestAndA_n(t *testing.T) {
 	expectedA = 0x00
 	cpu.R.A = 0xAA
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.WriteByte(cpu.PC, 0x00)
 	cpu.AndA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1609,7 +1610,7 @@ func TestOrA_hl(t *testing.T) {
 	cpu.R.A = 0xAA
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.WriteByte(0x0102, 0x0F)
 	cpu.OrA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//all flags should be disabled
@@ -1624,7 +1625,7 @@ func TestOrA_hl(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.WriteByte(0x0102, 0x00)
 	cpu.OrA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1646,7 +1647,7 @@ func TestOrA_n(t *testing.T) {
 	expectedPC = 0x0103
 	cpu.R.A = 0xAA
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.WriteByte(cpu.PC, 0x0F)
 	cpu.OrA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
@@ -1662,7 +1663,7 @@ func TestOrA_n(t *testing.T) {
 	expectedA = 0x00
 	cpu.R.A = 0x00
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.WriteByte(cpu.PC, 0x00)
 	cpu.OrA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1714,7 +1715,7 @@ func TestXorA_hl(t *testing.T) {
 	cpu.R.A = 0xAA
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x0F)
+	cpu.WriteByte(0x0102, 0x0F)
 	cpu.XorA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//all flags should be disabled
@@ -1729,7 +1730,7 @@ func TestXorA_hl(t *testing.T) {
 	cpu.R.A = 0x00
 	cpu.R.H = 0x01
 	cpu.R.L = 0x02
-	cpu.mmu.WriteByte(0x0102, 0x00)
+	cpu.WriteByte(0x0102, 0x00)
 	cpu.XorA_hl()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1751,7 +1752,7 @@ func TestXorA_n(t *testing.T) {
 	expectedPC = 0x0103
 	cpu.R.A = 0xAA
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x0F)
+	cpu.WriteByte(cpu.PC, 0x0F)
 	cpu.XorA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	//check PC incremented 
@@ -1767,7 +1768,7 @@ func TestXorA_n(t *testing.T) {
 	expectedA = 0x00
 	cpu.R.A = 0x00
 	cpu.PC = 0x0102
-	cpu.mmu.WriteByte(cpu.PC, 0x00)
+	cpu.WriteByte(cpu.PC, 0x00)
 	cpu.XorA_n()
 	assert.Equal(t, cpu.R.A, expectedA)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1808,7 +1809,7 @@ func TestCPA_hl(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.H = 0x03
 	cpu.R.L = 0xAA
-	cpu.mmu.WriteByte(0x03AA, 0x05)
+	cpu.WriteByte(0x03AA, 0x05)
 	cpu.CPA_hl()
 
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1821,7 +1822,7 @@ func TestCPA_hl(t *testing.T) {
 	cpu.R.A = 0x05
 	cpu.R.H = 0x03
 	cpu.R.L = 0xAA
-	cpu.mmu.WriteByte(0x03AA, 0xAA)
+	cpu.WriteByte(0x03AA, 0xAA)
 	cpu.CPA_hl()
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
@@ -1836,7 +1837,7 @@ func TestCPA_n(t *testing.T) {
 	reset()
 	cpu.R.A = 0x05
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x05)
+	cpu.WriteByte(cpu.PC, 0x05)
 	cpu.CPA_n()
 
 	//Check PC incremented
@@ -1850,7 +1851,7 @@ func TestCPA_n(t *testing.T) {
 	reset()
 	cpu.R.A = 0x05
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0xAA)
+	cpu.WriteByte(cpu.PC, 0xAA)
 	cpu.CPA_n()
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
@@ -1898,9 +1899,9 @@ func TestInc_hl(t *testing.T) {
 
 	cpu.R.H = 0x03
 	cpu.R.L = 0xFF
-	cpu.mmu.WriteByte(0x03FF, 0x01)
+	cpu.WriteByte(0x03FF, 0x01)
 	cpu.Inc_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(0x03FF), expectedVal)
+	assert.Equal(t, cpu.ReadByte(0x03FF), expectedVal)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(N), false)
@@ -1909,7 +1910,7 @@ func TestInc_hl(t *testing.T) {
 	reset()
 	cpu.R.H = 0x03
 	cpu.R.L = 0xFF
-	cpu.mmu.WriteByte(0x03FF, 0xFF)
+	cpu.WriteByte(0x03FF, 0xFF)
 	cpu.Inc_hl()
 	//check zero flag
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -1917,7 +1918,7 @@ func TestInc_hl(t *testing.T) {
 	reset()
 	cpu.R.H = 0x03
 	cpu.R.L = 0xFF
-	cpu.mmu.WriteByte(0x03FF, 0x0F)
+	cpu.WriteByte(0x03FF, 0x0F)
 	cpu.Inc_hl()
 	//check half carry flag
 	assert.Equal(t, cpu.IsFlagSet(H), true)
@@ -1957,9 +1958,9 @@ func TestDec_hl(t *testing.T) {
 
 	cpu.R.H = 0x03
 	cpu.R.L = 0xFF
-	cpu.mmu.WriteByte(0x03FF, 0x02)
+	cpu.WriteByte(0x03FF, 0x02)
 	cpu.Dec_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(0x03FF), expectedVal)
+	assert.Equal(t, cpu.ReadByte(0x03FF), expectedVal)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	assert.Equal(t, cpu.IsFlagSet(H), false)
 	assert.Equal(t, cpu.IsFlagSet(N), true)
@@ -1968,7 +1969,7 @@ func TestDec_hl(t *testing.T) {
 	reset()
 	cpu.R.H = 0x03
 	cpu.R.L = 0xFF
-	cpu.mmu.WriteByte(0x03FF, 0x01)
+	cpu.WriteByte(0x03FF, 0x01)
 	cpu.Dec_hl()
 	//check zero flag
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
@@ -2059,7 +2060,7 @@ func TestAddsp_n(t *testing.T) {
 	cpu.SetFlag(N)
 	cpu.PC = 0x1000
 	cpu.SP = 0x0003
-	cpu.mmu.WriteByte(cpu.PC, 0x0003)
+	cpu.WriteByte(cpu.PC, 0x0003)
 
 	cpu.Addsp_n()
 	assert.Equal(t, cpu.SP, expectedSP)
@@ -2073,7 +2074,7 @@ func TestAddsp_n(t *testing.T) {
 	expectedSP = 0x0006
 	reset()
 	cpu.SP = 0xFFFE
-	cpu.mmu.WriteByte(cpu.PC, 0x0008)
+	cpu.WriteByte(cpu.PC, 0x0008)
 
 	cpu.Addsp_n()
 	assert.Equal(t, cpu.SP, expectedSP)
@@ -2240,10 +2241,10 @@ func TestSwap_hl(t *testing.T) {
 	cpu.SetFlag(C)
 	cpu.R.H = 0x10
 	cpu.R.L = 0x01
-	cpu.mmu.WriteByte(addr, 0xFB)
+	cpu.WriteByte(addr, 0xFB)
 	cpu.Swap_hl()
 
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 	assert.Equal(t, cpu.IsFlagSet(Z), false)
 	//ensure flags are reset
 	assert.Equal(t, cpu.IsFlagSet(N), false)
@@ -2255,10 +2256,10 @@ func TestSwap_hl(t *testing.T) {
 	reset()
 	cpu.R.H = 0x10
 	cpu.R.L = 0x01
-	cpu.mmu.WriteByte(addr, 0x00)
+	cpu.WriteByte(addr, 0x00)
 	cpu.Swap_hl()
 
-	assert.Equal(t, cpu.mmu.ReadByte(addr), expected)
+	assert.Equal(t, cpu.ReadByte(addr), expected)
 	assert.Equal(t, cpu.IsFlagSet(Z), true)
 }
 
@@ -2435,7 +2436,7 @@ func TestBitb_hl(t *testing.T) {
 	cpu.R.H = 0x30
 	cpu.R.L = 0x44
 	cpu.SetFlag(N)
-	cpu.mmu.WriteByte(addr, 0x21)
+	cpu.WriteByte(addr, 0x21)
 	cpu.Bitb_hl(0x01)
 
 	//ensure flag is set
@@ -2453,7 +2454,7 @@ func TestBitb_hl(t *testing.T) {
 		cpu.R.H = 0x30
 		cpu.R.L = 0x44
 		cpu.SetFlag(N)
-		cpu.mmu.WriteByte(addr, 0x31)
+		cpu.WriteByte(addr, 0x31)
 		cpu.Bitb_hl(byte(i))
 		results[j] = cpu.IsFlagSet(Z)
 		j--
@@ -2467,8 +2468,8 @@ func TestJP_nn(t *testing.T) {
 	var expectedPC types.Word = 0x5672
 	reset()
 	cpu.PC = 0x2001
-	cpu.mmu.WriteByte(cpu.PC, 0x72)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x56)
+	cpu.WriteByte(cpu.PC, 0x72)
+	cpu.WriteByte(cpu.PC+1, 0x56)
 	cpu.JP_nn()
 
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2482,7 +2483,7 @@ func TestJP_hl(t *testing.T) {
 	reset()
 	cpu.R.H = 0x20
 	cpu.R.L = 0x01
-	cpu.mmu.WriteWord(addr, expectedPC)
+	cpu.WriteWord(addr, expectedPC)
 	cpu.JP_hl()
 
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2494,8 +2495,8 @@ func TestJPcc_nn(t *testing.T) {
 	var expectedPC types.Word = 0x5672
 	reset()
 	cpu.PC = 0x2001
-	cpu.mmu.WriteByte(cpu.PC, 0x72)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x56)
+	cpu.WriteByte(cpu.PC, 0x72)
+	cpu.WriteByte(cpu.PC+1, 0x56)
 	cpu.SetFlag(Z)
 	cpu.JPcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2504,7 +2505,7 @@ func TestJPcc_nn(t *testing.T) {
 	expectedPC = 0x2003
 	reset()
 	cpu.PC = 0x2001
-	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.WriteWord(cpu.PC, expectedPC)
 	cpu.SetFlag(Z)
 	cpu.JPcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2513,8 +2514,8 @@ func TestJPcc_nn(t *testing.T) {
 	expectedPC = 0x5672
 	reset()
 	cpu.PC = 0x2001
-	cpu.mmu.WriteByte(cpu.PC, 0x72)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x56)
+	cpu.WriteByte(cpu.PC, 0x72)
+	cpu.WriteByte(cpu.PC+1, 0x56)
 	cpu.JPcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 	assert.Equal(t, cpu.LastInstrCycle.T(), 16)
@@ -2526,7 +2527,7 @@ func TestJRcc_nn(t *testing.T) {
 	var expectedPC types.Word = 0x000B
 	reset()
 	cpu.PC = 0x0000
-	cpu.mmu.WriteByte(cpu.PC, 0x0A)
+	cpu.WriteByte(cpu.PC, 0x0A)
 	cpu.SetFlag(Z)
 	cpu.JRcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2535,7 +2536,7 @@ func TestJRcc_nn(t *testing.T) {
 	expectedPC = 0x2002
 	reset()
 	cpu.PC = 0x2001
-	cpu.mmu.WriteWord(cpu.PC, expectedPC)
+	cpu.WriteWord(cpu.PC, expectedPC)
 	cpu.SetFlag(Z)
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2544,7 +2545,7 @@ func TestJRcc_nn(t *testing.T) {
 	expectedPC = 0x000B
 	reset()
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0x09)
+	cpu.WriteByte(cpu.PC, 0x09)
 	cpu.JRcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
 	assert.Equal(t, cpu.LastInstrCycle.T(), 12)
@@ -2556,7 +2557,7 @@ func TestJR_n(t *testing.T) {
 	var expectedPC byte = 0x000B
 	reset()
 	cpu.PC = 0x0002
-	cpu.mmu.WriteByte(cpu.PC, 0x08)
+	cpu.WriteByte(cpu.PC, 0x08)
 	cpu.JR_n()
 
 	//check PC 
@@ -2596,9 +2597,9 @@ func TestSetb_hl(t *testing.T) {
 		cpu.PC = 0x0001
 		cpu.R.H = 0x38
 		cpu.R.L = 0x27
-		cpu.mmu.WriteByte(hlAddr, hlValue)
+		cpu.WriteByte(hlAddr, hlValue)
 		cpu.Setb_hl(byte(i))
-		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
+		assert.Equal(t, cpu.ReadByte(hlAddr), expectedHL)
 	}
 }
 
@@ -2635,9 +2636,9 @@ func TestResb_hl(t *testing.T) {
 		cpu.PC = 0x0001
 		cpu.R.H = 0x38
 		cpu.R.L = 0x27
-		cpu.mmu.WriteByte(hlAddr, hlValue)
+		cpu.WriteByte(hlAddr, hlValue)
 		cpu.Resb_hl(byte(i))
-		assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
+		assert.Equal(t, cpu.ReadByte(hlAddr), expectedHL)
 	}
 }
 
@@ -2648,12 +2649,12 @@ func TestCall_nn(t *testing.T) {
 	var expectedPC types.Word = 0x30FD
 	var nextInstructionAddress types.Word = 0x0003
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0xFD)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x30)
+	cpu.WriteByte(cpu.PC, 0xFD)
+	cpu.WriteByte(cpu.PC+1, 0x30)
 	cpu.Call_nn()
 
 	assert.Equal(t, cpu.PC, expectedPC)
-	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstructionAddress)
+	assert.Equal(t, cpu.ReadWord(cpu.SP), nextInstructionAddress)
 
 }
 
@@ -2663,20 +2664,20 @@ func TestCallcc_nn(t *testing.T) {
 	var expectedPC types.Word = 0x30FD
 	var nextInstructionAddress types.Word = 0x0003
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0xFD)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x30)
+	cpu.WriteByte(cpu.PC, 0xFD)
+	cpu.WriteByte(cpu.PC+1, 0x30)
 	cpu.SetFlag(Z)
 	cpu.Callcc_nn(Z, true)
 	assert.Equal(t, cpu.PC, expectedPC)
-	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), nextInstructionAddress)
+	assert.Equal(t, cpu.ReadWord(cpu.SP), nextInstructionAddress)
 	assert.Equal(t, cpu.LastInstrCycle.T(), 24)
 
 	reset()
 	expectedPC = 0x0003
 	nextInstructionAddress = 0x0003
 	cpu.PC = 0x0001
-	cpu.mmu.WriteByte(cpu.PC, 0xFD)
-	cpu.mmu.WriteByte(cpu.PC+1, 0x30)
+	cpu.WriteByte(cpu.PC, 0xFD)
+	cpu.WriteByte(cpu.PC+1, 0x30)
 	cpu.SetFlag(Z)
 	cpu.Callcc_nn(Z, false)
 	assert.Equal(t, cpu.PC, expectedPC)
@@ -2692,7 +2693,7 @@ func TestRst(t *testing.T) {
 	cpu.Rst(0x00)
 
 	//check top of stack is currentPC
-	assert.Equal(t, cpu.mmu.ReadWord(cpu.SP), currentPC)
+	assert.Equal(t, cpu.ReadWord(cpu.SP), currentPC)
 
 	var Ns []byte = []byte{0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38}
 	var expectedPC types.Word = 0x0000
@@ -2788,7 +2789,7 @@ func TestHalt(t *testing.T) {
 
 //RL r
 func TestRl_r(t *testing.T) {
-	var expectedR byte = 0x21
+	var expectedR byte = 0x20
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
@@ -2820,16 +2821,16 @@ func TestRl_r(t *testing.T) {
 
 //RL (HL) 
 func TestRl_hl(t *testing.T) {
-	var expectedR byte = 0x21
+	var expectedR byte = 0x20
 	var hlAddr types.Word = 0xF1F2
 	reset()
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0x90)
+	cpu.WriteByte(hlAddr, 0x90)
 	cpu.Rl_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
@@ -2842,9 +2843,9 @@ func TestRl_hl(t *testing.T) {
 
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0x70)
+	cpu.WriteByte(hlAddr, 0x70)
 	cpu.Rl_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 	assert.False(t, cpu.IsFlagSet(C))
 
 	//check zero flag
@@ -2852,9 +2853,9 @@ func TestRl_hl(t *testing.T) {
 	expectedR = 0x00
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0x00)
+	cpu.WriteByte(hlAddr, 0x00)
 	cpu.Rl_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 	assert.True(t, cpu.IsFlagSet(Z))
 }
 
@@ -2899,9 +2900,9 @@ func TestRr_hl(t *testing.T) {
 	cpu.SetFlag(H)
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0xF6)
+	cpu.WriteByte(hlAddr, 0xF6)
 	cpu.Rr_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 
 	//check flags are reset
 	assert.False(t, cpu.IsFlagSet(N))
@@ -2914,9 +2915,9 @@ func TestRr_hl(t *testing.T) {
 
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0xF6)
+	cpu.WriteByte(hlAddr, 0xF6)
 	cpu.Rr_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 	assert.False(t, cpu.IsFlagSet(C))
 
 	//check zero flag
@@ -2924,9 +2925,9 @@ func TestRr_hl(t *testing.T) {
 	expectedR = 0x00
 	cpu.R.H = 0xF1
 	cpu.R.L = 0xF2
-	cpu.mmu.WriteByte(hlAddr, 0x00)
+	cpu.WriteByte(hlAddr, 0x00)
 	cpu.Rr_hl()
-	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedR)
+	assert.Equal(t, cpu.ReadByte(hlAddr), expectedR)
 	assert.True(t, cpu.IsFlagSet(Z))
 }
 
