@@ -9,3 +9,7 @@ Why?
 ---------------------------
 Why not?
 
+Progress
+---------------------------
+![Alt text](images/boot.png)
+
