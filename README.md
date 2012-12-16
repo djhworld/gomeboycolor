@@ -11,5 +11,5 @@ Why not?
 
 Progress
 ---------------------------
-![Alt text](images/boot.png)
+![Emulator boots to boot screen](https://github.com/djhworld/gomeboycolor/raw/master/images/boot.png)
 
