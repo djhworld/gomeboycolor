@@ -1,7 +1,7 @@
 package gpu
 
 import (
-	"github.com/djhworld/gomeboycolor/types"
+	"types"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
 	"log"
@@ -88,7 +88,7 @@ func (g *GPU) Init(title string) error {
 		return err
 	}
 	glfw.SetWindowTitle(title)
-
+	
 	//resize function
 	onResize := func(w, h int) {
 		gl.MatrixMode(gl.PROJECTION)
@@ -101,8 +101,9 @@ func (g *GPU) Init(title string) error {
 		gl.LoadIdentity()
 	}
 
-	glfw.SetWindowPos(700, 400)
 	glfw.SetWindowSizeCallback(onResize)
+	glfw.SetWindowPos(1990, 400)
+
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	return nil
 }
@@ -228,7 +229,7 @@ func (g *GPU) Read(addr types.Word) byte {
 		case BGP:
 			return g.bgp
 		default:
-			log.Fatalf("GPU register address %X unknown")
+			log.Fatalf(PREFIX+" register address %X unknown", addr)
 		}
 	}
 	return 0x00
@@ -293,7 +294,11 @@ func (g *GPU) DrawFrame() {
 			switch g.screen[y][x] {
 			case 0:
 				gl.Color3ub(235, 235, 235)
-			case 1, 2, 3:
+			case 1:
+				gl.Color3ub(196, 196, 196)
+			case 2:
+				gl.Color3ub(96, 96, 96)
+			case 3:
 				gl.Color3ub(0, 0, 0)
 			}
 
