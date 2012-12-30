@@ -1,6 +1,6 @@
 package mmu
 
-import "github.com/djhworld/gomeboycolor/types"
+import "types"
 
 type Peripheral interface {
 	Read(Address types.Word) byte

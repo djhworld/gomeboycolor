@@ -1,10 +1,10 @@
 package gpu
 
 import (
-	"types"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
 	"log"
+	"types"
 )
 
 const PREFIX = "GPU:"
@@ -88,7 +88,7 @@ func (g *GPU) Init(title string) error {
 		return err
 	}
 	glfw.SetWindowTitle(title)
-	
+
 	//resize function
 	onResize := func(w, h int) {
 		gl.MatrixMode(gl.PROJECTION)
@@ -102,7 +102,7 @@ func (g *GPU) Init(title string) error {
 	}
 
 	glfw.SetWindowSizeCallback(onResize)
-	glfw.SetWindowPos(1990, 400)
+	glfw.SetWindowPos(1000, 400)
 
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	return nil

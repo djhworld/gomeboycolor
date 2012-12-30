@@ -2,7 +2,7 @@ package cpu
 
 import "testing"
 import "github.com/stretchrcom/testify/assert"
-import "github.com/djhworld/gomeboycolor/types"
+import "types"
 
 const ZEROW types.Word = 0
 const ZEROB byte = 0

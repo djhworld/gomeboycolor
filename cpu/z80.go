@@ -3,49 +3,11 @@ package cpu
 import (
 	"errors"
 	"fmt"
-	"github.com/djhworld/gomeboycolor/mmu"
-	"github.com/djhworld/gomeboycolor/types"
-	"github.com/djhworld/gomeboycolor/utils"
 	"log"
+	"mmu"
+	"types"
+	"utils"
 )
-
-var instrTimings [16][16]int = [16][16]int{
-	[16]int{1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1},
-	[16]int{1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1},
-	[16]int{0, 3, 2, 2, 1, 1, 2, 1, 0, 2, 2, 2, 1, 1, 2, 1},
-	[16]int{0, 3, 2, 2, 3, 3, 3, 1, 0, 2, 2, 2, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-	[16]int{0, 3, 0, 4, 0, 4, 2, 4, 0, 4, 0, 4, 0, 6, 2, 4},
-	[16]int{0, 3, 0, -1, 0, 4, 2, 4, 0, 4, 0, -1, 0, -1, 2, 4},
-	[16]int{3, 3, 2, -1, -1, 4, 2, 4, 4, 1, 4, -1, -1, -1, 2, 4},
-	[16]int{3, 3, 2, 1, -1, 4, 2, 4, 3, 2, 4, 1, -1, -1, 2, 4},
-}
-
-var extendedInstrTimings [16][16]int = [16][16]int{
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-	[16]int{2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2},
-}
 
 const PREFIX = "CPU:"
 
@@ -96,10 +58,11 @@ type Z80 struct {
 	R                  Registers
 	Running            bool
 	InterruptsEnabled  bool
-	CurrentInstruction byte
+	CurrentInstruction Instruction
 	MachineCycles      Clock
 	LastInstrCycle     Clock
 	mmu                mmu.MemoryMappedUnit
+	PCJumped           bool
 }
 
 func NewCPU() *Z80 {
@@ -131,14 +94,15 @@ func (cpu *Z80) Reset() {
 	cpu.R.F = 0
 	cpu.R.H = 0
 	cpu.R.L = 0
-	cpu.CurrentInstruction = 0
+	cpu.CurrentInstruction, _ = cpu.Decode(0x00)
 	cpu.InterruptsEnabled = true
 	cpu.Running = true
 	cpu.MachineCycles.Reset()
 	cpu.LastInstrCycle.Reset()
+	cpu.PCJumped = false
 }
 
-func (cpu *Z80) String() string {
+func (cpu *Z80) FlagsString() string {
 	var flags string = ""
 
 	if cpu.R.F != 0 {
@@ -160,16 +124,19 @@ func (cpu *Z80) String() string {
 	} else {
 		flags += "None Set"
 	}
+	return flags
+}
 
+func (cpu *Z80) String() string {
 	return fmt.Sprintf("\nZ80 CPU\n") +
 		fmt.Sprintf("--------------------------------------------------------\n") +
-		fmt.Sprintf("\tOpcode		= %X\n", cpu.CurrentInstruction) +
+		fmt.Sprintf("\tInstruction = %v\n", cpu.CurrentInstruction) +
 		fmt.Sprintf("\tPC		= %X\n", cpu.PC) +
 		fmt.Sprintf("\tSP		= %X\n", cpu.SP) +
 		fmt.Sprintf("\tINTS?		= %v\n", cpu.InterruptsEnabled) +
 		fmt.Sprintf("\tLast Cycle	= %v\n", cpu.LastInstrCycle.String()) +
 		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +
-		fmt.Sprintf("\tFlags		= %v\n", flags) +
+		fmt.Sprintf("\tFlags		= %v\n", cpu.FlagsString()) +
 		fmt.Sprintf("\n\tRegisters\n") +
 		fmt.Sprintf("\tA:%X\tB:%X\tC:%X\tD:%X\n\tE:%X\tH:%X\tL:%X", cpu.R.A, cpu.R.B, cpu.R.C, cpu.R.D, cpu.R.E, cpu.R.H, cpu.R.L) +
 		fmt.Sprintf("\n--------------------------------------------------------\n\n")
@@ -229,8 +196,8 @@ func (cpu *Z80) IsFlagSet(flag int) bool {
 	return false
 }
 
-func (cpu *Z80) IncrementPC(by types.Word) {
-	cpu.PC += by
+func (cpu *Z80) IncrementPC(by int) {
+	cpu.PC += types.Word(by)
 }
 
 func (cpu *Z80) DispatchCB(Opcode byte) {
@@ -787,6 +754,8 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.LDrn(&cpu.R.C)
 	case 0x0F: //RRCA
 		cpu.RRCA()
+	case 0x10: //STOP
+		cpu.Stop()
 	case 0x11: //LD DE, nn
 		cpu.LDn_nn(&cpu.R.D, &cpu.R.E)
 	case 0x12: //LD (DE), A
@@ -1193,7 +1162,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 		cpu.SubAC_n()
 	case 0xDF: //RST n
 		cpu.Rst(0x18)
-	case 0xE0: //LDH n, r
+	case 0xE0: //LDH n, A
 		cpu.LDHn_r(&cpu.R.A)
 	case 0xE1: //POP HL
 		cpu.Pop_nn(&cpu.R.H, &cpu.R.L)
@@ -1252,30 +1221,38 @@ func (cpu *Z80) Step() int {
 	}
 
 	var Opcode byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var ok bool = false
 
 	if Opcode == 0xCB {
-		Opcode = cpu.ReadByte(cpu.PC)
 		cpu.IncrementPC(1)
+		Opcode = cpu.ReadByte(cpu.PC)
+		cpu.CurrentInstruction, ok = cpu.DecodeCB(Opcode)
+		if !ok {
+			panic(fmt.Sprintf("No instruction found for opcode: %X", Opcode))
+		}
+		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
 		cpu.DispatchCB(Opcode)
-		cycles := utils.CalculateCycles(extendedInstrTimings, Opcode)
-		if cycles < 0 {
-			log.Fatalf(PREFIX + " Attempting to get cycles for unknown instruction")
-		} else {
-			cpu.LastInstrCycle.M += cycles
-		}
 	} else {
-		cpu.Dispatch(Opcode)
-		cycles := utils.CalculateCycles(instrTimings, Opcode)
-		if cycles < 0 {
-			log.Fatalf(PREFIX + " Attempting to get cycles for unknown instruction")
-		} else {
-			cpu.LastInstrCycle.M += cycles
+		cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
+		if !ok {
+			panic(fmt.Sprintf("No instruction found for opcode: %X", Opcode))
 		}
+		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
+		cpu.Dispatch(Opcode)
 	}
-	cpu.CurrentInstruction = Opcode
 
+	//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
+	//do any incrementing
+	if cpu.PCJumped {
+		cpu.PCJumped = false
+	} else {
+		cpu.IncrementPC(cpu.CurrentInstruction.OperandsSize + 1)
+	}
+
+	//calculate cycles
+	cpu.LastInstrCycle.M += cpu.CurrentInstruction.Cycles
 	cpu.MachineCycles.M += cpu.LastInstrCycle.M
+
 	t := cpu.LastInstrCycle.T()
 	cpu.LastInstrCycle.Reset()
 	return t
@@ -1335,38 +1312,50 @@ func (cpu *Z80) WriteWord(addr types.Word, value types.Word) {
 	cpu.mmu.WriteWord(addr, value)
 }
 
+func (cpu *Z80) Compile(instruction Instruction) Instruction {
+	switch instruction.OperandsSize {
+	case 1:
+		instruction.Operands[0] = cpu.mmu.ReadByte(cpu.PC + 1)
+	case 2:
+		instruction.Operands[0] = cpu.mmu.ReadByte(cpu.PC + 1)
+		instruction.Operands[1] = cpu.mmu.ReadByte(cpu.PC + 2)
+	}
+
+	return instruction
+}
+
+func (cpu *Z80) Decode(instruction byte) (Instruction, bool) {
+	ins, ok := Instructions[instruction]
+	return ins, ok
+}
+
+func (cpu *Z80) DecodeCB(instruction byte) (Instruction, bool) {
+	ins, ok := InstructionsCB[instruction]
+	return ins, ok
+}
+
 // INSTRUCTIONS START
 //-----------------------------------------------------------------------
 
 //LD r,n
 //Load value (n) from memory address in the PC into register (r) and increment PC by 1 
 func (cpu *Z80) LDrn(r *byte) {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
-
-	*r = value
-
-	//set clock values
+	*r = cpu.CurrentInstruction.Operands[0]
 }
 
 //LD r,r
 //Load value from register (r2) into register (r1)
 func (cpu *Z80) LDrr(r1 *byte, r2 *byte) {
 	*r1 = *r2
-
-	//set clock values
 }
 
 //LD r,(HL)
 //Load value from memory address located in register pair (HL) into register (r)
 func (cpu *Z80) LDr_hl(r *byte) {
-
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
 
 	*r = value
-
-	//set clock values
 }
 
 //LD (HL),r
@@ -1376,20 +1365,15 @@ func (cpu *Z80) LDhl_r(r *byte) {
 	var value byte = *r
 
 	cpu.WriteByte(HL, value)
-
-	//set clock values
 }
 
 //LD (BC),r
 //Load value from register (r) into memory address located at register pair (BC)
 func (cpu *Z80) LDbc_r(r *byte) {
-
 	var BC types.Word = types.Word(utils.JoinBytes(cpu.R.B, cpu.R.C))
 	var value byte = *r
 
 	cpu.WriteByte(BC, value)
-
-	//set clock values
 }
 
 //LD (DE),r
@@ -1400,32 +1384,23 @@ func (cpu *Z80) LDde_r(r *byte) {
 	var value byte = *r
 
 	cpu.WriteByte(DE, value)
-
-	//set clock values
 }
 
 //LD nn,r
 //Load value from register (r) and put it in memory address (nn) taken from the next 2 bytes of memory from the PC. Increment the PC by 2
 func (cpu *Z80) LDnn_r(r *byte) {
-	var ls byte = cpu.ReadByte(cpu.PC)
-	var hs byte = cpu.ReadByte(cpu.PC + 1)
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 	var resultAddr types.Word = types.Word(utils.JoinBytes(hs, ls))
-	cpu.IncrementPC(2)
-
 	cpu.WriteByte(resultAddr, *r)
-
 }
 
 //LD (HL),n
 //Load the value (n) from the memory address in the PC and put it in the memory address designated by register pair (HL)
 func (cpu *Z80) LDhl_n() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
-
+	var value byte = cpu.CurrentInstruction.Operands[0]
 	cpu.WriteByte(HL, value)
-
-	//set clock values
 }
 
 //LD r, (BC)
@@ -1455,15 +1430,9 @@ func (cpu *Z80) LDr_de(r *byte) {
 //LD r, nn
 //Load the value in memory address defined from the next two bytes relative to the PC and store it in register (r). Increment the PC by 2
 func (cpu *Z80) LDr_nn(r *byte) {
-
-	//read 2 bytes from PC
-	var nn types.Word = cpu.ReadWord(cpu.PC)
-	cpu.IncrementPC(2)
-
+	var nn types.Word = types.Word(utils.JoinBytes(cpu.CurrentInstruction.Operands[0], cpu.CurrentInstruction.Operands[1]))
 	var value byte = cpu.ReadByte(nn)
 	*r = value
-
-	//set clock values
 }
 
 //LD r,(C)
@@ -1553,42 +1522,34 @@ func (cpu *Z80) LDIhl_r(r *byte) {
 
 //LDH n, r
 func (cpu *Z80) LDHn_r(r *byte) {
-	var n byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var n byte = cpu.CurrentInstruction.Operands[0]
 	cpu.WriteByte(types.Word(0xFF00)+types.Word(n), *r)
 }
 
 //LDH r, n
 //Load value (n) in register (r) and store it in memory address FF00+PC. Increment PC by 1
 func (cpu *Z80) LDHr_n(r *byte) {
-	var n byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
-
+	var n byte = cpu.CurrentInstruction.Operands[0]
 	*r = cpu.ReadByte(types.Word(0xFF00) + types.Word(n))
-
 }
 
 //LD n, nn
 func (cpu *Z80) LDn_nn(r1, r2 *byte) {
-	var v1 byte = cpu.ReadByte(cpu.PC)
-	var v2 byte = cpu.ReadByte(cpu.PC + 1)
-	cpu.IncrementPC(2)
+	var v1 byte = cpu.CurrentInstruction.Operands[0]
+	var v2 byte = cpu.CurrentInstruction.Operands[1]
 
 	//LS nibble first
 	*r2 = v1
 	*r1 = v2
-
 }
 
 //LD SP, nn
 func (cpu *Z80) LDSP_nn() {
-	var v1 byte = cpu.ReadByte(cpu.PC)
-	var v2 byte = cpu.ReadByte(cpu.PC + 1)
-	cpu.IncrementPC(2)
+	var v1 byte = cpu.CurrentInstruction.Operands[0]
+	var v2 byte = cpu.CurrentInstruction.Operands[1]
 
 	var value types.Word = types.Word(utils.JoinBytes(v2, v1))
 	cpu.SP = value
-
 }
 
 //LD SP, rr
@@ -1599,8 +1560,7 @@ func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
 
 //LDHL SP, n 
 func (cpu *Z80) LDHLSP_n() {
-	var n types.Word = types.Word(cpu.ReadByte(cpu.PC))
-	cpu.IncrementPC(1)
+	var n types.Word = types.Word(cpu.CurrentInstruction.Operands[0])
 
 	var HL types.Word = cpu.SP + n
 
@@ -1623,17 +1583,12 @@ func (cpu *Z80) LDHLSP_n() {
 	} else {
 		cpu.ResetFlag(H)
 	}
-
 }
 
 //LDHL SP, n 
 func (cpu *Z80) LDnn_SP() {
-
-	var nn types.Word = cpu.ReadWord(cpu.PC)
-
+	var nn types.Word = types.Word(utils.JoinBytes(cpu.CurrentInstruction.Operands[0], cpu.CurrentInstruction.Operands[1]))
 	cpu.WriteWord(nn, cpu.SP)
-
-	cpu.IncrementPC(2)
 }
 
 //PUSH nn 
@@ -1723,8 +1678,7 @@ func (cpu *Z80) AddA_hl() {
 //ADD A,n
 //Add the value in memory addressed PC to register A. Increment the PC by 1
 func (cpu *Z80) AddA_n() {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	var oldA byte = cpu.R.A
 	cpu.R.A += value
@@ -1751,8 +1705,6 @@ func (cpu *Z80) AddA_n() {
 	} else {
 		cpu.ResetFlag(H)
 	}
-
-	//set clock values
 }
 
 //ADDC A,r
@@ -1837,8 +1789,7 @@ func (cpu *Z80) AddCA_n() {
 
 	var oldA byte = cpu.R.A
 	var carryFlag byte = 0
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	cpu.R.A += value
 
@@ -1943,8 +1894,7 @@ func (cpu *Z80) SubA_hl() {
 //SUB A,n
 func (cpu *Z80) SubA_n() {
 	var oldA byte = cpu.R.A
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	cpu.R.A -= value
 
@@ -2012,8 +1962,7 @@ func (cpu *Z80) AndA_hl() {
 
 //AND A, n
 func (cpu *Z80) AndA_n() {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	cpu.R.A = cpu.R.A & value
 
@@ -2066,8 +2015,7 @@ func (cpu *Z80) OrA_hl() {
 
 //OR A, n
 func (cpu *Z80) OrA_n() {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	cpu.R.A = cpu.R.A | value
 
@@ -2120,8 +2068,7 @@ func (cpu *Z80) XorA_hl() {
 
 //XOR A, n
 func (cpu *Z80) XorA_n() {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 
 	cpu.R.A = cpu.R.A ^ value
 
@@ -2186,8 +2133,7 @@ func (cpu *Z80) CPA_hl() {
 
 //CP A, n
 func (cpu *Z80) CPA_n() {
-	var value byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var value byte = cpu.CurrentInstruction.Operands[0]
 	//	var calculation byte = cpu.R.A - value
 
 	if cpu.R.A == value {
@@ -2344,8 +2290,7 @@ func (cpu *Z80) Addhl_sp() {
 
 //ADD SP,n
 func (cpu *Z80) Addsp_n() {
-	var n byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var n byte = cpu.CurrentInstruction.Operands[0]
 
 	//reset flags
 	cpu.ResetFlag(Z)
@@ -2613,33 +2558,31 @@ func (cpu *Z80) NOP() {
 //Halt CPU
 func (cpu *Z80) HALT() {
 	cpu.Running = false
+}
 
-	//set clock values
+//STOP
+func (cpu *Z80) Stop() {
+	//TODO: Unimplemented
 }
 
 //DI
 //Disable interrupts 
 func (cpu *Z80) DI() {
 	cpu.InterruptsEnabled = false
-
-	//set clock values
 }
 
 //EI
 //Enable interrupts 
 func (cpu *Z80) EI() {
 	cpu.InterruptsEnabled = true
-
-	//set clock values
 }
 
 //JP nn
 func (cpu *Z80) JP_nn() {
-	var ls byte = cpu.ReadByte(cpu.PC)
-	var hs byte = cpu.ReadByte(cpu.PC + 1)
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
-
-	//set clock values
+	cpu.PCJumped = true
 }
 
 //JP (HL)
@@ -2647,18 +2590,16 @@ func (cpu *Z80) JP_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var addr types.Word = cpu.ReadWord(HL)
 	cpu.PC = addr
-
-	//set clock values
+	cpu.PCJumped = true
 }
 
 //JP cc, nn
 func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
-	var ls byte = cpu.ReadByte(cpu.PC)
-	var hs byte = cpu.ReadByte(cpu.PC + 1)
-
-	cpu.IncrementPC(2)
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 
 	if cpu.IsFlagSet(flag) == jumpWhen {
+		cpu.PCJumped = true
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 		cpu.LastInstrCycle.M = 4
 	} else {
@@ -2668,27 +2609,30 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 
 //JR n
 func (cpu *Z80) JR_n() {
-	var n byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var n byte = cpu.CurrentInstruction.Operands[0]
+
+	cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize) + types.Word(1) //advance PC forward so we know how far to jump back
+
 	if n > 127 {
+		cpu.PCJumped = true
 		cpu.PC -= types.Word(-n)
 	} else {
+		cpu.PCJumped = true
 		cpu.PC += types.Word(n)
 	}
-
-	//set clock values
 }
 
 //JR cc, nn
 func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
-	var n byte = cpu.ReadByte(cpu.PC)
-	cpu.IncrementPC(1)
+	var n byte = cpu.CurrentInstruction.Operands[0]
 
-	//set clock to 12 cycles if jumped, 8 cycles if not
 	if cpu.IsFlagSet(flag) == jumpWhen {
+		cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize + 1) //advance PC forward so we know how far to jump back
 		if n > 127 {
+			cpu.PCJumped = true
 			cpu.PC -= types.Word(-n)
 		} else {
+			cpu.PCJumped = true
 			cpu.PC += types.Word(n)
 		}
 		cpu.LastInstrCycle.M = 3
@@ -2716,8 +2660,6 @@ func (cpu *Z80) Setb_hl(b byte) {
 	HLValue = HLValue ^ b
 
 	cpu.WriteByte(HL, HLValue)
-
-	//set clock values
 }
 
 // RES b, r
@@ -2747,48 +2689,48 @@ func (cpu *Z80) Resb_hl(b byte) {
 // CALL nn
 //Push address of next instruction onto stack and then jump to address nn
 func (cpu *Z80) Call_nn() {
-	var ls byte = cpu.ReadByte(cpu.PC)
-	var hs byte = cpu.ReadByte(cpu.PC + 1)
-	var nextInstr types.Word = cpu.PC + 2
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
+	var nextInstr types.Word = cpu.PC + 3
 	cpu.pushWordToStack(nextInstr)
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
-
-	//set clock values
+	cpu.PCJumped = true
 }
 
 // CALL cc,nn
 func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
-	var ls byte = cpu.ReadByte(cpu.PC)
-	var hs byte = cpu.ReadByte(cpu.PC + 1)
-	var nextInstr types.Word = cpu.PC + 2
-	cpu.IncrementPC(2)
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
+	var nextInstr types.Word = cpu.PC + 3
 
 	if cpu.IsFlagSet(flag) == callWhen {
 		cpu.pushWordToStack(nextInstr)
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
+		cpu.PCJumped = true
 		cpu.LastInstrCycle.M = 6
 	} else {
 		cpu.LastInstrCycle.M = 3
 	}
-
-	//set clock values
 }
 
 // RST n
 func (cpu *Z80) Rst(n byte) {
 	cpu.pushWordToStack(cpu.PC)
 	cpu.PC = 0x0000 + types.Word(n)
+	cpu.PCJumped = true
 }
 
 // RET
 func (cpu *Z80) Ret() {
 	cpu.PC = cpu.popWordFromStack()
+	cpu.PCJumped = true
 }
 
 // RET cc
 func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
+		cpu.PCJumped = true
 		cpu.LastInstrCycle.M = 5
 	} else {
 		cpu.LastInstrCycle.M = 2
@@ -2798,6 +2740,8 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 // RETI 
 func (cpu *Z80) Ret_i() {
 	cpu.PC = cpu.popWordFromStack()
+	cpu.PCJumped = true
+
 	cpu.InterruptsEnabled = true
 }
 

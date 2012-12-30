@@ -2,9 +2,9 @@ package mmu
 
 import (
 	"errors"
-	"github.com/djhworld/gomeboycolor/types"
-	"github.com/djhworld/gomeboycolor/utils"
 	"log"
+	"types"
+	"utils"
 )
 
 /*
@@ -96,7 +96,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
 	default:
-		log.Printf("Address %X is unwritable/unknown", addr)
+		log.Printf(PREFIX+" Address %X is unwritable/unknown", addr)
 		panic("Address is unwritable/unknown")
 	}
 }
