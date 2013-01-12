@@ -34,6 +34,10 @@ type Registers struct {
 	F byte // Flags Register
 }
 
+func (r Registers) String() string {
+	return fmt.Sprintf("[A: %X] [B: %X] [C: %X] [D: %X] [E: %X] [H: %X] [L: %X] [F: %X]", r.A, r.B, r.C, r.D, r.E, r.H, r.L, r.F)
+}
+
 //See ZILOG z80 cpu manual p.80  (http://www.zilog.com/docs/z80/um0080.pdf)
 type Clock struct {
 	M int
