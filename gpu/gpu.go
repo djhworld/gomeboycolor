@@ -91,11 +91,11 @@ func (g *GPU) Init(title string) error {
 
 	//resize function
 	onResize := func(w, h int) {
+		gl.Viewport(0, 0, w, h)
 		gl.MatrixMode(gl.PROJECTION)
 		gl.LoadIdentity()
-		gl.Viewport(0, 0, w, h)
 		gl.Ortho(0, float64(w), float64(h), 0, -1, 1)
-		gl.ClearColor(0, 0, 0, 0)
+		gl.ClearColor(0.255, 0.255, 0.255, 0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		gl.MatrixMode(gl.MODELVIEW)
 		gl.LoadIdentity()
@@ -103,6 +103,11 @@ func (g *GPU) Init(title string) error {
 
 	glfw.SetWindowSizeCallback(onResize)
 	glfw.SetWindowPos(1000, 400)
+	glfw.SetWindowCloseCallback(func() int {
+		log.Println("Window closed ;)")
+		glfw.CloseWindow()
+		return 0
+	})
 
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	return nil
@@ -229,7 +234,8 @@ func (g *GPU) Read(addr types.Word) byte {
 		case BGP:
 			return g.bgp
 		default:
-			log.Fatalf(PREFIX+" register address %X unknown", addr)
+			log.Printf(PREFIX+" WARNING: register address %X unknown", addr)
+			return 0x00
 		}
 	}
 	return 0x00

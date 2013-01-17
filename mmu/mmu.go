@@ -1,27 +1,16 @@
 package mmu
 
 import (
+	"cartridge"
 	"errors"
 	"log"
 	"types"
 	"utils"
 )
 
-/*
-This represents the memory mapped unit for our emulator. 
-The regions of memory are arrays of fixed size that are selected
-based on the memory address given
-*/
-
-var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
-var ROMWillOverextendAddressableRegion = errors.New("ROM will overextend addressable region based on start address and ROM size")
-
 const PREFIX = "MMU:"
 
-const (
-	BOOT    = 0x00
-	CARTROM = 0x01
-)
+var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
 
 //Peripherals
 const (
@@ -36,17 +25,18 @@ type MemoryMappedUnit interface {
 	ReadByte(address types.Word) byte
 	ReadWord(address types.Word) types.Word
 	SetInBootMode(mode bool)
-	LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error)
+	LoadBIOS(data []byte) (bool, error)
+	LoadCartridge(cart *cartridge.Cartridge)
 	Reset()
 }
 
 type GbcMMU struct {
-	boot              [256]byte   //0x0000 -> 0x00FF
-	cartrom           [32768]byte // 0x0000 -> 0x7FFF
-	externalRAM       [8192]byte  //0xA000 -> 0xBFFF
-	workingRAM        [8192]byte  //0xC000 -> 0xDFFF
-	workingRAMShadow  [7680]byte  //0xE000 -> 0xFDFF
-	zeroPageRAM       [128]byte   //0xFF80 - 0xFFFF
+	bios              [256]byte //0x0000 -> 0x00FF
+	cartridge         *cartridge.Cartridge
+	externalRAM       [8192]byte //0xA000 -> 0xBFFF
+	workingRAM        [8192]byte //0xC000 -> 0xDFFF
+	workingRAMShadow  [7680]byte //0xE000 -> 0xFDFF
+	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFF
 	inBootMode        bool
 	peripherals       map[byte]Peripheral
 	dmgStatusRegister byte
@@ -63,8 +53,11 @@ func (mmu *GbcMMU) Reset() {
 	mmu.inBootMode = true
 }
 
+//TODO: THIS NEEDS REVIEWING AS IT IS WRONG.
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	switch {
+	case addr >= 0x2000 && addr <= 0x7FFF:
+		log.Println("Hmmm")
 	//Graphics VRAM
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		mmu.peripherals[GPU].Write(addr, value)
@@ -78,19 +71,20 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		if addr >= 0xC000 && addr <= 0xDDFF {
 			mmu.workingRAMShadow[addr&(0xDDFF-0xC000)] = value
 		}
-	//Graphics sprite information
-	case addr >= 0xFE00 && addr <= 0xFE9F:
-		mmu.peripherals[GPU].Write(addr, value)
-	//Mem. mapped IO
-	case addr >= 0xFF00 && addr <= 0xFF7F:
-		//DMG status register (i.e. in boot mode)
-		if addr == 0xFF50 {
-			mmu.dmgStatusRegister = value
-		}
-
-		//Graphics registers
-		if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
+	case addr >= 0xE000 && addr <= 0xFF7F:
+		//Graphics sprite information
+		if addr >= 0xFE00 && addr <= 0xFE9F {
 			mmu.peripherals[GPU].Write(addr, value)
+		} else if addr >= 0xFEA0 && addr <= 0xFF7F {
+			//DMG status register (i.e. in boot mode)
+			if addr == 0xFF50 {
+				mmu.dmgStatusRegister = value
+			}
+
+			//Graphics registers
+			if a := addr & 0x00F0; a >= 0x40 && a <= 0x70 {
+				mmu.peripherals[GPU].Write(addr, value)
+			}
 		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
@@ -103,26 +97,34 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 
 func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	switch {
-	//boot area/ROM after boot
-	case addr >= 0x0000 && addr <= 0x00FF:
-		if mmu.inBootMode {
-			return mmu.boot[addr]
-		} else {
-			return mmu.cartrom[addr]
-		}
 	//ROM Bank 0
-	case addr >= 0x0100 && addr <= 0x3FFF:
-		return mmu.cartrom[addr]
-	//ROM Bank 1
+	case addr >= 0x0000 && addr <= 0x3FFF:
+		//boot area/ROM after boot
+		if mmu.inBootMode && addr <= 0x00FF {
+			return mmu.bios[addr]
+		}
+
+		return mmu.cartridge.ROM[addr]
+	//ROM Bank 1 (switchable)
 	case addr >= 0x4000 && addr <= 0x7FFF:
-		return mmu.cartrom[addr]
+		switch mmu.cartridge.Type.ID {
+		case cartridge.MBC0:
+			return mmu.cartridge.ROM[addr]
+		default:
+			log.Fatalf("Read is not set up for address 0x%X for cartridge type %s", addr, mmu.cartridge.Type.Description)
+		}
 	//Graphics VRAM
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		return mmu.peripherals[GPU].Read(addr)
-	//Cartridge External RAM
+	//RAM Bank (switchable)
 	case addr >= 0xA000 && addr <= 0xBFFF:
-		return mmu.externalRAM[addr&(0xBFFF-0xA000)]
-	//GB Working RAM 
+		switch mmu.cartridge.Type.ID {
+		case cartridge.MBC0:
+			return mmu.externalRAM[addr&(0xBFFF-0xA000)]
+		default:
+			log.Fatalf("Read is not set up for address 0x%X for cartridge type %s", addr, mmu.cartridge.Type.Description)
+		}
+	//GB Working RAM
 	case addr >= 0xC000 && addr <= 0xDFFF:
 		return mmu.workingRAM[addr&(0xDFFF-0xC000)]
 	//GB Working RAM shadow
@@ -132,7 +134,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	case addr >= 0xFE00 && addr <= 0xFE9F:
 		return mmu.peripherals[GPU].Read(addr)
 	//Mem. mapped IO
-	case addr >= 0xFF00 && addr <= 0xFF7F:
+	case addr >= 0xFF00 && addr <= 0xFF4C:
 		if addr == 0xFF50 {
 			return mmu.dmgStatusRegister
 		}
@@ -142,11 +144,13 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
+		if addr == 0xFFFF {
+			log.Println(PREFIX, "WARNING - Attempting to read from interrupt register - this is unimplemented!!")
+		}
 		return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
-
 	}
 
-	return 0
+	return 0x00
 }
 
 func (mmu *GbcMMU) ReadWord(addr types.Word) types.Word {
@@ -170,40 +174,19 @@ func (mmu *GbcMMU) LinkGPU(p Peripheral) {
 	mmu.peripherals[GPU] = p
 }
 
-func (mmu *GbcMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error) {
-	doBoundaryChecks := func(mem int) error {
-		if len(data) > mem {
-			return ROMIsBiggerThanRegion
-		}
-
-		if startAddr+types.Word(len(data)) > types.Word(mem) {
-			return ROMWillOverextendAddressableRegion
-		}
-
-		return nil
+func (mmu *GbcMMU) LoadBIOS(data []byte) (bool, error) {
+	log.Println(PREFIX+" Loading ", len(data), "byte BIOS ROM into MMU")
+	if len(data) > len(mmu.bios) {
+		return false, ROMIsBiggerThanRegion
 	}
 
-	switch rt {
-	case BOOT:
-		if err := doBoundaryChecks(len(mmu.boot)); err != nil {
-			return false, err
-		}
-
-		log.Printf(PREFIX+" Writing data to boot rom sector (start address: 0x%X)", startAddr)
-		for i, b := range data {
-			mmu.boot[startAddr+types.Word(i)] = b
-		}
-
-	case CARTROM:
-		if err := doBoundaryChecks(len(mmu.cartrom)); err != nil {
-			return false, err
-		}
-
-		log.Printf(PREFIX+" Writing data to cartridge rom sector (start address: 0x%X)", startAddr)
-		for i, b := range data {
-			mmu.cartrom[startAddr+types.Word(i)] = b
-		}
+	for i, b := range data {
+		mmu.bios[i] = b
 	}
-
 	return true, nil
+}
+
+func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
+	mmu.cartridge = cart
+	log.Printf("%s Loaded cartridge: -\n%s\n", PREFIX, cart)
 }

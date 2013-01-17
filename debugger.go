@@ -15,7 +15,7 @@ import (
 )
 
 type DebugRule struct {
-	description string
+	description  string
 	ruleFunction func(g *GameboyColor) bool
 }
 

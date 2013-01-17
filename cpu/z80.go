@@ -1232,14 +1232,14 @@ func (cpu *Z80) Step() int {
 		Opcode = cpu.ReadByte(cpu.PC)
 		cpu.CurrentInstruction, ok = cpu.DecodeCB(Opcode)
 		if !ok {
-			panic(fmt.Sprintf("No instruction found for opcode: %X", Opcode))
+			panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
 		}
 		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
 		cpu.DispatchCB(Opcode)
 	} else {
 		cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
 		if !ok {
-			panic(fmt.Sprintf("No instruction found for opcode: %X", Opcode))
+			panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
 		}
 		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
 		cpu.Dispatch(Opcode)
