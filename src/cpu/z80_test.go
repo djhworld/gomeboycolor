@@ -3,6 +3,7 @@ package cpu
 import "testing"
 import "github.com/stretchrcom/testify/assert"
 import "types"
+import "cartridge"
 
 const ZEROW types.Word = 0
 const ZEROB byte = 0
@@ -178,24 +179,14 @@ func TestAddA_hlForCarryFlag(t *testing.T) {
 func TestAddA_n(t *testing.T) {
 	reset()
 
-	cpu.R.A = 0x09
+	instr := Instructions[0xC6]
 	cpu.PC = 0x000E
-	cpu.WriteByte(0x000E, 0x01)
+	cpu.WriteByte(cpu.PC+1, 0x01)
+	cpu.CurrentInstruction = cpu.Compile(instr)
+	cpu.R.A = 0x09
 
 	cpu.AddA_n()
 	assert.Equal(t, cpu.R.A, byte(0x0A))
-}
-
-func TestAddA_nCheckPC(t *testing.T) {
-	reset()
-
-	cpu.R.A = 0x09
-	cpu.PC = 0x000E
-	cpu.WriteByte(0x000E, 0x01)
-
-	cpu.AddA_n()
-	assert.Equal(t, cpu.PC, types.Word(0x000F))
-
 }
 
 func TestAddA_nForZeroFlag(t *testing.T) {
@@ -2986,13 +2977,16 @@ func (m *MockMMU) ReadWord(address types.Word) types.Word {
 	return (types.Word(a) << 8) ^ types.Word(b)
 }
 
-func (m *MockMMU) LoadROM(startAddr types.Word, rt types.ROMType, data []byte) (bool, error) {
-	return true, nil
-}
-
 func (m *MockMMU) SetInBootMode(mode bool) {
 }
 
 func (m *MockMMU) Reset() {
 	m.memory = make(map[types.Word]byte)
+}
+
+func (m *MockMMU) LoadBIOS(data []byte) (bool, error) {
+	return true, nil
+}
+
+func (m *MockMMU) LoadCartridge(cart *cartridge.Cartridge) {
 }

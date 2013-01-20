@@ -135,8 +135,8 @@ func (cpu *Z80) String() string {
 	return fmt.Sprintf("\nZ80 CPU\n") +
 		fmt.Sprintf("--------------------------------------------------------\n") +
 		fmt.Sprintf("\tInstruction = %v\n", cpu.CurrentInstruction) +
-		fmt.Sprintf("\tPC		= %X\n", cpu.PC) +
-		fmt.Sprintf("\tSP		= %X\n", cpu.SP) +
+		fmt.Sprintf("\tPC		= %s\n", cpu.PC) +
+		fmt.Sprintf("\tSP		= %s\n", cpu.SP) +
 		fmt.Sprintf("\tINTS?		= %v\n", cpu.InterruptsEnabled) +
 		fmt.Sprintf("\tLast Cycle	= %v\n", cpu.LastInstrCycle.String()) +
 		fmt.Sprintf("\tMachine Cycles	= %v\n", cpu.MachineCycles.String()) +

@@ -17,6 +17,8 @@ var debug *bool = flag.Bool("debug", false, "Enter debug mode")
 var pauseWhen *DebugRuleEngine
 
 const FRAME_CYCLES = 70224
+const TITLE string = "gomeboycolor"
+const VERSION float32 = 0.1
 
 //A type
 type GameboyColor struct {
@@ -37,7 +39,11 @@ func NewGBC() *GameboyColor {
 	gbc.gpu = gpu.NewGPU()
 	gbc.cpu = cpu.NewCPU()
 	gbc.cpu.LinkMMU(gbc.mmu)
-	gbc.mmu.LinkGPU(gbc.gpu)
+
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF49)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
 
 	return gbc
 }
@@ -74,13 +80,13 @@ func (gbc *GameboyColor) Step() {
 			gbc.mmu.SetInBootMode(false)
 			gbc.inBootMode = false
 			gbc.cpu.PC = 0x0100
-			log.Println("Finished booting")
+			log.Println("Finished GB boot program, launching game...")
 		}
 	}
 }
 
 func (gbc *GameboyColor) Run() {
-	log.Println("Starting emulator...")
+	log.Println("Starting emulator")
 	for {
 		gbc.DoFrame()
 		gbc.frameCount++
@@ -89,6 +95,8 @@ func (gbc *GameboyColor) Run() {
 }
 
 func main() {
+	log.Println(TITLE, VERSION)
+	log.Println(strings.Repeat("*", 80))
 	pauseWhen = NewDebugRuleEngine()
 	flag.Var(pauseWhen, "pauseWhen", "Desc")
 	flag.Parse()
@@ -100,7 +108,7 @@ func main() {
 
 	var gbc *GameboyColor = NewGBC()
 
-	err := gbc.gpu.Init("gomeboycolor")
+	err := gbc.gpu.Init(TITLE)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -129,22 +137,19 @@ func main() {
 	gbc.debugOptions.Init()
 
 	if *debug {
-		log.Print("Starting gameboy in debug mode....")
+		log.Println("Emulator will start in debug mode")
 		log.Printf("---> Will break execution when the following rules are satisfied:- %s", pauseWhen)
 		gbc.debugOptions.debuggerOn = true
 		gbc.debugOptions.ruleEngine = pauseWhen
 	}
 
 	gbc.inBootMode = true
+	log.Println("Completed setup")
+	log.Println(strings.Repeat("*", 80))
 	gbc.Run()
 }
 
 func (gbc *GameboyColor) Pause() {
-	help := func() {
-		fmt.Println("Options are: -")
-
-	}
-
 	b := bufio.NewWriter(os.Stdout)
 	r := bufio.NewReader(os.Stdin)
 
@@ -168,9 +173,9 @@ func (gbc *GameboyColor) Pause() {
 		//dispatch
 		switch command {
 		case "?":
-			help()
+			debugHelp()
 		case "help":
-			help()
+			debugHelp()
 		default:
 			if v, ok := gbc.debugOptions.debugFuncMap[command]; ok {
 				v(gbc, instructions[1:]...)

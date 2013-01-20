@@ -7,7 +7,8 @@ import (
 	"types"
 )
 
-const PREFIX = "GPU:"
+const NAME = "GPU"
+const PREFIX = NAME + ":"
 
 const DISPLAY_WIDTH int = 160
 const DISPLAY_HEIGHT int = 144
@@ -41,6 +42,7 @@ type Tile [8][8]int
 type GPU struct {
 	screen [144][160]int
 	vram   [8192]byte
+	oamRam [160]byte
 
 	mode    byte
 	clock   int
@@ -72,6 +74,10 @@ func NewGPU() *GPU {
 	var g *GPU = new(GPU)
 	g.Reset()
 	return g
+}
+
+func (g *GPU) Name() string {
+	return NAME
 }
 
 func (g *GPU) Init(title string) error {
@@ -163,6 +169,8 @@ func (g *GPU) Write(addr types.Word, value byte) {
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		g.vram[addr&0x1FFF] = value
 		g.UpdateTile(addr, value)
+	case addr >= 0xFE00 && addr <= 0xFE9F:
+		g.oamRam[addr&0x009F] = value
 	default:
 		switch addr {
 		case LCDC:
@@ -217,6 +225,8 @@ func (g *GPU) Read(addr types.Word) byte {
 	switch {
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		return g.vram[addr&0x1FFF]
+	case addr >= 0xFE00 && addr <= 0xFE9F:
+		return g.oamRam[addr&0x009F]
 	default:
 		switch addr {
 		case LCDC:

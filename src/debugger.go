@@ -76,6 +76,20 @@ type DebugOptions struct {
 	debugFuncMap map[string]DebugCommandHandler
 }
 
+func debugHelp() {
+	fmt.Println("Commands are: -")
+	fmt.Println("    - c (continue)")
+	fmt.Println("    - s (step over)")
+	fmt.Println("    - dump")
+	fmt.Println("        + cpu (dump cpu state)")
+	fmt.Println("            + registers (dump registers)")
+	fmt.Println("            + flags (dump flags)")
+	fmt.Println("        + mmu (dump memory)")
+	fmt.Println("            + peripheral-map (dump memory addresses peripherals are interested in)")
+	fmt.Println("    - exit (quit application)")
+	fmt.Println("    - disconnect (stop debugging application and continue execution of application)")
+}
+
 func (g *DebugOptions) Init() {
 	g.debuggerOn = false
 	g.debugFuncMap = make(map[string]DebugCommandHandler)
@@ -98,12 +112,8 @@ func (g *DebugOptions) AddDebugFunc(command string, f DebugCommandHandler) {
 }
 
 func Dump(gbc *GameboyColor, remaining ...string) {
-	help := func() {
-		fmt.Println("Options are: -")
-	}
-
 	if len(remaining) == 0 {
-		help()
+		debugHelp()
 		return
 	}
 
@@ -111,42 +121,49 @@ func Dump(gbc *GameboyColor, remaining ...string) {
 	case "cpu":
 		remaining = remaining[1:]
 		DumpCPU(gbc, remaining...)
-	case "memory":
-		DumpMemory(gbc, remaining...)
+	case "mmu":
+		remaining = remaining[1:]
+		DumpMMU(gbc, remaining...)
 	default:
-		help()
+		debugHelp()
 	}
 }
 
 func DumpCPU(gbc *GameboyColor, remaining ...string) {
-	help := func() {
-		fmt.Println("Options are: -")
-	}
-
 	if len(remaining) == 0 {
-		fmt.Println(gbc.cpu)
+		debugHelp()
 		return
 	}
 
 	switch remaining[0] {
+	case "state":
+		fmt.Println(gbc.cpu)
 	case "registers":
 		fmt.Println(gbc.cpu.R)
 	case "flags":
 		fmt.Println(gbc.cpu.FlagsString())
 	default:
-		help()
+		debugHelp()
+	}
+}
+
+func DumpMMU(gbc *GameboyColor, remaining ...string) {
+	if len(remaining) == 0 {
+		debugHelp()
+		return
+	}
+
+	switch remaining[0] {
+	case "range":
+		DumpMemory(gbc)
+	case "peripheral-map":
+		gbc.mmu.PrintPeripheralMap()
+	default:
+		debugHelp()
 	}
 }
 
 func DumpMemory(gbc *GameboyColor, remaining ...string) {
-	help := func() {
-		fmt.Println("Options are: -")
-	}
-
-	if len(remaining) > 0 && (remaining[0] == "?" || remaining[0] == "help") {
-		help()
-	}
-
 	b := bufio.NewWriter(os.Stdout)
 	r := bufio.NewReader(os.Stdin)
 
@@ -184,22 +201,31 @@ func DumpMemory(gbc *GameboyColor, remaining ...string) {
 		return
 	}
 
-	for i := start; i <= end; i++ {
-		if i%8 == 0 {
-			fmt.Fprintln(b)
-			b.Flush()
-		}
-
-		fmt.Fprintf(b, "0x%X - [0x%X] ", i, gbc.mmu.ReadByte(i))
+	printMemory := func(addr types.Word) {
+		fmt.Fprintf(b, "[%s] -> 0x%X ", addr, gbc.mmu.ReadByte(addr))
 		b.Flush()
 	}
+
+	if start == end {
+		printMemory(start)
+	} else {
+		for i := start; i < end; i++ {
+			if i%8 == 0 {
+				fmt.Fprintln(b)
+				b.Flush()
+			}
+			printMemory(i)
+		}
+		printMemory(end)
+	}
+
 	fmt.Fprintln(b)
 	b.Flush()
 }
 
 func ToMemoryAddress(s string) (types.Word, error) {
 	if len(s) > 4 {
-		return 0x0, errors.New("Please enter an address between 0 and FFFF")
+		return 0x0, errors.New("Please enter an address between 0000 and FFFF")
 	}
 
 	result, err := strconv.ParseInt(s, 16, 64)
@@ -306,6 +332,10 @@ func (r *Rule) Parse() (DebugRule, error) {
 		case "sp": //Stack pointer
 			debugRuleFunc.ruleFunction = func(g *GameboyColor) bool {
 				return utils.CompareWords(uint16(g.cpu.SP), uint16(value), operator)
+			}
+		case "instruction":
+			debugRuleFunc.ruleFunction = func(g *GameboyColor) bool {
+				return utils.CompareBytes(g.cpu.CurrentInstruction.Opcode, byte(value), operator)
 			}
 		default:
 			return debugRuleFunc, errors.New("Unknown cpu component: '" + sub + "'")
