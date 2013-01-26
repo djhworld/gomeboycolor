@@ -1434,7 +1434,10 @@ func (cpu *Z80) LDr_de(r *byte) {
 //LD r, nn
 //Load the value in memory address defined from the next two bytes relative to the PC and store it in register (r). Increment the PC by 2
 func (cpu *Z80) LDr_nn(r *byte) {
-	var nn types.Word = types.Word(utils.JoinBytes(cpu.CurrentInstruction.Operands[0], cpu.CurrentInstruction.Operands[1]))
+	var hs byte = cpu.CurrentInstruction.Operands[1]
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+
+	var nn types.Word = types.Word(utils.JoinBytes(hs, ls))
 	var value byte = cpu.ReadByte(nn)
 	*r = value
 }
@@ -1539,20 +1542,20 @@ func (cpu *Z80) LDHr_n(r *byte) {
 
 //LD n, nn
 func (cpu *Z80) LDn_nn(r1, r2 *byte) {
-	var v1 byte = cpu.CurrentInstruction.Operands[0]
-	var v2 byte = cpu.CurrentInstruction.Operands[1]
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 
 	//LS nibble first
-	*r2 = v1
-	*r1 = v2
+	*r1 = hs
+	*r2 = ls
 }
 
 //LD SP, nn
 func (cpu *Z80) LDSP_nn() {
-	var v1 byte = cpu.CurrentInstruction.Operands[0]
-	var v2 byte = cpu.CurrentInstruction.Operands[1]
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 
-	var value types.Word = types.Word(utils.JoinBytes(v2, v1))
+	var value types.Word = types.Word(utils.JoinBytes(hs, ls))
 	cpu.SP = value
 }
 
@@ -1566,7 +1569,12 @@ func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
 func (cpu *Z80) LDHLSP_n() {
 	var n types.Word = types.Word(cpu.CurrentInstruction.Operands[0])
 
-	var HL types.Word = cpu.SP + n
+	var HL types.Word
+	if n > 127 {
+		HL = cpu.SP - types.Word(-n)
+	} else {
+		HL = cpu.SP + types.Word(n)
+	}
 
 	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
 
@@ -1995,7 +2003,6 @@ func (cpu *Z80) OrA_r(r *byte) {
 	} else {
 		cpu.ResetFlag(Z)
 	}
-
 }
 
 //OR A, (HL)
@@ -2289,7 +2296,6 @@ func (cpu *Z80) Addhl_sp() {
 	}
 
 	//TODO Half Carry flag
-
 }
 
 //ADD SP,n
@@ -2301,7 +2307,13 @@ func (cpu *Z80) Addsp_n() {
 	cpu.ResetFlag(N)
 
 	var oldSP types.Word = cpu.SP
-	cpu.SP += types.Word(n)
+
+	// immediate value is signed
+	if n > 127 {
+		cpu.SP = cpu.SP - types.Word(-n)
+	} else {
+		cpu.SP += types.Word(n)
+	}
 
 	//check carry flag
 	if cpu.SP < oldSP {
@@ -2309,10 +2321,7 @@ func (cpu *Z80) Addsp_n() {
 	} else {
 		cpu.ResetFlag(C)
 	}
-
 	//TODO Half carry flag
-
-	//set clock values
 }
 
 //INC rr
@@ -2347,7 +2356,6 @@ func (cpu *Z80) Daa() {
 
 //CPL
 func (cpu *Z80) CPL() {
-
 	cpu.R.A ^= 0xFF
 	cpu.SetFlag(N)
 	cpu.SetFlag(H)

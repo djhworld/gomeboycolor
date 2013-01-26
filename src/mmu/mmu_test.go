@@ -283,8 +283,8 @@ func TestWriteByteToInternalRAMAndRAMIsShadowed(t *testing.T) {
 	}
 
 	for i := 0xE000; i <= 0xFDFF; i++ {
-		ramAddr := i & (0xDFFF-0xC000)
-		ramShadowAddr := i & (0xFDFF-0xE000)
+		ramAddr := i & (0xDFFF - 0xC000)
+		ramShadowAddr := i & (0xFDFF - 0xE000)
 		assert.Equal(t, mmu.internalRAM[ramAddr], mmu.internalRAMShadow[ramShadowAddr])
 	}
 }

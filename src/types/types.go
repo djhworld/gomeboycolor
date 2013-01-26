@@ -4,6 +4,7 @@ import "fmt"
 
 type Register byte
 type Word uint16
+type Words []Word
 
 func (w Word) String() string {
 	var zeroes string
@@ -17,8 +18,6 @@ func (w Word) String() string {
 	}
 	return fmt.Sprintf("0x%s%X", zeroes, uint16(w))
 }
-
-type Words []Word
 
 func (w Words) Len() int {
 	return len(w)

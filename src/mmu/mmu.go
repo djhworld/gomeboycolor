@@ -3,11 +3,11 @@ package mmu
 import (
 	"cartridge"
 	"errors"
+	"fmt"
 	"log"
+	"sort"
 	"types"
 	"utils"
-	"sort"
-	"fmt"
 )
 
 const PREFIX = "MMU"
@@ -87,7 +87,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
 	default:
-		log.Printf("%s: WARNING - Attempting to write to address %s, this is invalid/unimplemented", PREFIX, addr)
+		log.Printf("%s: WARNING - Attempting to write 0x%X to address %s, this is invalid/unimplemented", PREFIX, value, addr)
 	}
 }
 
@@ -163,9 +163,14 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 }
 
 func (mmu *GbcMMU) ConnectPeripheral(p Peripheral, startAddr, endAddr types.Word) {
-	log.Printf("%s: Connecting MMU to %s on address range %s to %s", PREFIX, p.Name(), startAddr, endAddr)
-	for addr := startAddr; addr <= endAddr; addr++ {
-		mmu.peripheralIOMap[addr] = p
+	if startAddr == endAddr {
+		log.Printf("%s: Connecting MMU to %s on address %s", PREFIX, p.Name(), startAddr)
+		mmu.peripheralIOMap[startAddr] = p
+	} else {
+		log.Printf("%s: Connecting MMU to %s on address range %s to %s", PREFIX, p.Name(), startAddr, endAddr)
+		for addr := startAddr; addr <= endAddr; addr++ {
+			mmu.peripheralIOMap[addr] = p
+		}
 	}
 }
 
@@ -181,7 +186,7 @@ func (mmu *GbcMMU) PrintPeripheralMap() {
 		peripheral := mmu.peripheralIOMap[addr]
 
 		fmt.Printf("[%s] -> %s   ", addr, peripheral.Name())
-		if i % 8 == 0 {
+		if i%8 == 0 {
 			fmt.Println()
 		}
 	}

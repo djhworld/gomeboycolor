@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"gpu"
+	"inputoutput"
 	"log"
 	"mmu"
 	"os"
@@ -25,6 +26,7 @@ type GameboyColor struct {
 	gpu          *gpu.GPU
 	cpu          *cpu.Z80
 	mmu          *mmu.GbcMMU
+	io           *inputoutput.IO
 	debugOptions *DebugOptions
 	cpuClockAcc  int
 	frameCount   int
@@ -36,14 +38,18 @@ func NewGBC() *GameboyColor {
 	gbc := new(GameboyColor)
 
 	gbc.mmu = mmu.NewGbcMMU()
-	gbc.gpu = gpu.NewGPU()
 	gbc.cpu = cpu.NewCPU()
 	gbc.cpu.LinkMMU(gbc.mmu)
+
+	gbc.io = inputoutput.NewIO(inputoutput.DefaultControlScheme)
+	gbc.gpu = gpu.NewGPU()
+	gbc.gpu.LinkScreen(gbc.io.Display)
 
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF49)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
+	gbc.mmu.ConnectPeripheral(gbc.io.KeyHandler, 0xFF00, 0xFF00)
 
 	return gbc
 }
@@ -98,24 +104,11 @@ func main() {
 	log.Println(TITLE, VERSION)
 	log.Println(strings.Repeat("*", 80))
 	pauseWhen = NewDebugRuleEngine()
-	flag.Var(pauseWhen, "pauseWhen", "Desc")
+	flag.Var(pauseWhen, "pauseWhen", "Defines the breakpoint rules for when the emulator should break execution")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
-		log.Fatalf("No ROM specified")
-		return
-	}
-
-	var gbc *GameboyColor = NewGBC()
-
-	err := gbc.gpu.Init(TITLE)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
-	b, er := gbc.mmu.LoadBIOS(BOOTROM)
-	if !b {
-		log.Println("Error loading bootrom:", er)
+		log.Fatalf("Please specify the location of a ROM to boot")
 		return
 	}
 
@@ -125,14 +118,20 @@ func main() {
 	}
 
 	cart, err := cartridge.NewCartridge(rom)
-
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	gbc.mmu.LoadCartridge(cart)
+	var gbc *GameboyColor = NewGBC()
+	b, er := gbc.mmu.LoadBIOS(BOOTROM)
+	if !b {
+		log.Println("Error loading bootrom:", er)
+		return
+	}
 
+	gbc.mmu.LoadCartridge(cart)
+	gbc.inBootMode = true
 	gbc.debugOptions = new(DebugOptions)
 	gbc.debugOptions.Init()
 
@@ -143,10 +142,20 @@ func main() {
 		gbc.debugOptions.ruleEngine = pauseWhen
 	}
 
-	gbc.inBootMode = true
+	screenInitErr := gbc.io.Init(TITLE, onClose)
+	if screenInitErr != nil {
+		log.Fatalf("%v", screenInitErr)
+	}
+
 	log.Println("Completed setup")
 	log.Println(strings.Repeat("*", 80))
+
 	gbc.Run()
+}
+
+func onClose() {
+	log.Println("Closing")
+	os.Exit(0)
 }
 
 func (gbc *GameboyColor) Pause() {
@@ -192,7 +201,14 @@ func RetrieveROM(filename string) ([]byte, error) {
 	}
 	defer file.Close()
 
-	bytes := make([]byte, 32768)
+	stats, statsErr := file.Stat()
+	if statsErr != nil {
+		return nil, statsErr
+	}
+
+	var size int64 = stats.Size()
+	bytes := make([]byte, size)
+
 	bufr := bufio.NewReader(file)
 	_, err = bufr.Read(bytes)
 

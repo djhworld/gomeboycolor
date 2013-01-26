@@ -1,8 +1,7 @@
 package gpu
 
 import (
-	"github.com/go-gl/gl"
-	"github.com/go-gl/glfw"
+	"inputoutput"
 	"log"
 	"types"
 )
@@ -40,9 +39,10 @@ type RawTile [16]byte
 type Tile [8][8]int
 
 type GPU struct {
-	screen [144][160]int
-	vram   [8192]byte
-	oamRam [160]byte
+	screenData [144][160]int
+	screen     inputoutput.Screen
+	vram       [8192]byte
+	oamRam     [160]byte
 
 	mode    byte
 	clock   int
@@ -76,52 +76,18 @@ func NewGPU() *GPU {
 	return g
 }
 
+func (g *GPU) LinkScreen(screen inputoutput.Screen) {
+	g.screen = screen
+	log.Println(PREFIX, "Linked screen to GPU")
+}
+
 func (g *GPU) Name() string {
 	return NAME
 }
 
-func (g *GPU) Init(title string) error {
-	log.Println(PREFIX, "Initialising display")
-	var err error
-
-	err = glfw.Init()
-	if err != nil {
-		return err
-	}
-
-	err = glfw.OpenWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0, 0, 0, 0, 0, 0, glfw.Windowed)
-	if err != nil {
-		return err
-	}
-	glfw.SetWindowTitle(title)
-
-	//resize function
-	onResize := func(w, h int) {
-		gl.Viewport(0, 0, w, h)
-		gl.MatrixMode(gl.PROJECTION)
-		gl.LoadIdentity()
-		gl.Ortho(0, float64(w), float64(h), 0, -1, 1)
-		gl.ClearColor(0.255, 0.255, 0.255, 0)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.MatrixMode(gl.MODELVIEW)
-		gl.LoadIdentity()
-	}
-
-	glfw.SetWindowSizeCallback(onResize)
-	glfw.SetWindowPos(1000, 400)
-	glfw.SetWindowCloseCallback(func() int {
-		log.Println("Window closed ;)")
-		glfw.CloseWindow()
-		return 0
-	})
-
-	gl.ClearColor(0.255, 0.255, 0.255, 0)
-	return nil
-}
-
 func (g *GPU) Reset() {
 	g.Write(LCDC, 0x00)
-	g.screen = *new([144][160]int)
+	g.screenData = *new([144][160]int)
 	g.mode = 0
 	g.ly = 0
 	g.clock = 0
@@ -153,10 +119,8 @@ func (g *GPU) Step(t int) {
 				g.ly += 1
 			}
 		} else {
-			//vblank is over
-			g.DrawFrame()
-			glfw.SwapBuffers()
-
+			//vblank is over, draw to screen
+			g.screen.DrawFrame(&g.screenData)
 			g.clock = 0
 			g.ly = 0
 		}
@@ -244,7 +208,7 @@ func (g *GPU) Read(addr types.Word) byte {
 		case BGP:
 			return g.bgp
 		default:
-			log.Printf(PREFIX+" WARNING: register address %X unknown", addr)
+			log.Printf(PREFIX+" WARNING: register address %s unknown", addr)
 			return 0x00
 		}
 	}
@@ -286,8 +250,8 @@ func (g *GPU) RenderLine() {
 
 	for x := 0; x < DISPLAY_WIDTH; x++ {
 
-		//draw the pixel to the screen data buffer (running through the palette)
-		g.screen[g.ly][x] = g.palette[g.tiledata[tileId][tileY][tileX]]
+		//draw the pixel to the screenData data buffer (running through the palette)
+		g.screenData[g.ly][x] = g.palette[g.tiledata[tileId][tileY][tileX]]
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -300,31 +264,6 @@ func (g *GPU) RenderLine() {
 	}
 }
 
-func (g *GPU) DrawFrame() {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.Enable(gl.POINT_SMOOTH)
-	gl.PointSize(1)
-	gl.Begin(gl.POINTS)
-	for y := 0; y < DISPLAY_HEIGHT; y++ {
-		for x := 0; x < DISPLAY_WIDTH; x++ {
-			switch g.screen[y][x] {
-			case 0:
-				gl.Color3ub(235, 235, 235)
-			case 1:
-				gl.Color3ub(196, 196, 196)
-			case 2:
-				gl.Color3ub(96, 96, 96)
-			case 3:
-				gl.Color3ub(0, 0, 0)
-			}
-
-			gl.Vertex2i(x, y)
-		}
-	}
-
-	gl.End()
-}
-
 func (g *GPU) DumpScreen() [144][160]int {
-	return g.screen
+	return g.screenData
 }
