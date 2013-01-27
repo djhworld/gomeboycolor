@@ -2351,7 +2351,8 @@ func (cpu *Z80) Dec_sp() {
 //DAA
 func (cpu *Z80) Daa() {
 	//TODO: implement
-	log.Fatalf("Unimplemented")
+
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //CPL
@@ -2420,19 +2421,22 @@ func (cpu *Z80) Swap_hl() {
 
 //RLCA
 func (cpu *Z80) RLCA() {
-	var oldA byte = cpu.R.A
+	var bit7 bool = false
+	if cpu.R.A & 0x80 == 0x80 {
+		bit7 = true
+	}
 
-	cpu.R.A = cpu.R.A<<1 | cpu.R.A>>(8-1)
+	cpu.R.A = cpu.R.A << 1
 
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	//carry flag
-	if (oldA & 0x80) == 0x80 {
+	if bit7 {
 		cpu.SetFlag(C)
 	} else {
 		cpu.ResetFlag(C)
 	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
 
 	//zero flag
 	if cpu.R.A == 0x00 {
@@ -2440,7 +2444,6 @@ func (cpu *Z80) RLCA() {
 	} else {
 		cpu.ResetFlag(Z)
 	}
-
 }
 
 //RLA
@@ -2575,6 +2578,7 @@ func (cpu *Z80) HALT() {
 //STOP
 func (cpu *Z80) Stop() {
 	//TODO: Unimplemented
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //DI
@@ -2759,16 +2763,36 @@ func (cpu *Z80) Ret_i() {
 
 //RLC r
 func (cpu *Z80) Rlc_r(r *byte) {
-	//TODO: Implement
+	var bit7 bool = false
+	if *r & 0x80 == 0x80 {
+		bit7 = true
+	}
 
-	log.Fatalf("Unimplemented")
+	*r = *r << 1
+
+	if bit7 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	//zero flag
+	if *r == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
 }
 
 //RLC (HL) 
 func (cpu *Z80) Rlc_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //RL r
@@ -2838,14 +2862,14 @@ func (cpu *Z80) Rl_hl() {
 func (cpu *Z80) Rrc_r(r *byte) {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //RRC (HL) 
 func (cpu *Z80) Rrc_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //RR r
@@ -2914,63 +2938,81 @@ func (cpu *Z80) Rr_hl() {
 func (cpu *Z80) Sla_r(r *byte) {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SLA (HL) 
 func (cpu *Z80) Sla_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SRA r
 func (cpu *Z80) Sra_r(r *byte) {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SRA (HL) 
 func (cpu *Z80) Sra_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SRL r
 func (cpu *Z80) Srl_r(r *byte) {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SRL (HL) 
 func (cpu *Z80) Srl_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SBC A,r
 func (cpu *Z80) SubAC_r(r *byte) {
-	//TODO: Implement
+	var oldA byte = cpu.R.A
+	cpu.R.A -= *r
 
-	log.Fatalf("Unimplemented")
+	if cpu.IsFlagSet(C) {
+		cpu.R.A -= 1
+	}
+
+	if cpu.R.A == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	cpu.SetFlag(N)
+
+	//Set Carry flag
+	if cpu.R.A > oldA {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
 }
 
 //SBC A, (HL)
 func (cpu *Z80) SubAC_hl() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //SBC A, n
 func (cpu *Z80) SubAC_n() {
 	//TODO: Implement
 
-	log.Fatalf("Unimplemented")
+	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
 }
 
 //-----------------------------------------------------------------------
