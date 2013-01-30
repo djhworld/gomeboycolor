@@ -22,6 +22,8 @@ const SCROLLX types.Word = 0xFF43
 const LY types.Word = 0xFF44
 const LYC types.Word = 0xFF45
 const BGP types.Word = 0xFF47
+const WX types.Word = 0xFF4B
+const WY types.Word = 0xFF4A
 
 const HBLANK byte = 0x00
 const VBLANK byte = 0x01
@@ -172,6 +174,10 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.scrollY = value
 		case SCROLLX:
 			g.scrollX = value
+		case WX:
+			log.Println(PREFIX, "Writing to WX!")
+		case WY:
+			log.Println(PREFIX, "Writing to WY!")
 		case LYC:
 			//TODO:
 		case BGP:

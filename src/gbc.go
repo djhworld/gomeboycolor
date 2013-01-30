@@ -56,7 +56,6 @@ func NewGBC() *GameboyColor {
 
 func (gbc *GameboyColor) DoFrame() {
 	for gbc.cpuClockAcc < FRAME_CYCLES {
-		//log.Println(gbc.cpu.PC, " -> ", gbc.cpu.CurrentInstruction)
 		if gbc.debugOptions.debuggerOn {
 			var shouldPause bool = true
 			for _, rule := range gbc.debugOptions.ruleEngine.DebugRuleChain {
@@ -73,6 +72,8 @@ func (gbc *GameboyColor) DoFrame() {
 		}
 
 		gbc.Step()
+		//fmt.Fprintf(os.Stderr,"0x%X %s\n", gbc.cpu.CurrentInstruction.Opcode, gbc.cpu.CurrentInstruction.Description)
+		//log.Println("PC:", gbc.cpu.PC, "-> SP:", gbc.cpu.SP, "-> Registers:", gbc.cpu.R, "-> Flags:", gbc.cpu.FlagsString(), "->", gbc.cpu.CurrentInstruction)
 	}
 }
 

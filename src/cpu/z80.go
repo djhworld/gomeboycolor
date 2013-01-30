@@ -35,7 +35,13 @@ type Registers struct {
 }
 
 func (r Registers) String() string {
-	return fmt.Sprintf("[A: %X] [B: %X] [C: %X] [D: %X] [E: %X] [H: %X] [L: %X] [F: %X]", r.A, r.B, r.C, r.D, r.E, r.H, r.L, r.F)
+	formatByte := func(b byte) string {
+		if b < 0x10 {
+			return fmt.Sprintf("0x0%X", b)
+		}
+		return fmt.Sprintf("0x%X", b)
+	}
+	return fmt.Sprintf("[A: %s | B: %s | C: %s | D: %s | E: %s | H: %s | L: %s]", formatByte(r.A), formatByte(r.B), formatByte(r.C), formatByte(r.D), formatByte(r.E), formatByte(r.H), formatByte(r.L))
 }
 
 //See ZILOG z80 cpu manual p.80  (http://www.zilog.com/docs/z80/um0080.pdf)
@@ -108,25 +114,30 @@ func (cpu *Z80) Reset() {
 
 func (cpu *Z80) FlagsString() string {
 	var flags string = ""
+	var minus string = "-"
 
-	if cpu.R.F != 0 {
-		if cpu.IsFlagSet(Z) {
-			flags += "Z "
-		}
-
-		if cpu.IsFlagSet(N) {
-			flags += "N "
-		}
-
-		if cpu.IsFlagSet(H) {
-			flags += "H "
-		}
-
-		if cpu.IsFlagSet(C) {
-			flags += "C "
-		}
+	if cpu.IsFlagSet(Z) {
+		flags += "Z"
 	} else {
-		flags += "None Set"
+		flags += minus
+	}
+
+	if cpu.IsFlagSet(N) {
+		flags += "N"
+	} else {
+		flags += minus
+	}
+
+	if cpu.IsFlagSet(H) {
+		flags += "H"
+	} else {
+		flags += minus
+	}
+
+	if cpu.IsFlagSet(C) {
+		flags += "C"
+	} else {
+		flags += minus
 	}
 	return flags
 }
@@ -1621,35 +1632,38 @@ func (cpu *Z80) Pop_nn(r1, r2 *byte) {
 	cpu.SP++
 }
 
-//ADD A,r
-//Add the value in register (r) to register A
-func (cpu *Z80) AddA_r(r *byte) {
-	var oldA byte = cpu.R.A
-	cpu.R.A += *r
+//General add function
+//side effect is flag alteration
+func (cpu *Z80) add(a, b byte) byte {
+	var calculation byte = a + b
 
 	cpu.ResetFlag(N)
 
-	//set carry flag
-	if (oldA + *r) < oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//set zero flag
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
-	if (((oldA & 0xf) + (*r & 0xf)) & 0x10) == 0x10 {
+	if (calculation^b^a)&0x10 == 0x10 {
 		cpu.SetFlag(H)
 	} else {
 		cpu.ResetFlag(H)
 	}
 
-	//set clock values
+	if calculation < a {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	return calculation
+}
+
+//ADD A,r
+//Add the value in register (r) to register A
+func (cpu *Z80) AddA_r(r *byte) {
+	cpu.R.A = cpu.add(cpu.R.A, *r)
 }
 
 //ADD A,(HL)
@@ -1658,33 +1672,7 @@ func (cpu *Z80) AddA_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
 
-	var oldA byte = cpu.R.A
-	cpu.R.A += value
-
-	cpu.ResetFlag(N)
-
-	//set carry flag
-	if (oldA + value) < oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//set zero flag
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//set half carry flag
-	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
-	//set clock values
+	cpu.R.A = cpu.add(cpu.R.A, value)
 }
 
 //ADD A,n
@@ -1692,307 +1680,177 @@ func (cpu *Z80) AddA_hl() {
 func (cpu *Z80) AddA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
 
-	var oldA byte = cpu.R.A
-	cpu.R.A += value
-
-	cpu.ResetFlag(N)
-
-	//set carry flag
-	if (oldA + value) < oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//set zero flag
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//set half carry flag
-	if (((oldA & 0xf) + (value & 0xf)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
+	cpu.R.A = cpu.add(cpu.R.A, value)
 }
 
 //ADDC A,r
 func (cpu *Z80) AddCA_r(r *byte) {
-	var oldA byte = cpu.R.A
 	var carryFlag byte = 0
-
-	cpu.R.A += *r
 
 	if cpu.IsFlagSet(C) {
 		carryFlag = 1
-		cpu.R.A += carryFlag
-	}
-
-	cpu.ResetFlag(N)
-
-	//set carry flag
-	if cpu.R.A < oldA {
-		cpu.SetFlag(C)
 	} else {
-		cpu.ResetFlag(C)
+		carryFlag = 0
 	}
 
-	//set zero flag
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//set half carry flag
-	if (((oldA & 0xf) + ((*r + carryFlag) & 0xf)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
+	cpu.R.A = cpu.add(cpu.R.A, *r+carryFlag)
 }
 
 //ADDC A,(HL)
 func (cpu *Z80) AddCA_hl() {
-
-	var oldA byte = cpu.R.A
-	var carryFlag byte = 0
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
-
-	cpu.R.A += value
+	var carryFlag byte = 0
 
 	if cpu.IsFlagSet(C) {
 		carryFlag = 1
-		cpu.R.A += carryFlag
-	}
-
-	cpu.ResetFlag(N)
-
-	//set carry flag
-	if cpu.R.A < oldA {
-		cpu.SetFlag(C)
 	} else {
-		cpu.ResetFlag(C)
+		carryFlag = 0
 	}
 
-	//set zero flag
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//set half carry flag
-	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
+	cpu.R.A = cpu.add(cpu.R.A, value+carryFlag)
 }
 
 //ADDC A,n
 func (cpu *Z80) AddCA_n() {
-
-	var oldA byte = cpu.R.A
-	var carryFlag byte = 0
 	var value byte = cpu.CurrentInstruction.Operands[0]
-
-	cpu.R.A += value
+	var carryFlag byte = 0
 
 	if cpu.IsFlagSet(C) {
 		carryFlag = 1
-		cpu.R.A += carryFlag
-	}
-
-	cpu.ResetFlag(N)
-
-	//set carry flag
-	if cpu.R.A < oldA {
-		cpu.SetFlag(C)
 	} else {
-		cpu.ResetFlag(C)
+		carryFlag = 0
 	}
 
-	//set zero flag
-	if cpu.R.A == 0x00 {
+	cpu.R.A = cpu.add(cpu.R.A, value+carryFlag)
+}
+
+//General function for performing subtraction - will return value of calculation
+//side effect is flags are set on the cpu accordingly
+func (cpu *Z80) sub(a, b byte) byte {
+	var calculation byte = a - b
+
+	//set subtract flag
+	cpu.SetFlag(N)
+
+	//set zero flag if needed
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
-	//set half carry flag
-	if (((oldA & 0xf) + ((value + carryFlag) & 0xf)) & 0x10) == 0x10 {
+	//Set Carry flag
+	if calculation < a {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//Set half carry flag if needed
+	if (calculation^b^a)&0x10 == 0x10 {
 		cpu.SetFlag(H)
 	} else {
 		cpu.ResetFlag(H)
 	}
 
+	return calculation
 }
 
 //SUB A,r
 func (cpu *Z80) SubA_r(r *byte) {
-	var oldA byte = cpu.R.A
-
-	cpu.R.A -= *r
-
-	//set subtract flag
-	cpu.SetFlag(N)
-
-	//set zero flag if needed
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//Set Carry flag
-	if cpu.R.A > oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//Set half carry flag if needed
-	//TODO: don't think this calculation for half carry is quite correct....
-	if (((oldA & 0x0F) - (*r & 0x0F)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
+	cpu.R.A = cpu.sub(cpu.R.A, *r)
 }
 
 //SUB A,hl
 func (cpu *Z80) SubA_hl() {
-	var oldA byte = cpu.R.A
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
 
-	cpu.R.A -= value
-
-	//set subtract flag
-	cpu.SetFlag(N)
-
-	//set zero flag if needed
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//Set Carry flag
-	if cpu.R.A > oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//Set half carry flag if needed
-	//TODO: don't think this calculation for half carry is quite correct....
-	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
+	cpu.R.A = cpu.sub(cpu.R.A, value)
 }
 
 //SUB A,n
 func (cpu *Z80) SubA_n() {
-	var oldA byte = cpu.R.A
 	var value byte = cpu.CurrentInstruction.Operands[0]
-
-	cpu.R.A -= value
-
-	//set subtract flag
-	cpu.SetFlag(N)
-
-	//set zero flag if needed
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//Set Carry flag
-	if cpu.R.A > oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//Set half carry flag if needed
-	//TODO: don't think this calculation for half carry is quite correct....
-	if (((oldA & 0x0F) - (value & 0x0F)) & 0x10) == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
-	}
-
+	cpu.R.A = cpu.sub(cpu.R.A, value)
 }
 
-//AND A, r
-func (cpu *Z80) AndA_r(r *byte) {
-	cpu.R.A = cpu.R.A & *r
+//SBC A,r
+func (cpu *Z80) SubAC_r(r *byte) {
+	var carryFlag byte = 0
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+	}
+
+	cpu.R.A = cpu.sub(cpu.R.A, *r+carryFlag)
+}
+
+//SBC A, (HL)
+func (cpu *Z80) SubAC_hl() {
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HL)
+	var carryFlag byte = 0
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+	}
+
+	cpu.R.A = cpu.sub(cpu.R.A, value+carryFlag)
+}
+
+//SBC A, n
+func (cpu *Z80) SubAC_n() {
+	var value byte = cpu.CurrentInstruction.Operands[0]
+	var carryFlag byte = 0
+
+	if cpu.IsFlagSet(C) {
+		carryFlag = 1
+	}
+
+	cpu.R.A = cpu.sub(cpu.R.A, value+carryFlag)
+}
+
+//Generic and function, returns calculation result
+//and sets flags
+func (cpu *Z80) and(a, b byte) byte {
+	var calculation byte = a & b
 
 	cpu.SetFlag(H)
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(C)
 
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
+	return calculation
+}
+
+//AND A, r
+func (cpu *Z80) AndA_r(r *byte) {
+	cpu.R.A = cpu.and(cpu.R.A, *r)
 }
 
 //AND A, (HL)
 func (cpu *Z80) AndA_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
-
-	cpu.R.A = cpu.R.A & value
-
-	cpu.SetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.and(cpu.R.A, value)
 }
 
 //AND A, n
 func (cpu *Z80) AndA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
-
-	cpu.R.A = cpu.R.A & value
-
-	cpu.SetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.and(cpu.R.A, value)
 }
 
-//OR A, r
-func (cpu *Z80) OrA_r(r *byte) {
-	cpu.R.A = cpu.R.A | *r
+//calculates or, sets flag
+func (cpu *Z80) or(a, b byte) byte {
+	var calculation byte = a | b
 
 	cpu.ResetFlag(H)
 	cpu.ResetFlag(N)
@@ -2003,96 +1861,61 @@ func (cpu *Z80) OrA_r(r *byte) {
 	} else {
 		cpu.ResetFlag(Z)
 	}
+
+	return calculation
+}
+
+//OR A, r
+func (cpu *Z80) OrA_r(r *byte) {
+	cpu.R.A = cpu.or(cpu.R.A, *r)
 }
 
 //OR A, (HL)
 func (cpu *Z80) OrA_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
-
-	cpu.R.A = cpu.R.A | value
-
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.or(cpu.R.A, value)
 }
 
 //OR A, n
 func (cpu *Z80) OrA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
+	cpu.R.A = cpu.or(cpu.R.A, value)
+}
 
-	cpu.R.A = cpu.R.A | value
+//Generic xor function, sets flags as side effect
+func (cpu *Z80) xor(a, b byte) byte {
+	var calculation byte = a ^ b
 
 	cpu.ResetFlag(H)
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(C)
 
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
+	return calculation
 }
 
 //XOR A, r
 func (cpu *Z80) XorA_r(r *byte) {
-	cpu.R.A = cpu.R.A ^ *r
-
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.xor(cpu.R.A, *r)
 }
 
 //XOR A, (HL)
 func (cpu *Z80) XorA_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
-
-	cpu.R.A = cpu.R.A ^ value
-
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.xor(cpu.R.A, value)
 }
 
 //XOR A, n
 func (cpu *Z80) XorA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
-
-	cpu.R.A = cpu.R.A ^ value
-
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(C)
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.R.A = cpu.xor(cpu.R.A, value)
 }
 
 //CP A, r
@@ -2165,95 +1988,76 @@ func (cpu *Z80) CPA_n() {
 
 }
 
-//INC r
-func (cpu *Z80) Inc_r(r *byte) {
-
-	var oldR byte = *r
-
-	*r += 1
+//General increment function
+//Side effect is CPU flags get set accordingly
+func (cpu *Z80) inc(value byte) byte {
+	var calculation byte = value + 0x01
 
 	//N should be reset
 	cpu.ResetFlag(N)
 
 	//set zero flag
-	if *r == 0 {
+	if calculation == 0 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
 	//set half carry flag
-	if (((oldR & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
+	if (calculation^0x01^value)&0x10 == 0x10 {
 		cpu.SetFlag(H)
 	} else {
 		cpu.ResetFlag(H)
 	}
 
+	return calculation
+}
+
+//INC r
+func (cpu *Z80) Inc_r(r *byte) {
+	*r = cpu.inc(*r)
 }
 
 //INC (HL)
 func (cpu *Z80) Inc_hl() {
-	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var oldValue byte = cpu.ReadByte(HL)
-	var inc byte = (oldValue + 1)
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.ReadByte(hlAddr)
+	var result byte = cpu.inc(hlValue)
+	cpu.WriteByte(hlAddr, result)
+}
 
-	cpu.WriteByte(HL, inc)
+//Generic dec function
+func (cpu *Z80) dec(a byte) byte {
+	var calculation byte = a - 1
+	cpu.SetFlag(N)
 
-	//N should be reset
-	cpu.ResetFlag(N)
-
-	//set zero flag
-	if inc == 0 {
+	if calculation == 0 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
-	//set half carry flag
-	if (((oldValue & 0xf) + (1 & 0xf)) & 0x10) == 0x10 {
+	//Set half carry flag if needed
+	if (calculation^0x01^a)&0x10 == 0x10 {
 		cpu.SetFlag(H)
 	} else {
 		cpu.ResetFlag(H)
 	}
 
+	return calculation
 }
 
 //DEC r
 func (cpu *Z80) Dec_r(r *byte) {
-
-	*r -= 1
-
-	cpu.SetFlag(N)
-
-	if *r == 0 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//TODO HALF Carry flag
-
+	*r = cpu.dec(*r)
 }
 
 //DEC (HL)
 func (cpu *Z80) Dec_hl() {
-	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var oldValue byte = cpu.ReadByte(HL)
-	var dec byte = (oldValue - 1)
-
-	cpu.WriteByte(HL, dec)
-
-	cpu.SetFlag(N)
-
-	//set zero flag
-	if dec == 0 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	//TODO HALF Carry flag
-
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.ReadByte(hlAddr)
+	var result byte = cpu.dec(hlValue)
+	cpu.WriteByte(hlAddr, result)
 }
 
 //ADD HL,rr
@@ -2379,50 +2183,47 @@ func (cpu *Z80) CCF() {
 
 //SCF
 func (cpu *Z80) SCF() {
-
 	cpu.SetFlag(C)
 
 	//Reset N and H flags
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
+}
 
+//generic swap
+//flags will be affected by this
+func (cpu *Z80) swap(a byte) byte {
+	var calculation byte = utils.SwapNibbles(a)
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+	cpu.ResetFlag(C)
+
+	if calculation == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	return calculation
 }
 
 //SWAP r
 func (cpu *Z80) Swap_r(r *byte) {
-	var a byte = *r
-	*r = utils.SwapNibbles(a)
-
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(C)
-
-	if *r == 0x00 {
-		cpu.SetFlag(Z)
-	}
+	*r = cpu.swap(*r)
 }
 
 //SWAP (HL)
 func (cpu *Z80) Swap_hl() {
-	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var a byte = cpu.ReadByte(HL)
-	var result byte = utils.SwapNibbles(a)
-	cpu.WriteByte(HL, result)
-
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	cpu.ResetFlag(C)
-
-	if result == 0x00 {
-		cpu.SetFlag(Z)
-	}
-
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.ReadByte(hlAddr)
+	var result = cpu.swap(hlValue)
+	cpu.WriteByte(hlAddr, result)
 }
 
 //RLCA
 func (cpu *Z80) RLCA() {
 	var bit7 bool = false
-	if cpu.R.A & 0x80 == 0x80 {
+	if cpu.R.A&0x80 == 0x80 {
 		bit7 = true
 	}
 
@@ -2764,7 +2565,7 @@ func (cpu *Z80) Ret_i() {
 //RLC r
 func (cpu *Z80) Rlc_r(r *byte) {
 	var bit7 bool = false
-	if *r & 0x80 == 0x80 {
+	if *r&0x80 == 0x80 {
 		bit7 = true
 	}
 
@@ -2971,45 +2772,6 @@ func (cpu *Z80) Srl_r(r *byte) {
 
 //SRL (HL) 
 func (cpu *Z80) Srl_hl() {
-	//TODO: Implement
-
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
-}
-
-//SBC A,r
-func (cpu *Z80) SubAC_r(r *byte) {
-	var oldA byte = cpu.R.A
-	cpu.R.A -= *r
-
-	if cpu.IsFlagSet(C) {
-		cpu.R.A -= 1
-	}
-
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.SetFlag(N)
-
-	//Set Carry flag
-	if cpu.R.A > oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-}
-
-//SBC A, (HL)
-func (cpu *Z80) SubAC_hl() {
-	//TODO: Implement
-
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
-}
-
-//SBC A, n
-func (cpu *Z80) SubAC_n() {
 	//TODO: Implement
 
 	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
