@@ -1216,7 +1216,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xF8: //LDHL SP, n
 		cpu.LDHLSP_n()
 	case 0xF9: //LD SP, HL
-		cpu.LDSP_rr(&cpu.R.H, &cpu.R.L)
+		cpu.LDSP_hl()
 	case 0xFA: //LD A, (nn)
 		cpu.LDr_nn(&cpu.R.A)
 	case 0xFB: //EI
@@ -1445,8 +1445,8 @@ func (cpu *Z80) LDr_de(r *byte) {
 //LD r, nn
 //Load the value in memory address defined from the next two bytes relative to the PC and store it in register (r). Increment the PC by 2
 func (cpu *Z80) LDr_nn(r *byte) {
-	var hs byte = cpu.CurrentInstruction.Operands[1]
 	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
 
 	var nn types.Word = types.Word(utils.JoinBytes(hs, ls))
 	var value byte = cpu.ReadByte(nn)
@@ -1484,9 +1484,6 @@ func (cpu *Z80) LDDr_hl(r *byte) {
 	if cpu.R.L == 0xFF {
 		cpu.R.H -= 1
 	}
-
-	//set clock timings
-
 }
 
 //LDD (HL), r
@@ -1528,14 +1525,9 @@ func (cpu *Z80) LDIhl_r(r *byte) {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.WriteByte(HL, *r)
 
-	//increment HL registers
-	cpu.R.L += 1
+	HL += 1
 
-	//increment H too if L is 0x00
-	if cpu.R.L == 0x00 {
-		cpu.R.H += 1
-	}
-
+	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
 }
 
 //LDH n, r
@@ -1571,7 +1563,7 @@ func (cpu *Z80) LDSP_nn() {
 }
 
 //LD SP, rr
-func (cpu *Z80) LDSP_rr(r1, r2 *byte) {
+func (cpu *Z80) LDSP_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	cpu.SP = HL
 }
@@ -1608,7 +1600,7 @@ func (cpu *Z80) LDHLSP_n() {
 	}
 }
 
-//LDHL SP, n 
+//LD SP, n
 func (cpu *Z80) LDnn_SP() {
 	var nn types.Word = types.Word(utils.JoinBytes(cpu.CurrentInstruction.Operands[0], cpu.CurrentInstruction.Operands[1]))
 	cpu.WriteWord(nn, cpu.SP)
@@ -1856,7 +1848,7 @@ func (cpu *Z80) or(a, b byte) byte {
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(C)
 
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
@@ -1920,72 +1912,20 @@ func (cpu *Z80) XorA_n() {
 
 //CP A, r
 func (cpu *Z80) CPA_r(r *byte) {
-	var calculation byte = cpu.R.A - *r
-
-	if calculation == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.SetFlag(N)
-
-	if calculation > cpu.R.A {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//TODO: Half carry flag 
-
+	cpu.sub(cpu.R.A, *r)
 }
 
 //CP A, (HL) 
 func (cpu *Z80) CPA_hl() {
-	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var value byte = cpu.ReadByte(HL)
-
-	var calculation byte = cpu.R.A - value
-
-	if calculation == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.SetFlag(N)
-
-	if calculation > cpu.R.A {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//TODO: Half carry flag 
-
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.ReadByte(hlAddr)
+	cpu.sub(cpu.R.A, hlValue)
 }
 
 //CP A, n
 func (cpu *Z80) CPA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
-	//	var calculation byte = cpu.R.A - value
-
-	if cpu.R.A == value {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.SetFlag(N)
-
-	if cpu.R.A < value {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//TODO: Half carry flag 
-
+	cpu.sub(cpu.R.A, value)
 }
 
 //General increment function
@@ -2220,14 +2160,68 @@ func (cpu *Z80) Swap_hl() {
 	cpu.WriteByte(hlAddr, result)
 }
 
-//RLCA
-func (cpu *Z80) RLCA() {
+func (cpu *Z80) rlc(value byte) byte {
 	var bit7 bool = false
-	if cpu.R.A&0x80 == 0x80 {
+
+	if value&0x80 == 0x80 {
 		bit7 = true
 	}
 
-	cpu.R.A = cpu.R.A << 1
+	var calculation byte = value << 1
+
+	if bit7 {
+		cpu.SetFlag(C)
+		calculation ^= 0x01
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	//zero flag
+	if calculation == 0x00 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	return calculation
+}
+
+//RLCA
+func (cpu *Z80) RLCA() {
+	cpu.R.A = cpu.rlc(cpu.R.A)
+}
+
+//RLC r
+func (cpu *Z80) Rlc_r(r *byte) {
+	*r = cpu.rlc(*r)
+}
+
+//RLC (HL)
+func (cpu *Z80) Rlc_hl() {
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.mmu.ReadByte(hlAddr)
+	var result byte = cpu.rlc(hlValue)
+
+	cpu.mmu.WriteByte(hlAddr, result)
+}
+
+func (cpu *Z80) rl_throughcarry(value byte) byte {
+	var bit7 bool = false
+	var calculation byte = value
+
+	if calculation&0x80 == 0x80 {
+		bit7 = true
+	}
+
+	calculation = calculation << 1
+
+	if cpu.IsFlagSet(C) {
+		calculation ^= 0x01
+	}
 
 	if bit7 {
 		cpu.SetFlag(C)
@@ -2235,98 +2229,134 @@ func (cpu *Z80) RLCA() {
 		cpu.ResetFlag(C)
 	}
 
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//zero flag
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	return calculation
 }
 
 //RLA
 func (cpu *Z80) RLA() {
-	var oldA byte = cpu.R.A
+	cpu.R.A = cpu.rl_throughcarry(cpu.R.A)
+}
 
-	cpu.R.A = cpu.R.A << 1
-	if cpu.IsFlagSet(C) {
-		cpu.R.A ^= 0x01
+//RL r
+func (cpu *Z80) Rl_r(r *byte) {
+	*r = cpu.rl_throughcarry(*r)
+}
+
+//RL (HL)
+func (cpu *Z80) Rl_hl() {
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HL)
+	var result byte = cpu.rl_throughcarry(value)
+	cpu.WriteByte(HL, result)
+}
+
+func (cpu *Z80) rrc(value byte) byte {
+	var bit0 bool = false
+
+	if value&0x01 == 0x01 {
+		bit0 = true
 	}
 
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	//carry flag
-	if (oldA & 0x80) == 0x80 {
+	var calculation byte = value >> 1
+
+	if bit0 {
 		cpu.SetFlag(C)
+		calculation ^= 0x80
 	} else {
 		cpu.ResetFlag(C)
 	}
 
 	//zero flag
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
+	//reset flags
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	return calculation
 }
 
 //RRCA
 func (cpu *Z80) RRCA() {
-	var oldA byte = cpu.R.A
+	cpu.R.A = cpu.rrc(cpu.R.A)
+}
 
-	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
+//RRC r
+func (cpu *Z80) Rrc_r(r *byte) {
+	*r = cpu.rrc(*r)
+}
 
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	//carry flag
-	if (oldA & 0x01) == 0x01 {
+//RRC (HL)
+func (cpu *Z80) Rrc_hl() {
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var hlValue byte = cpu.mmu.ReadByte(hlAddr)
+	var result byte = cpu.rrc(hlValue)
+
+	cpu.mmu.WriteByte(hlAddr, result)
+}
+
+func (cpu *Z80) rr_throughcarry(value byte) byte {
+	var bit0 bool = false
+	var calculation byte = value
+
+	if calculation&0x01 == 0x01 {
+		bit0 = true
+	}
+
+	calculation = calculation >> 1
+
+	if cpu.IsFlagSet(C) {
+		calculation ^= 0x80
+	}
+
+	if bit0 {
 		cpu.SetFlag(C)
 	} else {
 		cpu.ResetFlag(C)
 	}
 
-	//zero flag
-	if cpu.R.A == 0x00 {
+	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	return calculation
 }
 
 //RRA
 func (cpu *Z80) RRA() {
-	var oldA byte = cpu.R.A
+	cpu.R.A = cpu.rr_throughcarry(cpu.R.A)
+}
 
-	cpu.R.A = cpu.R.A>>1 | cpu.R.A<<(8-1)
+//RR r
+func (cpu *Z80) Rr_r(r *byte) {
+	*r = cpu.rr_throughcarry(*r)
+}
 
-	if cpu.IsFlagSet(C) {
-		cpu.R.A ^= 0x80
-	}
+//RR (HL)
+func (cpu *Z80) Rr_hl() {
+	var HLAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HLAddr)
+	var result byte = cpu.rr_throughcarry(value)
 
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-	//carry flag
-	if (oldA & 0x01) == 0x01 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//zero flag
-	if cpu.R.A == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
+	cpu.WriteByte(HLAddr, result)
 }
 
 //BIT b, r
@@ -2560,179 +2590,6 @@ func (cpu *Z80) Ret_i() {
 	cpu.PCJumped = true
 
 	cpu.InterruptsEnabled = true
-}
-
-//RLC r
-func (cpu *Z80) Rlc_r(r *byte) {
-	var bit7 bool = false
-	if *r&0x80 == 0x80 {
-		bit7 = true
-	}
-
-	*r = *r << 1
-
-	if bit7 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//zero flag
-	if *r == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-}
-
-//RLC (HL) 
-func (cpu *Z80) Rlc_hl() {
-	//TODO: Implement
-
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
-}
-
-//RL r
-func (cpu *Z80) Rl_r(r *byte) {
-
-	var oldV byte = *r
-	*r = *r << 1
-
-	if cpu.IsFlagSet(C) {
-		*r ^= 0x01
-	}
-
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//carry flag
-	if (oldV & 0x80) == 0x80 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//zero flag
-	if *r == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-}
-
-//RL (HL) 
-func (cpu *Z80) Rl_hl() {
-	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var oldValue byte = cpu.ReadByte(HL)
-	var value byte = oldValue
-
-	value = value << 1
-
-	if cpu.IsFlagSet(C) {
-		value ^= 0x01
-	}
-
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//carry flag
-	if (oldValue & 0x80) == 0x80 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//zero flag
-	if value == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.WriteByte(HL, value)
-}
-
-//RRC r
-func (cpu *Z80) Rrc_r(r *byte) {
-	//TODO: Implement
-
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
-}
-
-//RRC (HL) 
-func (cpu *Z80) Rrc_hl() {
-	//TODO: Implement
-
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
-}
-
-//RR r
-func (cpu *Z80) Rr_r(r *byte) {
-	var oldV byte = *r
-	*r = *r>>1 | *r<<(8-1)
-
-	if cpu.IsFlagSet(C) {
-		*r ^= 0x80
-	}
-
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//carry flag
-	if (oldV & 0x01) == 0x01 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//zero flag
-	if *r == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-}
-
-//RR (HL) 
-func (cpu *Z80) Rr_hl() {
-	var HLAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var value byte = cpu.ReadByte(HLAddr)
-	var oldV byte = value
-
-	value = value>>1 | value<<(8-1)
-
-	if cpu.IsFlagSet(C) {
-		value ^= 0x80
-	}
-
-	//reset flags
-	cpu.ResetFlag(N)
-	cpu.ResetFlag(H)
-
-	//carry flag
-	if (oldV & 0x01) == 0x01 {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
-
-	//zero flag
-	if value == 0x00 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
-
-	cpu.WriteByte(HLAddr, value)
-
 }
 
 //SLA r

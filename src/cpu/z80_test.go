@@ -1929,6 +1929,569 @@ func TestSwap_hlZeroFlag(t *testing.T) {
 	assert.True(t, cpu.IsFlagSet(Z))
 }
 
+//CPA r
+func TestCP_r(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xAA
+	cpu.R.B = 0x24
+
+	cpu.CPA_r(&cpu.R.B)
+
+	//check nothing has changed
+	var expectedA byte = 0xAA
+	var expectedB byte = 0x24
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.R.B, expectedB)
+}
+
+func TestCP_rNFlagSet(t *testing.T) {
+	cpu := NewCPU()
+
+	assert.False(t, cpu.IsFlagSet(N))
+
+	cpu.CPA_r(&cpu.R.B)
+
+	assert.True(t, cpu.IsFlagSet(N))
+}
+
+func TestCP_rHFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA0
+	cpu.R.B = 0x01
+
+	assert.False(t, cpu.IsFlagSet(H))
+
+	cpu.CPA_r(&cpu.R.B)
+
+	assert.True(t, cpu.IsFlagSet(H))
+}
+
+func TestCP_rCarryFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA0
+	cpu.R.B = 0x01
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.CPA_r(&cpu.R.B)
+
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestCP_rZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0x02
+	cpu.R.B = 0x02
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.CPA_r(&cpu.R.B)
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+//CPA hl
+func TestCPA_hl(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.A = 0xAA
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x24)
+
+	cpu.CPA_hl()
+
+	//check nothing has changed
+	var expectedA byte = 0xAA
+	var expectedHL byte = 0x24
+
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expectedHL)
+}
+
+func TestCPA_hlNFlagSet(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.A = 0xAA
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x24)
+
+	assert.False(t, cpu.IsFlagSet(N))
+
+	cpu.CPA_hl()
+
+	assert.True(t, cpu.IsFlagSet(N))
+}
+
+func TestCPA_hlHFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.A = 0xA0
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x01)
+
+	assert.False(t, cpu.IsFlagSet(H))
+
+	cpu.CPA_hl()
+
+	assert.True(t, cpu.IsFlagSet(H))
+}
+
+func TestCPA_hlCarryFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.A = 0xA0
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x01)
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.CPA_hl()
+
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestCPA_hlZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.A = 0x02
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x02)
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.CPA_hl()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+//CPA r
+func TestCPA_n(t *testing.T) {
+	cpu := NewCPU()
+	cpu.CurrentInstruction = OneOperandsInstr
+	cpu.R.A = 0xAA
+	cpu.CurrentInstruction.Operands[0] = 0x24
+
+	cpu.CPA_n()
+
+	//check nothing has changed
+	var expectedA byte = 0xAA
+
+	assert.Equal(t, cpu.R.A, expectedA)
+}
+
+func TestCPA_nNFlagSet(t *testing.T) {
+	cpu := NewCPU()
+	cpu.CurrentInstruction = OneOperandsInstr
+	cpu.R.A = 0xAA
+	cpu.CurrentInstruction.Operands[0] = 0x24
+
+	assert.False(t, cpu.IsFlagSet(N))
+
+	cpu.CPA_n()
+
+	assert.True(t, cpu.IsFlagSet(N))
+}
+
+func TestCPA_nHFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.CurrentInstruction = OneOperandsInstr
+	cpu.R.A = 0xA0
+	cpu.CurrentInstruction.Operands[0] = 0x01
+
+	assert.False(t, cpu.IsFlagSet(H))
+
+	cpu.CPA_n()
+
+	assert.True(t, cpu.IsFlagSet(H))
+}
+
+func TestCPA_nCarryFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.CurrentInstruction = OneOperandsInstr
+	cpu.R.A = 0xA0
+	cpu.CurrentInstruction.Operands[0] = 0x01
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.CPA_n()
+
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestCPA_nZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.CurrentInstruction = OneOperandsInstr
+	cpu.R.A = 0x02
+	cpu.CurrentInstruction.Operands[0] = 0x02
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.CPA_n()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+//CPL
+func TestCPL(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA9
+
+	cpu.CPL()
+
+	var expected byte = 0x56
+	assert.Equal(t, cpu.R.A, expected)
+}
+
+func TestCPLFlagsSet(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA9
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+
+	cpu.CPL()
+
+	assert.True(t, cpu.IsFlagSet(N))
+	assert.True(t, cpu.IsFlagSet(H))
+}
+
+func TestCPLFlagsUnaffected(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA9
+
+	cpu.SetFlag(Z)
+	cpu.SetFlag(C)
+
+	cpu.CPL()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+	assert.True(t, cpu.IsFlagSet(C))
+
+	cpu = NewCPU()
+	cpu.R.A = 0xA9
+
+	cpu.CPL()
+
+	assert.False(t, cpu.IsFlagSet(Z))
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+// RLCA
+func TestRLCAWithBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA5
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.RLCA()
+
+	var expectedA byte = 0x4B
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRLCAWithNoBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0x15
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.RLCA()
+
+	var expectedA byte = 0x2A
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRLCAFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.RLCA()
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+func TestRLCAZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.R.A = 0x00
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.RLCA()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+// RLC r
+func TestRLC_rWithBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.C = 0xA5
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rlc_r(&cpu.R.C)
+
+	var expectedA byte = 0x4B
+	assert.Equal(t, cpu.R.C, expectedA)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRLC_rWithNoBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.C = 0x15
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rlc_r(&cpu.R.C)
+
+	var expectedC byte = 0x2A
+	assert.Equal(t, cpu.R.C, expectedC)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRLC_rFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.Rlc_r(&cpu.R.C)
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+func TestRLC_rZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.R.C = 0x00
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.Rlc_r(&cpu.R.C)
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+// RLC hl
+func TestRlc_hlWithBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	hlAddr := types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0xA5)
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rlc_hl()
+
+	var expected byte = 0x4B
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expected)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRlc_hlWithNoBit7ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	hlAddr := types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x15)
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rlc_hl()
+
+	var expected byte = 0x2A
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expected)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRlc_hlFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.Rlc_hl()
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+// RRCA
+func TestRRCAWithBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA5
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.RRCA()
+
+	var expectedA byte = 0xD2
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRRCAWithNoBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.A = 0xA2
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.RRCA()
+
+	var expectedA byte = 0x51
+	assert.Equal(t, cpu.R.A, expectedA)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRRCAFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.RRCA()
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+func TestRRCAZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.R.A = 0x00
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.RRCA()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+// RRC r
+func TestRRC_rWithBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.C = 0xA5
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rrc_r(&cpu.R.C)
+
+	var expectedA byte = 0xD2
+	assert.Equal(t, cpu.R.C, expectedA)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRRC_rWithNoBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.R.C = 0xA2
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rrc_r(&cpu.R.C)
+
+	var expectedC byte = 0x51
+	assert.Equal(t, cpu.R.C, expectedC)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRRC_rFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.Rrc_r(&cpu.R.C)
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+func TestRRC_rZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+
+	cpu.R.C = 0x00
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.Rrc_r(&cpu.R.C)
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
+// RRC hl
+func TestRrc_hlWithBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	hlAddr := types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0xA5)
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rrc_hl()
+
+	var expected byte = 0xD2
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expected)
+	assert.True(t, cpu.IsFlagSet(C))
+}
+
+func TestRrc_hlWithNoBit0ToCarry(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	hlAddr := types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0xA2)
+
+	assert.False(t, cpu.IsFlagSet(C))
+
+	cpu.Rrc_hl()
+
+	var expected byte = 0x51
+	assert.Equal(t, cpu.mmu.ReadByte(hlAddr), expected)
+	assert.False(t, cpu.IsFlagSet(C))
+}
+
+func TestRrc_hlFlagsReset(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+
+	cpu.SetFlag(N)
+	cpu.SetFlag(H)
+
+	cpu.Rrc_hl()
+
+	assert.False(t, cpu.IsFlagSet(N))
+	assert.False(t, cpu.IsFlagSet(H))
+}
+
+func TestRrc_hlZeroFlag(t *testing.T) {
+	cpu := NewCPU()
+	cpu.LinkMMU(NewMockMMU())
+	cpu.R.H, cpu.R.L = 0x00, 0x01
+	hlAddr := types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.mmu.WriteByte(hlAddr, 0x00)
+
+	assert.False(t, cpu.IsFlagSet(Z))
+
+	cpu.Rrc_hl()
+
+	assert.True(t, cpu.IsFlagSet(Z))
+}
+
 type MockMMU struct {
 	memory map[types.Word]byte
 }
