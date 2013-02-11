@@ -46,23 +46,23 @@ type GPU struct {
 	vram       [8192]byte
 	oamRam     [160]byte
 
-	mode    byte
-	clock   int
-	ly      int
-	lcdc    byte
-	lyc     byte
-	stat    byte
-	scrollY byte
-	scrollX byte
-	bgp     byte
-
-	bgrdOn          bool
-	spritesOn       bool
-	windowOn        bool
-	displayOn       bool
-	tileDataSelect  bool
+	mode            byte
+	clock           int
+	ly              int
+	lcdc            byte
+	lyc             byte
+	stat            byte
+	scrollY         byte
+	scrollX         byte
+	bgp             byte
 	coincidenceFlag bool
-	spriteSize      byte
+
+	bgrdOn         bool
+	spritesOn      bool
+	windowOn       bool
+	displayOn      bool
+	tileDataSelect bool
+	spriteSize     byte
 
 	bgTilemap     types.Word
 	windowTilemap types.Word
@@ -127,6 +127,11 @@ func (g *GPU) Step(t int) {
 			g.ly = 0
 		}
 	}
+
+	g.coincidenceFlag = false
+	if byte(g.ly) == g.lyc && (g.stat&0x40) == 0x40 {
+		g.coincidenceFlag = true
+	}
 }
 
 //Called from mmu
@@ -169,7 +174,6 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.bgrdOn = value&0x01 == 0x01    //bit 0
 		case STAT:
 			g.stat = value
-			g.coincidenceFlag = g.lyc == byte(g.ly)
 		case SCROLLY:
 			g.scrollY = value
 		case SCROLLX:
@@ -179,7 +183,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		case WY:
 			log.Println(PREFIX, "Writing to WY!")
 		case LYC:
-			//TODO:
+			g.lyc = value
 		case BGP:
 			g.bgp = value
 			g.palette[0] = int(value & 0x03)
@@ -202,6 +206,22 @@ func (g *GPU) Read(addr types.Word) byte {
 		case LCDC:
 			return g.lcdc
 		case STAT:
+			g.stat = 0x00
+			if g.coincidenceFlag {
+				g.stat ^= 0x44
+			}
+
+			switch g.mode {
+			case HBLANK:
+				g.stat &^= 0x33
+			case VBLANK:
+				g.stat ^= 0x11
+			case OAMREAD:
+				g.stat ^= 0x22
+			case VRAMREAD:
+				g.stat ^= 0x33
+			}
+
 			return g.stat
 		case SCROLLY:
 			return g.scrollY

@@ -1,5 +1,15 @@
 package utils
 
+import "fmt"
+
+func ByteToString(b byte) string {
+	var zeroes string
+	if b < 0x10 {
+		zeroes += "0"
+	}
+	return fmt.Sprintf("0x%s%X", zeroes, b)
+}
+
 //Joins two bytes together to form a 16 bit integer 
 func JoinBytes(hob, lob byte) uint16 {
 	return (uint16(hob) << 8) ^ uint16(lob)

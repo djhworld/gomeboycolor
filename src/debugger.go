@@ -202,7 +202,7 @@ func DumpMemory(gbc *GameboyColor, remaining ...string) {
 	}
 
 	printMemory := func(addr types.Word) {
-		fmt.Fprintf(b, "[%s] -> 0x%X ", addr, gbc.mmu.ReadByte(addr))
+		fmt.Fprintf(b, "[%s] -> 0x%X\n", addr, gbc.mmu.ReadByte(addr))
 		b.Flush()
 	}
 
@@ -210,10 +210,6 @@ func DumpMemory(gbc *GameboyColor, remaining ...string) {
 		printMemory(start)
 	} else {
 		for i := start; i < end; i++ {
-			if i%8 == 0 {
-				fmt.Fprintln(b)
-				b.Flush()
-			}
 			printMemory(i)
 		}
 		printMemory(end)

@@ -1402,31 +1402,26 @@ func (cpu *Z80) addWords(a, b types.Word) types.Word {
 //General subtraction function
 //side effect is flags are set on the cpu accordingly
 func (cpu *Z80) subBytes(a, b byte) byte {
-	var calculation byte = a - b
 
-	//set subtract flag
 	cpu.SetFlag(N)
 
-	//set zero flag if needed
+	if (int(a) & 0xF) < (int(b) & 0xF) {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	if (int(a) & 0xFF) < (int(b) & 0xFF) {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	var calculation byte = a - b
 	if calculation == 0x00 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
-
-		//Set Carry flag
-		if a < calculation {
-			cpu.SetFlag(C)
-		} else {
-			cpu.ResetFlag(C)
-		}
-
-	}
-
-	//Set half carry flag if needed
-	if (calculation^b^a)&0x10 == 0x10 {
-		cpu.SetFlag(H)
-	} else {
-		cpu.ResetFlag(H)
 	}
 
 	return calculation
@@ -1764,32 +1759,31 @@ func (cpu *Z80) LDSP_hl() {
 
 //LDHL SP, n
 func (cpu *Z80) LDHLSP_n() {
-	var n types.Word = types.Word(cpu.CurrentInstruction.Operands[0])
+	var n byte = cpu.CurrentInstruction.Operands[0]
 
-	var shouldCarry bool = false
 	var HL types.Word
 	if n > 127 {
 		HL = cpu.SP - types.Word(-n)
-		shouldCarry = HL > cpu.SP
 	} else {
 		HL = cpu.SP + types.Word(n)
-		shouldCarry = HL < cpu.SP
 	}
 
+	var check types.Word = types.Word(cpu.SP ^ types.Word(n) ^ ((cpu.SP + types.Word(n)) & 0xffff))
+
 	//set carry flag
-	if shouldCarry {
+	if (check & 0x100) == 0x100 {
 		cpu.SetFlag(C)
 	} else {
 		cpu.ResetFlag(C)
 	}
 
-	//set half-carry flag
-	if (HL^types.Word(n)^cpu.SP)&0x1000 == 0x1000 {
+	if (check & 0x10) == 0x10 {
 		cpu.SetFlag(H)
 	} else {
 		cpu.ResetFlag(H)
 	}
 
+	//reset flags
 	cpu.ResetFlag(Z)
 	cpu.ResetFlag(N)
 
@@ -1838,38 +1832,96 @@ func (cpu *Z80) AddA_n() {
 
 //ADDC A,r
 func (cpu *Z80) AddCA_r(r *byte) {
-	var carryFlag byte = 0
-
+	var carry int = 0
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		carry = 1
 	}
 
-	cpu.R.A = cpu.addBytes(cpu.R.A, *r+carryFlag)
+	cpu.ResetFlag(N)
+
+	if ((int(cpu.R.A) & 0xF) + (int(*r) & 0xF) + carry) > 0xF {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	if ((int(cpu.R.A) & 0xFF) + (int(*r) & 0xFF) + carry) > 0xFF {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.R.A += *r + byte(carry)
+
+	if cpu.R.A == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
 }
 
 //ADDC A,(HL)
 func (cpu *Z80) AddCA_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var value byte = cpu.ReadByte(HL)
-	var carryFlag byte = 0
+	var hlValue byte = cpu.ReadByte(HL)
 
+	var carry int = 0
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		carry = 1
 	}
 
-	cpu.R.A = cpu.addBytes(cpu.R.A, value+carryFlag)
+	cpu.ResetFlag(N)
+
+	if ((int(cpu.R.A) & 0xF) + (int(hlValue) & 0xF) + carry) > 0xF {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	if ((int(cpu.R.A) & 0xFF) + (int(hlValue) & 0xFF) + carry) > 0xFF {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.R.A += hlValue + byte(carry)
+
+	if cpu.R.A == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
 }
 
 //ADDC A,n
 func (cpu *Z80) AddCA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
-	var carryFlag byte = 0
-
+	var carry int = 0
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		carry = 1
 	}
 
-	cpu.R.A = cpu.addBytes(cpu.R.A, value+carryFlag)
+	cpu.ResetFlag(N)
+
+	if ((int(cpu.R.A) & 0xF) + (int(value) & 0xF) + carry) > 0xF {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	if ((int(cpu.R.A) & 0xFF) + (int(value) & 0xFF) + carry) > 0xFF {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.R.A += value + byte(carry)
+
+	if cpu.R.A == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
 }
 
 //SUB A,r
@@ -1893,38 +1945,105 @@ func (cpu *Z80) SubA_n() {
 
 //SBC A,r
 func (cpu *Z80) SubAC_r(r *byte) {
-	var carryFlag byte = 0
-
+	var un int = int(*r) & 0xff
+	var tmpa int = int(cpu.R.A) & 0xff
+	var ua int = int(cpu.R.A) & 0xff
+	ua -= un
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		ua -= 1
 	}
 
-	cpu.R.A = cpu.subBytes(cpu.R.A, *r+carryFlag)
+	if ua < 0 {
+		cpu.R.F = 0x50
+	} else {
+		cpu.R.F = 0x40
+	}
+	ua &= 0xff
+	if ua == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if ((ua ^ un ^ tmpa) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	cpu.R.A = byte(ua)
 }
 
 //SBC A, (HL)
 func (cpu *Z80) SubAC_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
-	var carryFlag byte = 0
+
+	var un int = int(value) & 0xff
+	var tmpa int = int(cpu.R.A) & 0xff
+	var ua int = int(cpu.R.A) & 0xff
+
+	ua -= un
 
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		ua -= 1
 	}
 
-	cpu.R.A = cpu.subBytes(cpu.R.A, value+carryFlag)
+	if ua < 0 {
+		cpu.R.F = 0x50
+	} else {
+		cpu.R.F = 0x40
+	}
+
+	ua &= 0xff
+	if ua == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if ((ua ^ un ^ tmpa) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	cpu.R.A = byte(ua)
 }
 
 //SBC A, n
 func (cpu *Z80) SubAC_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
-	var carryFlag byte = 0
+	var un int = int(value) & 0xff
+	var tmpa int = int(cpu.R.A) & 0xff
+	var ua int = int(cpu.R.A) & 0xff
+
+	ua -= un
 
 	if cpu.IsFlagSet(C) {
-		carryFlag = 1
+		ua -= 1
 	}
 
-	cpu.R.A = cpu.subBytes(cpu.R.A, value+carryFlag)
+	if ua < 0 {
+		cpu.R.F = 0x50
+	} else {
+		cpu.R.F = 0x40
+	}
+
+	ua &= 0xff
+	if ua == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if ((ua ^ un ^ tmpa) & 0x10) == 0x10 {
+		cpu.SetFlag(H)
+	} else {
+		cpu.ResetFlag(H)
+	}
+
+	cpu.R.A = byte(ua)
 }
 
 //AND A, r
@@ -2447,8 +2566,6 @@ func (cpu *Z80) Rrc_hl() {
 	cpu.mmu.WriteByte(hlAddr, calculation)
 }
 
-
-
 //RR r
 func (cpu *Z80) Rr_r(r *byte) {
 	var bit0 bool = false
@@ -2573,7 +2690,7 @@ func (cpu *Z80) Bitb_hl(b byte) {
 
 // SET b, r
 func (cpu *Z80) Setb_r(b byte, r *byte) {
-	cpu.setBit(b, *r)
+	*r = cpu.setBit(b, *r)
 }
 
 // SET b, (HL)
@@ -2587,7 +2704,7 @@ func (cpu *Z80) Setb_hl(b byte) {
 
 // RES b, r
 func (cpu *Z80) Resb_r(b byte, r *byte) {
-	cpu.resetBit(b, *r)
+	*r = cpu.resetBit(b, *r)
 }
 
 // RES b, (HL)
@@ -2610,8 +2727,8 @@ func (cpu *Z80) JP_nn() {
 //JP (HL)
 func (cpu *Z80) JP_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	var addr types.Word = cpu.ReadWord(HL)
-	cpu.PC = addr
+	//	var addr types.Word = cpu.ReadWord(HL)
+	cpu.PC = HL
 	cpu.PCJumped = true
 }
 

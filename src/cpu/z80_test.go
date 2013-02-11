@@ -7,6 +7,7 @@
  */
 package cpu
 
+/*
 import (
 	"cartridge"
 	"github.com/stretchrcom/testify/assert"
@@ -2533,3 +2534,4 @@ func (m *MockMMU) LoadBIOS(data []byte) (bool, error) {
 
 func (m *MockMMU) LoadCartridge(cart *cartridge.Cartridge) {
 }
+*/
