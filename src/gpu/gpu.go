@@ -1,9 +1,11 @@
 package gpu
 
 import (
+	"fmt"
 	"inputoutput"
 	"log"
 	"types"
+	"utils"
 )
 
 const NAME = "GPU"
@@ -22,6 +24,8 @@ const SCROLLX types.Word = 0xFF43
 const LY types.Word = 0xFF44
 const LYC types.Word = 0xFF45
 const BGP types.Word = 0xFF47
+const OBJECTPALETTE_0 types.Word = 0xFF48
+const OBJECTPALETTE_1 types.Word = 0xFF49
 const WX types.Word = 0xFF4B
 const WY types.Word = 0xFF4A
 
@@ -39,6 +43,21 @@ type RGBA struct {
 
 type RawTile [16]byte
 type Tile [8][8]int
+type Palette [4]int
+
+type Sprite struct {
+	Y                      byte
+	X                      byte
+	TileID                 byte
+	SpriteHasPriority      bool
+	ShouldFlipVertically   bool
+	ShouldFlipHorizontally bool
+	PaletteSelected        int
+}
+
+func (s Sprite) String() string {
+	return fmt.Sprintf("[Y: %s | X: %s | Pattern: %s | Sprite has priority? %v | Flip sprite vertically? %v | Flip sprite horizontally? %v | Palette no: %d]", utils.ByteToString(s.Y), utils.ByteToString(s.X), utils.ByteToString(s.TileID), s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
+}
 
 type GPU struct {
 	screenData [144][160]int
@@ -55,6 +74,8 @@ type GPU struct {
 	scrollY         byte
 	scrollX         byte
 	bgp             byte
+	obp0            byte
+	obp1            byte
 	coincidenceFlag bool
 
 	bgrdOn         bool
@@ -68,8 +89,10 @@ type GPU struct {
 	windowTilemap types.Word
 	rawTiledata   [384]RawTile
 	tiledata      [384]Tile
+	sprites       [40]Sprite
 
-	palette [4]int
+	bgPalette      Palette
+	objectPalettes [2]Palette
 }
 
 func NewGPU() *GPU {
@@ -142,6 +165,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		g.UpdateTile(addr, value)
 	case addr >= 0xFE00 && addr <= 0xFE9F:
 		g.oamRam[addr&0x009F] = value
+		g.UpdateSprite(addr, value)
 	default:
 		switch addr {
 		case LCDC:
@@ -186,10 +210,13 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.lyc = value
 		case BGP:
 			g.bgp = value
-			g.palette[0] = int(value & 0x03)
-			g.palette[1] = int((value >> 2) & 0x03)
-			g.palette[2] = int((value >> 4) & 0x03)
-			g.palette[3] = int((value >> 6) & 0x03)
+			g.bgPalette = byteToPalette(value)
+		case OBJECTPALETTE_0:
+			g.obp0 = value
+			g.objectPalettes[0] = byteToPalette(value)
+		case OBJECTPALETTE_1:
+			g.obp1 = value
+			g.objectPalettes[1] = byteToPalette(value)
 		}
 	}
 }
@@ -233,12 +260,54 @@ func (g *GPU) Read(addr types.Word) byte {
 			return g.lyc
 		case BGP:
 			return g.bgp
+		case OBJECTPALETTE_0:
+			return g.obp0
+		case OBJECTPALETTE_1:
+			return g.obp1
 		default:
 			log.Printf(PREFIX+" WARNING: register address %s unknown", addr)
 			return 0x00
 		}
 	}
 	return 0x00
+}
+
+func (g *GPU) UpdateSprite(addr types.Word, value byte) {
+	var spriteId types.Word = (addr & 0x00FF) / 4
+	var spriteAttrId int = int(addr % 4)
+	switch spriteAttrId {
+	case 0:
+		g.sprites[spriteId].Y = value
+	case 1:
+		g.sprites[spriteId].X = value
+	case 2:
+		g.sprites[spriteId].TileID = value
+	case 3:
+		if (value & 0x80) == 0x80 {
+			g.sprites[spriteId].SpriteHasPriority = true
+		} else {
+			g.sprites[spriteId].SpriteHasPriority = false
+		}
+
+		if (value & 0x40) == 0x40 {
+			g.sprites[spriteId].ShouldFlipVertically = true
+		} else {
+			g.sprites[spriteId].ShouldFlipVertically = false
+		}
+
+		if (value & 0x20) == 0x20 {
+			g.sprites[spriteId].ShouldFlipHorizontally = true
+		} else {
+			g.sprites[spriteId].ShouldFlipHorizontally = false
+		}
+
+		if (value & 0x10) == 0x10 {
+			g.sprites[spriteId].PaletteSelected = 1
+		} else {
+			g.sprites[spriteId].PaletteSelected = 0
+		}
+	}
+	log.Println("Updated sprite:", g.sprites[spriteId])
 }
 
 //Update the tile at address with value
@@ -276,8 +345,8 @@ func (g *GPU) RenderLine() {
 
 	for x := 0; x < DISPLAY_WIDTH; x++ {
 
-		//draw the pixel to the screenData data buffer (running through the palette)
-		g.screenData[g.ly][x] = g.palette[g.tiledata[tileId][tileY][tileX]]
+		//draw the pixel to the screenData data buffer (running through the bgPalette)
+		g.screenData[g.ly][x] = g.bgPalette[g.tiledata[tileId][tileY][tileX]]
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -292,4 +361,13 @@ func (g *GPU) RenderLine() {
 
 func (g *GPU) DumpScreen() [144][160]int {
 	return g.screenData
+}
+
+func byteToPalette(b byte) Palette {
+	var palette [4]int
+	palette[0] = int(b & 0x03)
+	palette[1] = int((b >> 2) & 0x03)
+	palette[2] = int((b >> 4) & 0x03)
+	palette[3] = int((b >> 6) & 0x03)
+	return palette
 }

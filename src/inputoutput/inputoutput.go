@@ -67,28 +67,20 @@ func (k *KeyHandler) Write(addr types.Word, value byte) {
 func (k *KeyHandler) KeyDown(key int) {
 	switch key {
 	case k.controlScheme.UP:
-		log.Println("UP")
 		k.rows[0] &= 0xB
 	case k.controlScheme.DOWN:
-		log.Println("DOWN")
 		k.rows[0] &= 0x7
 	case k.controlScheme.LEFT:
-		log.Println("LEFT")
 		k.rows[0] &= 0xD
 	case k.controlScheme.RIGHT:
-		log.Println("RIGHT")
 		k.rows[0] &= 0xE
 	case k.controlScheme.A:
-		log.Println("A")
 		k.rows[1] &= 0xE
 	case k.controlScheme.B:
-		log.Println("B")
 		k.rows[1] &= 0xD
 	case k.controlScheme.START:
-		log.Println("START")
 		k.rows[1] &= 0x7
 	case k.controlScheme.SELECT:
-		log.Println("SELECT")
 		k.rows[1] &= 0xB
 	}
 }
@@ -97,28 +89,20 @@ func (k *KeyHandler) KeyDown(key int) {
 func (k *KeyHandler) KeyUp(key int) {
 	switch key {
 	case k.controlScheme.UP:
-		log.Println("-UP")
 		k.rows[0] |= 0x4
 	case k.controlScheme.DOWN:
-		log.Println("-DOWN")
 		k.rows[0] |= 0x8
 	case k.controlScheme.LEFT:
-		log.Println("-LEFT")
 		k.rows[0] |= 0x2
 	case k.controlScheme.RIGHT:
-		log.Println("-RIGHT")
 		k.rows[0] |= 0x1
 	case k.controlScheme.A:
-		log.Println("-A")
 		k.rows[1] |= 0x1
 	case k.controlScheme.B:
-		log.Println("-B")
 		k.rows[1] |= 0x2
 	case k.controlScheme.START:
-		log.Println("-START")
 		k.rows[1] |= 0x8
 	case k.controlScheme.SELECT:
-		log.Println("-SELECT")
 		k.rows[1] |= 0x4
 	}
 }
