@@ -34,7 +34,7 @@ const VBLANK byte = 0x01
 const OAMREAD byte = 0x02
 const VRAMREAD byte = 0x03
 
-type RGBA struct {
+type RGB struct {
 	red   byte
 	green byte
 	blue  byte
@@ -46,8 +46,8 @@ type Tile [8][8]int
 type Palette [4]int
 
 type Sprite struct {
-	Y                      byte
-	X                      byte
+	Y                      int
+	X                      int
 	TileID                 byte
 	SpriteHasPriority      bool
 	ShouldFlipVertically   bool
@@ -56,7 +56,7 @@ type Sprite struct {
 }
 
 func (s Sprite) String() string {
-	return fmt.Sprintf("[Y: %s | X: %s | Pattern: %s | Sprite has priority? %v | Flip sprite vertically? %v | Flip sprite horizontally? %v | Palette no: %d]", utils.ByteToString(s.Y), utils.ByteToString(s.X), utils.ByteToString(s.TileID), s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
+	return fmt.Sprintf("[Y: %d | X: %d | Pattern: %s | Sprite has priority? %v | Flip sprite vertically? %v | Flip sprite horizontally? %v | Palette no: %d]", s.Y, s.X, utils.ByteToString(s.TileID), s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
 }
 
 type GPU struct {
@@ -145,6 +145,9 @@ func (g *GPU) Step(t int) {
 			}
 		} else {
 			//vblank is over, draw to screen
+			if g.spritesOn {
+				g.RenderSprites()
+			}
 			g.screen.DrawFrame(&g.screenData)
 			g.clock = 0
 			g.ly = 0
@@ -277,9 +280,9 @@ func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 	var spriteAttrId int = int(addr % 4)
 	switch spriteAttrId {
 	case 0:
-		g.sprites[spriteId].Y = value
+		g.sprites[spriteId].Y = int(value)
 	case 1:
-		g.sprites[spriteId].X = value
+		g.sprites[spriteId].X = int(value)
 	case 2:
 		g.sprites[spriteId].TileID = value
 	case 3:
@@ -307,7 +310,6 @@ func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 			g.sprites[spriteId].PaletteSelected = 0
 		}
 	}
-	log.Println("Updated sprite:", g.sprites[spriteId])
 }
 
 //Update the tile at address with value
@@ -355,6 +357,23 @@ func (g *GPU) RenderLine() {
 			lineoffset = (lineoffset + 1) % 32
 			//get next tile in line
 			tileId = g.Read(types.Word(mapoffset + lineoffset))
+		}
+	}
+}
+
+func (g *GPU) RenderSprites() {
+	for _, sprite := range g.sprites {
+		if sprite.X != 0x00 && sprite.Y != 0x00 {
+			tile := g.tiledata[sprite.TileID]
+			for y := 0; y < 8; y++ {
+				for x := 0; x < 8; x++ {
+					sx, sy := sprite.X-8, sprite.Y-16
+					tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[x][y]]
+					if tilecolor != 0 {
+						g.screenData[y+sy][x+sx] = tilecolor
+					}
+				}
+			}
 		}
 	}
 }
