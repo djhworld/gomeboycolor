@@ -2,6 +2,13 @@ package types
 
 import "fmt"
 
+
+type RGB struct {
+	Red   byte
+	Green byte
+	Blue  byte
+}
+
 type Register byte
 type Word uint16
 type Words []Word

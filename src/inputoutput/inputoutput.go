@@ -109,7 +109,7 @@ func (k *KeyHandler) KeyUp(key int) {
 
 //Clients just need to talk to the interface to draw frames. Screen data is a pointer for performance reasons
 type Screen interface {
-	DrawFrame(screenData *[144][160]int)
+	DrawFrame(screenData *[144][160]types.RGB)
 }
 
 type IO struct {
@@ -189,24 +189,15 @@ func (s *Display) init(title string) error {
 
 }
 
-func (s *Display) DrawFrame(screenData *[144][160]int) {
+func (s *Display) DrawFrame(screenData *[144][160]types.RGB) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.Enable(gl.POINT_SMOOTH)
 	gl.PointSize(1)
 	gl.Begin(gl.POINTS)
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {
-			switch screenData[y][x] {
-			case 0:
-				gl.Color3ub(235, 235, 235)
-			case 1:
-				gl.Color3ub(196, 196, 196)
-			case 2:
-				gl.Color3ub(96, 96, 96)
-			case 3:
-				gl.Color3ub(0, 0, 0)
-			}
-
+			var pixel types.RGB = screenData[y][x]
+			gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
 			gl.Vertex2i(x, y)
 		}
 	}

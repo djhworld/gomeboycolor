@@ -34,16 +34,16 @@ const VBLANK byte = 0x01
 const OAMREAD byte = 0x02
 const VRAMREAD byte = 0x03
 
-type RGB struct {
-	red   byte
-	green byte
-	blue  byte
-	alpha byte
+var GBColours []types.RGB = []types.RGB{
+	types.RGB{235, 235, 235},
+	types.RGB{196, 196, 196},
+	types.RGB{96, 96, 96},
+	types.RGB{0, 0, 0},
 }
 
 type RawTile [16]byte
 type Tile [8][8]int
-type Palette [4]int
+type Palette [4]types.RGB
 
 type Sprite struct {
 	Y                      int
@@ -60,7 +60,7 @@ func (s Sprite) String() string {
 }
 
 type GPU struct {
-	screenData [144][160]int
+	screenData [144][160]types.RGB
 	screen     inputoutput.Screen
 	vram       [8192]byte
 	oamRam     [160]byte
@@ -112,7 +112,7 @@ func (g *GPU) Name() string {
 
 func (g *GPU) Reset() {
 	g.Write(LCDC, 0x00)
-	g.screenData = *new([144][160]int)
+	g.screenData = *new([144][160]types.RGB)
 	g.mode = 0
 	g.ly = 0
 	g.clock = 0
@@ -213,13 +213,13 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.lyc = value
 		case BGP:
 			g.bgp = value
-			g.bgPalette = byteToPalette(value)
+			g.bgPalette = g.byteToPalette(value)
 		case OBJECTPALETTE_0:
 			g.obp0 = value
-			g.objectPalettes[0] = byteToPalette(value)
+			g.objectPalettes[0] = g.byteToPalette(value)
 		case OBJECTPALETTE_1:
 			g.obp1 = value
-			g.objectPalettes[1] = byteToPalette(value)
+			g.objectPalettes[1] = g.byteToPalette(value)
 		}
 	}
 }
@@ -348,7 +348,8 @@ func (g *GPU) RenderLine() {
 	for x := 0; x < DISPLAY_WIDTH; x++ {
 
 		//draw the pixel to the screenData data buffer (running through the bgPalette)
-		g.screenData[g.ly][x] = g.bgPalette[g.tiledata[tileId][tileY][tileX]]
+		color := g.bgPalette[g.tiledata[tileId][tileY][tileX]]
+		g.screenData[g.ly][x] = color
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -361,15 +362,17 @@ func (g *GPU) RenderLine() {
 	}
 }
 
+//TODO: Sprite precedence rules
+//TODO: 8x16 sprites
 func (g *GPU) RenderSprites() {
 	for _, sprite := range g.sprites {
 		if sprite.X != 0x00 && sprite.Y != 0x00 {
 			tile := g.tiledata[sprite.TileID]
 			for y := 0; y < 8; y++ {
 				for x := 0; x < 8; x++ {
-					sx, sy := sprite.X-8, sprite.Y-16
-					tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[x][y]]
-					if tilecolor != 0 {
+					if tile[x][y] != 0 {
+						sx, sy := sprite.X-8, sprite.Y-16
+						tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[x][y]]
 						g.screenData[y+sy][x+sx] = tilecolor
 					}
 				}
@@ -378,15 +381,11 @@ func (g *GPU) RenderSprites() {
 	}
 }
 
-func (g *GPU) DumpScreen() [144][160]int {
-	return g.screenData
-}
-
-func byteToPalette(b byte) Palette {
-	var palette [4]int
-	palette[0] = int(b & 0x03)
-	palette[1] = int((b >> 2) & 0x03)
-	palette[2] = int((b >> 4) & 0x03)
-	palette[3] = int((b >> 6) & 0x03)
+func (g *GPU) byteToPalette(b byte) Palette {
+	var palette Palette
+	palette[0] = GBColours[int(b&0x03)]
+	palette[1] = GBColours[int((b>>2)&0x03)]
+	palette[2] = GBColours[int((b>>4)&0x03)]
+	palette[3] = GBColours[(int(b>>6) & 0x03)]
 	return palette
 }
