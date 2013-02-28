@@ -35,13 +35,18 @@ type KeyHandler struct {
 func NewKeyHandler(cs ControlScheme) *KeyHandler {
 	var kh *KeyHandler = new(KeyHandler)
 	kh.controlScheme = cs
-	kh.rows[0], kh.rows[1] = 0x0F, 0x0F
-	kh.colSelect = 0x00
+	kh.Reset()
 	return kh
 }
 
 func (k *KeyHandler) Name() string {
 	return PREFIX
+}
+
+func (k *KeyHandler) Reset() {
+	log.Println("Resetting", k.Name())
+	k.rows[0], k.rows[1] = 0x0F, 0x0F
+	k.colSelect = 0x00
 }
 
 func (k *KeyHandler) Read(addr types.Word) byte {
@@ -161,6 +166,7 @@ func (s *Display) init(title string) error {
 	log.Println(PREFIX, "Initialising display")
 	var err error
 
+	glfw.OpenWindowHint(glfw.WindowNoResize, 1)
 	err = glfw.OpenWindow(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0, 0, 0, 0, glfw.Windowed)
 	if err != nil {
 		return err
@@ -181,7 +187,7 @@ func (s *Display) init(title string) error {
 	}
 
 	glfw.SetWindowSizeCallback(onResize)
-	glfw.SetWindowPos(1000, 400)
+	glfw.SetWindowPos(100, 400)
 
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 

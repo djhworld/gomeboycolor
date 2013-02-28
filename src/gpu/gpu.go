@@ -73,6 +73,8 @@ type GPU struct {
 	stat            byte
 	scrollY         byte
 	scrollX         byte
+	windowX         byte
+	windowY         byte
 	bgp             byte
 	obp0            byte
 	obp1            byte
@@ -111,6 +113,7 @@ func (g *GPU) Name() string {
 }
 
 func (g *GPU) Reset() {
+	log.Println("Resetting", g.Name())
 	g.Write(LCDC, 0x00)
 	g.screenData = *new([144][160]types.RGB)
 	g.mode = 0
@@ -135,7 +138,6 @@ func (g *GPU) Step(t int) {
 		}
 	} else {
 		g.mode = VBLANK
-		g.Write(LCDC, g.lcdc^0x80)
 
 		//for each step revert back 10 lines
 		if g.ly < 154 {
@@ -206,9 +208,9 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		case SCROLLX:
 			g.scrollX = value
 		case WX:
-			log.Println(PREFIX, "Writing to WX!")
+			g.windowX = value
 		case WY:
-			log.Println(PREFIX, "Writing to WY!")
+			g.windowY = value
 		case LYC:
 			g.lyc = value
 		case BGP:
@@ -267,6 +269,10 @@ func (g *GPU) Read(addr types.Word) byte {
 			return g.obp0
 		case OBJECTPALETTE_1:
 			return g.obp1
+		case WX:
+			return g.windowX
+		case WY:
+			return g.windowY
 		default:
 			log.Printf(PREFIX+" WARNING: register address %s unknown", addr)
 			return 0x00

@@ -33,6 +33,8 @@ type GbcMMU struct {
 	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFE
 	inBootMode        bool
 	dmgStatusRegister byte
+	interruptsEnabled byte
+	interruptsFlag    byte
 	peripheralIOMap   map[types.Word]Peripheral
 }
 
@@ -44,7 +46,9 @@ func NewGbcMMU() *GbcMMU {
 }
 
 func (mmu *GbcMMU) Reset() {
+	log.Println("Resetting", PREFIX)
 	mmu.inBootMode = true
+	mmu.interruptsFlag = 0x00
 }
 
 //TODO: NEED TO HANDLE WRITES TO ROM SPACE SO CAN CALCULATE ROM BANKS ETC
@@ -60,7 +64,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 
 	switch {
 	case addr >= 0x0000 && addr <= 0x9FFF:
-		log.Printf("Attempted to write value %X to %s, hmmmm", value, addr)
+		log.Printf("%s: Attempted to write value %X to %s, hmmmm", PREFIX, value, addr)
 		return
 	//Cartridge External RAM
 	case addr >= 0xA000 && addr <= 0xBFFF:
@@ -79,13 +83,17 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		}
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
-		log.Printf("Attempting to write %X to interrupt flag, this is currently unimplemented", value)
+		mmu.interruptsFlag = value
 	//DMG flag
 	case addr == 0xFF50:
 		mmu.dmgStatusRegister = value
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
-		mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
+		if addr == 0xFFFF {
+			mmu.interruptsEnabled = value
+		} else {
+			mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
+		}
 	default:
 		log.Printf("%s: WARNING - Attempting to write 0x%X to address %s, this is invalid/unimplemented", PREFIX, value, addr)
 	}
@@ -132,13 +140,17 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.internalRAMShadow[addr&(0xFDFF-0xE000)]
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
-		log.Printf("Attempting to read from interrupt flag, this is currently unimplemented")
+		return mmu.interruptsFlag
 	//DMG FLAG
 	case addr == 0xFF50:
 		return mmu.dmgStatusRegister
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
-		return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
+		if addr == 0xFFFF {
+			return mmu.interruptsEnabled
+		} else {
+			return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
+		}
 	default:
 		log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
 	}

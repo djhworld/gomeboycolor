@@ -9,7 +9,8 @@ import (
 	"utils"
 )
 
-const PREFIX = "CPU:"
+const NAME = "CPU"
+const PREFIX = NAME + ":"
 
 //flags
 const (
@@ -22,6 +23,7 @@ const (
 
 //hz
 const CLOCK_RATE int = 4194304
+const V_BLANK_INT byte = 0x40
 
 type Registers struct {
 	A byte
@@ -68,12 +70,12 @@ type Z80 struct {
 	R                  Registers
 	Running            bool
 	InterruptsEnabled  bool
+	DoInterruptOnNext  bool
 	CurrentInstruction Instruction
 	MachineCycles      Clock
 	LastInstrCycle     Clock
 	mmu                mmu.MemoryMappedUnit
 	PCJumped           bool
-	DebugEnabled       bool
 }
 
 func NewCPU() *Z80 {
@@ -95,6 +97,7 @@ func (cpu *Z80) Validate() error {
 }
 
 func (cpu *Z80) Reset() {
+	log.Println("Resetting", NAME)
 	cpu.PC = 0
 	cpu.SP = 0
 	cpu.R.A = 0
@@ -107,11 +110,11 @@ func (cpu *Z80) Reset() {
 	cpu.R.L = 0
 	cpu.CurrentInstruction, _ = cpu.Decode(0x00)
 	cpu.InterruptsEnabled = true
+	cpu.DoInterruptOnNext = false
 	cpu.Running = true
 	cpu.MachineCycles.Reset()
 	cpu.LastInstrCycle.Reset()
 	cpu.PCJumped = false
-	cpu.DebugEnabled = false
 }
 
 func (cpu *Z80) FlagsString() string {
@@ -1246,8 +1249,26 @@ func (cpu *Z80) Step() int {
 		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
 		cpu.Dispatch(Opcode)
 	}
-	if cpu.DebugEnabled {
-		fmt.Println(cpu)
+
+	if cpu.InterruptsEnabled {
+		if ie, iflag := cpu.mmu.ReadByte(0xFFFF), cpu.mmu.ReadByte(0xFF0F); ie != 0 && iflag != 0 {
+			if cpu.DoInterruptOnNext == false {
+				cpu.DoInterruptOnNext = true
+			} else {
+				log.Println("Doing interrupt")
+				var interrupt byte = ie & iflag
+				switch interrupt {
+				case 0x01:
+					cpu.mmu.WriteByte(0xFF0F, iflag&0xFE)
+					cpu.InterruptsEnabled = false
+					cpu.DoInterruptOnNext = false
+					cpu.Rst(V_BLANK_INT)
+					cpu.LastInstrCycle.M += 3
+				default:
+					log.Println("Interrupt", utils.ByteToString(interrupt), "not implemented")
+				}
+			}
+		}
 	}
 
 	//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
@@ -1296,8 +1317,9 @@ func (cpu *Z80) pushByteToStack(b byte) {
 }
 
 func (cpu *Z80) pushWordToStack(word types.Word) {
-	cpu.SP -= 2
-	cpu.WriteWord(cpu.SP, word)
+	hs, ls := utils.SplitIntoBytes(uint16(word))
+	cpu.pushByteToStack(hs)
+	cpu.pushByteToStack(ls)
 }
 
 func (cpu *Z80) popByteFromStack() byte {
@@ -1307,9 +1329,10 @@ func (cpu *Z80) popByteFromStack() byte {
 }
 
 func (cpu *Z80) popWordFromStack() types.Word {
-	var w types.Word = cpu.ReadWord(cpu.SP)
-	cpu.SP += 2
-	return w
+	ls := cpu.popByteFromStack()
+	hs := cpu.popByteFromStack()
+
+	return types.Word(utils.JoinBytes(hs, ls))
 }
 
 func (cpu *Z80) ReadByte(addr types.Word) byte {
@@ -1590,7 +1613,7 @@ func (cpu *Z80) HALT() {
 //STOP
 func (cpu *Z80) Stop() {
 	//TODO: Unimplemented
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	log.Println(cpu.PC, cpu.CurrentInstruction, "Stopping..")
 }
 
 //DI
@@ -1793,19 +1816,14 @@ func (cpu *Z80) LDHLSP_n() {
 //PUSH nn
 //Push register pair nn onto the stack and decrement the SP twice
 func (cpu *Z80) Push_nn(r1, r2 *byte) {
-	cpu.SP--
-	cpu.WriteByte(cpu.SP, *r1)
-	cpu.SP--
-	cpu.WriteByte(cpu.SP, *r2)
+	word := types.Word(utils.JoinBytes(*r1, *r2))
+	cpu.pushWordToStack(word)
 }
 
 //POP nn 
 //Pop the stack twice onto register pair nn 
 func (cpu *Z80) Pop_nn(r1, r2 *byte) {
-	*r2 = cpu.ReadByte(cpu.SP)
-	cpu.SP++
-	*r1 = cpu.ReadByte(cpu.SP)
-	cpu.SP++
+	*r1, *r2 = utils.SplitIntoBytes(uint16(cpu.popWordFromStack()))
 }
 
 //ADD A,r
@@ -2827,14 +2845,13 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 // RETI 
 func (cpu *Z80) Ret_i() {
 	cpu.PC = cpu.popWordFromStack()
-	cpu.PCJumped = true
-
 	cpu.InterruptsEnabled = true
+	cpu.PCJumped = true
 }
 
 // RST n
 func (cpu *Z80) Rst(n byte) {
-	cpu.pushWordToStack(cpu.PC)
+	cpu.pushWordToStack(cpu.PC + 1)
 	cpu.PC = 0x0000 + types.Word(n)
 	cpu.PCJumped = true
 }

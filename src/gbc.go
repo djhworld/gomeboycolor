@@ -1,6 +1,7 @@
 package main
 
 import (
+	"apu"
 	"bufio"
 	"cartridge"
 	"cpu"
@@ -12,10 +13,14 @@ import (
 	"mmu"
 	"os"
 	"strings"
+	"types"
+	"utils"
 )
 
-var debug *bool = flag.Bool("debug", false, "Enter debug mode")
-var pauseWhen *DebugRuleEngine
+var printState *bool = flag.Bool("dump", false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
+var skipBoot *bool = flag.Bool("noboot", false, "Skip boot sequence")
+var debug *bool = flag.Bool("d", false, "Enable debugger")
+var breakOn *string = flag.String("b", "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
 
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
@@ -27,6 +32,7 @@ type GameboyColor struct {
 	cpu          *cpu.Z80
 	mmu          *mmu.GbcMMU
 	io           *inputoutput.IO
+	apu          *apu.APU
 	debugOptions *DebugOptions
 	cpuClockAcc  int
 	frameCount   int
@@ -43,11 +49,14 @@ func NewGBC() *GameboyColor {
 
 	gbc.io = inputoutput.NewIO(inputoutput.DefaultControlScheme)
 	gbc.gpu = gpu.NewGPU()
+	gbc.apu = apu.NewAPU()
+
 	gbc.gpu.LinkScreen(gbc.io.Display)
 
+	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF49)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF4B)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
 	gbc.mmu.ConnectPeripheral(gbc.io.KeyHandler, 0xFF00, 0xFF00)
 
@@ -56,21 +65,13 @@ func NewGBC() *GameboyColor {
 
 func (gbc *GameboyColor) DoFrame() {
 	for gbc.cpuClockAcc < FRAME_CYCLES {
-		if gbc.debugOptions.debuggerOn {
-			var shouldPause bool = true
-			for _, rule := range gbc.debugOptions.ruleEngine.DebugRuleChain {
-				if !rule.ruleFunction(gbc) {
-					shouldPause = false
-					break
-				}
-			}
-
-			if shouldPause {
-				log.Printf("Breaking as the following rules were satisfied: - %s", gbc.debugOptions.ruleEngine)
-				gbc.Pause()
-			}
+		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
+			gbc.Pause()
 		}
 
+		if *printState {
+			fmt.Println(gbc.cpu)
+		}
 		gbc.Step()
 	}
 }
@@ -101,11 +102,9 @@ func (gbc *GameboyColor) Run() {
 }
 
 func main() {
+	flag.Parse()
 	log.Println(TITLE, VERSION)
 	log.Println(strings.Repeat("*", 80))
-	pauseWhen = NewDebugRuleEngine()
-	flag.Var(pauseWhen, "pauseWhen", "Defines the breakpoint rules for when the emulator should break execution")
-	flag.Parse()
 
 	if flag.NArg() != 1 {
 		log.Fatalf("Please specify the location of a ROM to boot")
@@ -131,19 +130,20 @@ func main() {
 	}
 
 	gbc.mmu.LoadCartridge(cart)
-	gbc.inBootMode = true
 	gbc.debugOptions = new(DebugOptions)
 	gbc.debugOptions.Init()
 
 	if *debug {
 		log.Println("Emulator will start in debug mode")
-		gbc.cpu.DebugEnabled = true
-	}
-
-	if len((*pauseWhen).DebugRuleChain) != 0 {
-		log.Printf("---> Will break execution when the following rules are satisfied:- %s", pauseWhen)
 		gbc.debugOptions.debuggerOn = true
-		gbc.debugOptions.ruleEngine = pauseWhen
+
+		//set breakpoint if defined
+		if b, err := utils.StringToWord(*breakOn); err != nil {
+			log.Fatalln("Cannot parse breakpoint:", *breakOn, "\n\t", err)
+		} else {
+			gbc.debugOptions.breakWhen = types.Word(b)
+			log.Println("Emulator will break into debugger when PC = ", gbc.debugOptions.breakWhen)
+		}
 	}
 
 	screenInitErr := gbc.io.Init(TITLE, onClose)
@@ -151,10 +151,74 @@ func main() {
 		log.Fatalf("%v", screenInitErr)
 	}
 
+	gbc.setupBoot()
+
 	log.Println("Completed setup")
 	log.Println(strings.Repeat("*", 80))
 
 	gbc.Run()
+}
+
+func (gbc *GameboyColor) setupBoot() {
+	if *skipBoot {
+		log.Println("Boot sequence disabled")
+		gbc.setupWithoutBoot()
+	} else {
+		log.Println("Boot sequence enabled")
+		gbc.setupWithBoot()
+	}
+}
+
+func (gbc *GameboyColor) setupWithBoot() {
+	gbc.inBootMode = true
+	gbc.mmu.WriteByte(0xFF50, 0x00)
+}
+
+func (gbc *GameboyColor) setupWithoutBoot() {
+	gbc.inBootMode = false
+	gbc.mmu.SetInBootMode(false)
+	gbc.cpu.PC = 0x100
+	gbc.cpu.R.A = 0x11
+	gbc.cpu.R.F = 0xB0
+	gbc.cpu.R.B = 0x00
+	gbc.cpu.R.C = 0x13
+	gbc.cpu.R.D = 0x00
+	gbc.cpu.R.E = 0xD8
+	gbc.cpu.R.H = 0x01
+	gbc.cpu.R.L = 0x4D
+	gbc.cpu.SP = 0xFFFE
+	gbc.mmu.WriteByte(0xFF05, 0x00)
+	gbc.mmu.WriteByte(0xFF06, 0x00)
+	gbc.mmu.WriteByte(0xFF07, 0x00)
+	gbc.mmu.WriteByte(0xFF10, 0x80)
+	gbc.mmu.WriteByte(0xFF11, 0xBF)
+	gbc.mmu.WriteByte(0xFF12, 0xF3)
+	gbc.mmu.WriteByte(0xFF14, 0xBF)
+	gbc.mmu.WriteByte(0xFF16, 0x3F)
+	gbc.mmu.WriteByte(0xFF17, 0x00)
+	gbc.mmu.WriteByte(0xFF19, 0xBF)
+	gbc.mmu.WriteByte(0xFF1A, 0x7F)
+	gbc.mmu.WriteByte(0xFF1B, 0xFF)
+	gbc.mmu.WriteByte(0xFF1C, 0x9F)
+	gbc.mmu.WriteByte(0xFF1E, 0xBF)
+	gbc.mmu.WriteByte(0xFF20, 0xFF)
+	gbc.mmu.WriteByte(0xFF21, 0x00)
+	gbc.mmu.WriteByte(0xFF22, 0x00)
+	gbc.mmu.WriteByte(0xFF23, 0xBF)
+	gbc.mmu.WriteByte(0xFF24, 0x77)
+	gbc.mmu.WriteByte(0xFF25, 0xF3)
+	gbc.mmu.WriteByte(0xFF26, 0xF1)
+	gbc.mmu.WriteByte(0xFF40, 0x91)
+	gbc.mmu.WriteByte(0xFF42, 0x00)
+	gbc.mmu.WriteByte(0xFF43, 0x00)
+	gbc.mmu.WriteByte(0xFF45, 0x00)
+	gbc.mmu.WriteByte(0xFF47, 0xFC)
+	gbc.mmu.WriteByte(0xFF48, 0xFF)
+	gbc.mmu.WriteByte(0xFF49, 0xFF)
+	gbc.mmu.WriteByte(0xFF4A, 0x00)
+	gbc.mmu.WriteByte(0xFF4B, 0x00)
+	gbc.mmu.WriteByte(0xFF50, 0x00)
+	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
 func onClose() {
@@ -163,6 +227,8 @@ func onClose() {
 }
 
 func (gbc *GameboyColor) Pause() {
+
+	log.Println("DEBUGGER: Breaking because PC ==", gbc.debugOptions.breakWhen)
 	b := bufio.NewWriter(os.Stdout)
 	r := bufio.NewReader(os.Stdin)
 
@@ -184,17 +250,23 @@ func (gbc *GameboyColor) Pause() {
 		}
 
 		//dispatch
-		switch command {
-		case "?":
-			debugHelp()
-		case "help":
-			debugHelp()
-		default:
-			if v, ok := gbc.debugOptions.debugFuncMap[command]; ok {
-				v(gbc, instructions[1:]...)
-			}
+		if v, ok := gbc.debugOptions.debugFuncMap[command]; ok {
+			v(gbc, instructions[1:]...)
+		} else {
+			fmt.Fprintln(b, "Unknown command:", command)
+			fmt.Fprintln(b, "Debug mode, type ? for help")
 		}
 	}
+}
+
+func (gbc *GameboyColor) Reset() {
+	log.Println("Resetting system")
+	gbc.cpu.Reset()
+	gbc.gpu.Reset()
+	gbc.mmu.Reset()
+	gbc.apu.Reset()
+	gbc.io.KeyHandler.Reset()
+	gbc.setupBoot()
 }
 
 func RetrieveROM(filename string) ([]byte, error) {

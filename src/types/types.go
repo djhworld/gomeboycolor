@@ -2,7 +2,6 @@ package types
 
 import "fmt"
 
-
 type RGB struct {
 	Red   byte
 	Green byte

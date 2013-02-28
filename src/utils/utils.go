@@ -1,6 +1,11 @@
 package utils
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 func ByteToString(b byte) string {
 	var zeroes string
@@ -8,6 +13,29 @@ func ByteToString(b byte) string {
 		zeroes += "0"
 	}
 	return fmt.Sprintf("0x%s%X", zeroes, b)
+}
+
+func StringToByte(s string) (byte, error) {
+	s = strings.Replace(s, "0x", "", 1)
+	if len(s) > 2 {
+		return 0x0, errors.New("Please enter an address between 00 and FF")
+	}
+
+	result, err := strconv.ParseInt(s, 16, 64)
+
+	return byte(result), err
+}
+
+func StringToWord(s string) (uint16, error) {
+	s = strings.Replace(s, "0x", "", 1)
+
+	if len(s) > 4 {
+		return 0x0, errors.New("Please enter an address between 0000 and FFFF")
+	}
+
+	result, err := strconv.ParseInt(s, 16, 64)
+
+	return uint16(result), err
 }
 
 //Joins two bytes together to form a 16 bit integer 
@@ -79,4 +107,12 @@ func CompareWords(a, b uint16, operator string) bool {
 		return a <= b
 	}
 	return false
+}
+
+func PadRight(s string, maxLen int, padStr string) string {
+	if l := len(s); l < maxLen {
+		padAmount := maxLen - l
+		s = s + strings.Repeat(padStr, padAmount)
+	}
+	return s
 }
