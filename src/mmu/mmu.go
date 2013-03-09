@@ -2,6 +2,8 @@ package mmu
 
 import (
 	"cartridge"
+	"components"
+	"constants"
 	"errors"
 	"fmt"
 	"log"
@@ -35,12 +37,12 @@ type GbcMMU struct {
 	dmgStatusRegister byte
 	interruptsEnabled byte
 	interruptsFlag    byte
-	peripheralIOMap   map[types.Word]Peripheral
+	peripheralIOMap   map[types.Word]components.Peripheral
 }
 
 func NewGbcMMU() *GbcMMU {
 	var mmu *GbcMMU = new(GbcMMU)
-	mmu.peripheralIOMap = make(map[types.Word]Peripheral)
+	mmu.peripheralIOMap = make(map[types.Word]components.Peripheral)
 	mmu.Reset()
 	return mmu
 }
@@ -95,7 +97,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 			mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)] = value
 		}
 	default:
-		log.Printf("%s: WARNING - Attempting to write 0x%X to address %s, this is invalid/unimplemented", PREFIX, value, addr)
+		//log.Printf("%s: WARNING - Attempting to write 0x%X to address %s, this is invalid/unimplemented", PREFIX, value, addr)
 	}
 }
 
@@ -152,7 +154,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 			return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
 		}
 	default:
-		log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
+		//log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
 	}
 
 	return 0x00
@@ -174,7 +176,7 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 	mmu.inBootMode = mode
 }
 
-func (mmu *GbcMMU) ConnectPeripheral(p Peripheral, startAddr, endAddr types.Word) {
+func (mmu *GbcMMU) ConnectPeripheral(p components.Peripheral, startAddr, endAddr types.Word) {
 	if startAddr == endAddr {
 		log.Printf("%s: Connecting MMU to %s on address %s", PREFIX, p.Name(), startAddr)
 		mmu.peripheralIOMap[startAddr] = p
@@ -222,4 +224,15 @@ func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
 	mmu.cartridge = cart
 	log.Printf("%s: Loaded cartridge into MMU: -\n%s\n", PREFIX, cart)
 
+}
+
+//USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU
+func (mmu *GbcMMU) RequestInterrupt(interrupt byte) {
+	switch interrupt {
+	case constants.V_BLANK_IRQ:
+		//TODO: SORT THIS OUT SO THAT IT SETS THE INTERRUPTS ACCORDINGLY
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, 0x01)
+	default:
+		log.Println(PREFIX, "WARNING - interrupt", interrupt, "is currently unimplemented")
+	}
 }

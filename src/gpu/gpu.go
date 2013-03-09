@@ -1,6 +1,8 @@
 package gpu
 
 import (
+	"components"
+	"constants"
 	"fmt"
 	"inputoutput"
 	"log"
@@ -14,8 +16,12 @@ const PREFIX = NAME + ":"
 const DISPLAY_WIDTH int = 160
 const DISPLAY_HEIGHT int = 144
 
-const TILEMAP0 = 0x9800
-const TILEMAP1 = 0x9C00
+const (
+	TILEMAP0  types.Word = 0x9800
+	TILEMAP1             = 0x9C00
+	TILEDATA0            = 0x8800
+	TILEDATA1            = 0x8000
+)
 
 const LCDC types.Word = 0xFF40
 const STAT types.Word = 0xFF41
@@ -62,6 +68,7 @@ func (s Sprite) String() string {
 type GPU struct {
 	screenData [144][160]types.RGB
 	screen     inputoutput.Screen
+	irqHandler components.IRQHandler
 	vram       [8192]byte
 	oamRam     [160]byte
 
@@ -84,7 +91,7 @@ type GPU struct {
 	spritesOn      bool
 	windowOn       bool
 	displayOn      bool
-	tileDataSelect bool
+	tileDataSelect types.Word
 	spriteSize     byte
 
 	bgTilemap     types.Word
@@ -106,6 +113,11 @@ func NewGPU() *GPU {
 func (g *GPU) LinkScreen(screen inputoutput.Screen) {
 	g.screen = screen
 	log.Println(PREFIX, "Linked screen to GPU")
+}
+
+func (g *GPU) LinkIRQHandler(m components.IRQHandler) {
+	g.irqHandler = m
+	log.Println(PREFIX, "Linked IRQHandler to GPU")
 }
 
 func (g *GPU) Name() string {
@@ -147,9 +159,16 @@ func (g *GPU) Step(t int) {
 			}
 		} else {
 			//vblank is over, draw to screen
+			g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
+
+			if g.windowOn {
+				g.RenderWindow()
+			}
+
 			if g.spritesOn {
 				g.RenderSprites()
 			}
+
 			g.screen.DrawFrame(&g.screenData)
 			g.clock = 0
 			g.ly = 0
@@ -184,8 +203,13 @@ func (g *GPU) Write(addr types.Word, value byte) {
 				g.windowTilemap = TILEMAP0
 			}
 
-			g.windowOn = value&0x20 == 0x20       //bit 5 
-			g.tileDataSelect = value&0x10 == 0x10 //bit 4
+			g.windowOn = value&0x20 == 0x20 //bit 5
+
+			if value&0x10 == 0x10 { //bit 4
+				g.tileDataSelect = TILEDATA1
+			} else {
+				g.tileDataSelect = TILEDATA0
+			}
 
 			if value&0x08 == 0x08 { //bit 3
 				g.bgTilemap = TILEMAP1
@@ -320,9 +344,11 @@ func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 
 //Update the tile at address with value
 func (g *GPU) UpdateTile(addr types.Word, value byte) {
-
 	//get the ID of the tile being updated (between 0 and 383)
-	var tileId types.Word = (addr & 0x17FF) >> 4
+	var tileId types.Word = ((addr & 0x17FF) >> 4)
+	if addr >= 0x8800 && addr < 0x9000 {
+		tileId += 128
+	}
 	g.rawTiledata[tileId][addr%16] = value
 
 	recalcTile := func(rawtile RawTile) Tile {
@@ -343,16 +369,26 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 
 func (g *GPU) RenderLine() {
 	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))>>3)<<5
-	var lineoffset types.Word = (types.Word(g.scrollX) >> 3) % 32
+	var lineoffset types.Word = types.Word(g.scrollX) >> 3 % 32
 	tileY := (g.ly + int(g.scrollY)) % 8
 	tileX := int(g.scrollX) % 8
 
-	//get the ID of the tile being drawn
-	//TODO: calculate value if in tileset #1
-	tileId := g.Read(types.Word(mapoffset + lineoffset))
+	//function to calculate the tilenumber
+	calculateTileNo := func(mo types.Word, lo types.Word) int {
+		//get the ID of the tile being drawn
+		//TODO: calculate value if in tileset #1
+		tileId := int(g.Read(types.Word(mo + lo)))
+		if g.tileDataSelect == TILEDATA0 {
+			if tileId < 127 {
+				tileId += 256
+			}
+		}
+		return tileId
+	}
+
+	tileId := calculateTileNo(mapoffset, lineoffset)
 
 	for x := 0; x < DISPLAY_WIDTH; x++ {
-
 		//draw the pixel to the screenData data buffer (running through the bgPalette)
 		color := g.bgPalette[g.tiledata[tileId][tileY][tileX]]
 		g.screenData[g.ly][x] = color
@@ -363,7 +399,7 @@ func (g *GPU) RenderLine() {
 			tileX = 0
 			lineoffset = (lineoffset + 1) % 32
 			//get next tile in line
-			tileId = g.Read(types.Word(mapoffset + lineoffset))
+			tileId = calculateTileNo(mapoffset, lineoffset)
 		}
 	}
 }
@@ -371,9 +407,16 @@ func (g *GPU) RenderLine() {
 //TODO: Sprite precedence rules
 //TODO: 8x16 sprites
 func (g *GPU) RenderSprites() {
+	//	if g.spriteSize == 0x64 {
 	for _, sprite := range g.sprites {
 		if sprite.X != 0x00 && sprite.Y != 0x00 {
-			tile := g.tiledata[sprite.TileID]
+			tileId := int(sprite.TileID)
+			if g.tileDataSelect == TILEDATA0 {
+				if tileId < 127 {
+					tileId += 256
+				}
+			}
+			tile := g.tiledata[tileId]
 			for y := 0; y < 8; y++ {
 				for x := 0; x < 8; x++ {
 					if tile[x][y] != 0 {
@@ -385,6 +428,80 @@ func (g *GPU) RenderSprites() {
 			}
 		}
 	}
+	//	}
+}
+
+func (g *GPU) RenderWindow() {
+	log.Println(g.windowX)
+}
+
+//debug helpers
+func (g *GPU) DumpTiles() [384][8][8]types.RGB {
+	fmt.Println("Dumping", len(g.tiledata), "tiles")
+	var out [384][8][8]types.RGB
+	for i, tile := range g.tiledata {
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				cr := GBColours[tile[y][x]]
+				out[i][y][x] = cr
+			}
+		}
+	}
+
+	return out
+}
+
+func (g *GPU) Dump8x8Sprites() [40][8][8]types.RGB {
+	fmt.Println("Dumping", len(g.sprites), "sprites")
+	var out [40][8][8]types.RGB
+	for i, spr := range g.sprites {
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				tileId := int(spr.TileID)
+				tile := g.tiledata[tileId]
+				cr := GBColours[tile[y][x]]
+				out[i][y][x] = cr
+			}
+		}
+	}
+	return out
+}
+
+func (g *GPU) DumpTilemap(tileMapAddr types.Word, tileDataSigned bool) [256][256]types.RGB {
+	fmt.Print("Dumping Tilemap ", tileMapAddr)
+	if tileDataSigned {
+		fmt.Println(" (signed)")
+	} else {
+		fmt.Println(" (unsigned)")
+	}
+
+	var result [256][256]types.RGB
+	var tileMapAddrOffset types.Word = tileMapAddr
+	var rx int = 0
+	var ry int = 0
+
+	for lineX := 0; lineX < 32; lineX++ {
+		for tileY := 0; tileY < 8; tileY++ {
+			for lineY := 0; lineY < 32; lineY++ {
+				tileId := int(g.Read(tileMapAddrOffset + types.Word(lineY)))
+				if tileDataSigned {
+					if tileId < 127 {
+						tileId += 256
+					}
+				}
+				tile := g.tiledata[tileId]
+				for tileX := 0; tileX < 8; tileX++ {
+					cr := GBColours[tile[tileY][tileX]]
+					result[rx][ry] = cr
+					rx++
+				}
+			}
+			rx = 0
+			ry++
+		}
+		tileMapAddrOffset += types.Word(32)
+	}
+	return result
 }
 
 func (g *GPU) byteToPalette(b byte) Palette {

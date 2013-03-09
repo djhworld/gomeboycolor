@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"constants"
 	"errors"
 	"fmt"
 	"log"
@@ -22,8 +23,6 @@ const (
 )
 
 //hz
-const CLOCK_RATE int = 4194304
-const V_BLANK_INT byte = 0x40
 
 type Registers struct {
 	A byte
@@ -1251,18 +1250,17 @@ func (cpu *Z80) Step() int {
 	}
 
 	if cpu.InterruptsEnabled {
-		if ie, iflag := cpu.mmu.ReadByte(0xFFFF), cpu.mmu.ReadByte(0xFF0F); ie != 0 && iflag != 0 {
+		if ie, iflag := cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR), cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR); ie != 0 && iflag != 0 {
 			if cpu.DoInterruptOnNext == false {
 				cpu.DoInterruptOnNext = true
 			} else {
-				log.Println("Doing interrupt")
 				var interrupt byte = ie & iflag
 				switch interrupt {
-				case 0x01:
-					cpu.mmu.WriteByte(0xFF0F, iflag&0xFE)
+				case constants.V_BLANK_IRQ:
+					cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFE)
 					cpu.InterruptsEnabled = false
 					cpu.DoInterruptOnNext = false
-					cpu.Rst(V_BLANK_INT)
+					cpu.Rst(constants.V_BLANK_IR_ADDR)
 					cpu.LastInstrCycle.M += 3
 				default:
 					log.Println("Interrupt", utils.ByteToString(interrupt), "not implemented")
@@ -2266,9 +2264,40 @@ func (cpu *Z80) SCF() {
 
 //DAA
 func (cpu *Z80) Daa() {
-	//TODO: implement
+	var oldA byte = cpu.R.A
+	var a byte = cpu.R.A
+	if cpu.IsFlagSet(N) == false {
+		if cpu.IsFlagSet(H) || (a&0x0F) > 9 {
+			a += 6
+		}
+		if cpu.IsFlagSet(C) || (a > 0x9F) {
+			a += 0x60
+		}
+	} else {
+		if cpu.IsFlagSet(H) {
+			a = (a - 6) & 0xFF
+		}
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+		if cpu.IsFlagSet(C) {
+			a -= 0x60
+		}
+	}
+
+	cpu.ResetFlag(H)
+
+	cpu.R.A = a
+
+	if cpu.R.A == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if cpu.R.A < oldA {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
 }
 
 //SWAP r
@@ -2654,44 +2683,186 @@ func (cpu *Z80) Rr_hl() {
 
 //SLA r
 func (cpu *Z80) Sla_r(r *byte) {
-	//TODO: Implement
+	var bit7 bool = false
+	var calculation byte = *r
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x80 == 0x80 {
+		bit7 = true
+	}
+
+	calculation = calculation << 1
+	calculation &= 0xFE
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit7 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	*r = calculation
 }
 
 //SLA (HL)
 func (cpu *Z80) Sla_hl() {
-	//TODO: Implement
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HL)
+	var calculation byte = value
+	var bit7 bool = false
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x80 == 0x80 {
+		bit7 = true
+	}
+
+	calculation = calculation << 1
+	calculation &= 0xFE
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit7 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.WriteByte(HL, calculation)
 }
 
 //SRA r
 func (cpu *Z80) Sra_r(r *byte) {
-	//TODO: Implement
+	var bit0 bool = false
+	var calculation byte = *r
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x01 == 0x01 {
+		bit0 = true
+	}
+
+	calculation = calculation >> 1
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit0 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	*r = calculation
 }
 
 //SRA (HL)
 func (cpu *Z80) Sra_hl() {
-	//TODO: Implement
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HL)
+	var calculation byte = value
+	var bit0 bool = false
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x01 == 0x01 {
+		bit0 = true
+	}
+
+	calculation = calculation >> 1
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit0 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.WriteByte(HL, calculation)
 }
 
 //SRL r
 func (cpu *Z80) Srl_r(r *byte) {
-	//TODO: Implement
+	var bit0 bool = false
+	var calculation byte = *r
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x01 == 0x01 {
+		bit0 = true
+	}
+
+	calculation = calculation >> 1
+	calculation &= 0xEF
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit0 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	*r = calculation
 }
 
 //SRL (HL)
 func (cpu *Z80) Srl_hl() {
-	//TODO: Implement
+	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	var value byte = cpu.ReadByte(HL)
+	var calculation byte = value
+	var bit0 bool = false
 
-	log.Fatalln(cpu.PC, cpu.CurrentInstruction, "Unimplemented")
+	if calculation&0x01 == 0x01 {
+		bit0 = true
+	}
+
+	calculation = calculation >> 1
+	calculation &= 0xEF
+
+	cpu.ResetFlag(N)
+	cpu.ResetFlag(H)
+
+	if calculation == 0 {
+		cpu.SetFlag(Z)
+	} else {
+		cpu.ResetFlag(Z)
+	}
+
+	if bit0 {
+		cpu.SetFlag(C)
+	} else {
+		cpu.ResetFlag(C)
+	}
+
+	cpu.WriteByte(HL, calculation)
 }
 
 //BIT b, r

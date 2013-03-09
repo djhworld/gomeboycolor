@@ -7,6 +7,7 @@
 package apu
 
 import (
+	"components"
 	"log"
 	"types"
 )
@@ -28,6 +29,10 @@ func (apu *APU) Read(Address types.Word) byte {
 }
 
 func (apu *APU) Write(Address types.Word, Value byte) {
+
+}
+
+func (apu *APU) LinkIRQHandler(m components.IRQHandler) {
 
 }
 

@@ -52,11 +52,14 @@ func NewGBC() *GameboyColor {
 	gbc.apu = apu.NewAPU()
 
 	gbc.gpu.LinkScreen(gbc.io.Display)
+	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
+	gbc.gpu.LinkIRQHandler(gbc.mmu)
 
 	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF4B)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF40, 0xFF45)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF47, 0xFF4B)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
 	gbc.mmu.ConnectPeripheral(gbc.io.KeyHandler, 0xFF00, 0xFF00)
 
@@ -266,6 +269,7 @@ func (gbc *GameboyColor) Reset() {
 	gbc.mmu.Reset()
 	gbc.apu.Reset()
 	gbc.io.KeyHandler.Reset()
+	gbc.io.Display.DrawFrame(&([144][160]types.RGB{}))
 	gbc.setupBoot()
 }
 

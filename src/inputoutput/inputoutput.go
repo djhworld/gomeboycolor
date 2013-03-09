@@ -1,6 +1,7 @@
 package inputoutput
 
 import (
+	"components"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
 	"log"
@@ -47,6 +48,10 @@ func (k *KeyHandler) Reset() {
 	log.Println("Resetting", k.Name())
 	k.rows[0], k.rows[1] = 0x0F, 0x0F
 	k.colSelect = 0x00
+}
+
+func (k *KeyHandler) LinkIRQHandler(m components.IRQHandler) {
+
 }
 
 func (k *KeyHandler) Read(addr types.Word) byte {
