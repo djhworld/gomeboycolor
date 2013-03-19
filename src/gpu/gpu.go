@@ -153,14 +153,16 @@ func (g *GPU) Step(t int) {
 
 		//for each step revert back 10 lines
 		if g.ly < 154 {
+
 			if g.clock >= 456 {
 				g.clock = 0
 				g.ly += 1
+			if g.ly == 154 {
+				g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
 			}
-		} else {
-			//vblank is over, draw to screen
-			g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
+			}
 
+		} else {
 			if g.windowOn {
 				g.RenderWindow()
 			}
@@ -411,11 +413,6 @@ func (g *GPU) RenderSprites() {
 	for _, sprite := range g.sprites {
 		if sprite.X != 0x00 && sprite.Y != 0x00 {
 			tileId := int(sprite.TileID)
-			if g.tileDataSelect == TILEDATA0 {
-				if tileId < 127 {
-					tileId += 256
-				}
-			}
 			tile := g.tiledata[tileId]
 			for y := 0; y < 8; y++ {
 				for x := 0; x < 8; x++ {

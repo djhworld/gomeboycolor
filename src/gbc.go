@@ -2,6 +2,7 @@ package main
 
 import (
 	"apu"
+	"timer"
 	"bufio"
 	"cartridge"
 	"cpu"
@@ -33,6 +34,7 @@ type GameboyColor struct {
 	mmu          *mmu.GbcMMU
 	io           *inputoutput.IO
 	apu          *apu.APU
+	timer		 *timer.Timer
 	debugOptions *DebugOptions
 	cpuClockAcc  int
 	frameCount   int
@@ -50,6 +52,7 @@ func NewGBC() *GameboyColor {
 	gbc.io = inputoutput.NewIO(inputoutput.DefaultControlScheme)
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
+	gbc.timer = timer.NewTimer()
 
 	gbc.gpu.LinkScreen(gbc.io.Display)
 	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
@@ -62,6 +65,7 @@ func NewGBC() *GameboyColor {
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF47, 0xFF4B)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
 	gbc.mmu.ConnectPeripheral(gbc.io.KeyHandler, 0xFF00, 0xFF00)
+	gbc.mmu.ConnectPeripheral(gbc.timer, 0xFF04, 0xFF07)
 
 	return gbc
 }
@@ -98,6 +102,7 @@ func (gbc *GameboyColor) Step() {
 func (gbc *GameboyColor) Run() {
 	log.Println("Starting emulator")
 	for {
+		//gbc.mmu.RequestInterrupt(1)
 		gbc.DoFrame()
 		gbc.frameCount++
 		gbc.cpuClockAcc = 0
@@ -134,7 +139,7 @@ func main() {
 
 	gbc.mmu.LoadCartridge(cart)
 	gbc.debugOptions = new(DebugOptions)
-	gbc.debugOptions.Init()
+	gbc.debugOptions.Init(*printState)
 
 	if *debug {
 		log.Println("Emulator will start in debug mode")

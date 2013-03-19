@@ -154,7 +154,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 			return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
 		}
 	default:
-		//log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
+		log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
 	}
 
 	return 0x00

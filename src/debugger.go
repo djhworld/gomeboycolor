@@ -16,6 +16,7 @@ import (
 	"os"
 	"strconv"
 	"types"
+	"strings"
 	"utils"
 )
 
@@ -27,6 +28,7 @@ type DebugOptions struct {
 	watches      map[types.Word]byte
 	debugFuncMap map[string]DebugCommandHandler
 	debugHelpStr []string
+	stepDump bool
 }
 
 func (g *DebugOptions) help() {
@@ -36,10 +38,11 @@ func (g *DebugOptions) help() {
 	}
 }
 
-func (g *DebugOptions) Init() {
+func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 	g.debuggerOn = false
 	g.debugFuncMap = make(map[string]DebugCommandHandler)
 	g.watches = make(map[types.Word]byte)
+	g.stepDump = cpuDumpOnStep
 	g.AddDebugFunc("p", "Print CPU state", func(gbc *GameboyColor, remaining ...string) {
 		fmt.Println(gbc.cpu)
 	})
@@ -113,6 +116,9 @@ func (g *DebugOptions) Init() {
 		fmt.Println("Stepping forward by", noOfSteps, "instruction(s)")
 		for i := 0; i < noOfSteps; i++ {
 			gbc.Step()
+			if g.stepDump {
+				fmt.Println(i, ":",gbc.cpu)
+			}
 			g.checkWatches(gbc)
 		}
 		fmt.Println("Current machine state: -")
@@ -133,6 +139,43 @@ func (g *DebugOptions) Init() {
 		} else {
 			fmt.Println("Setting breakpoint to:", bp)
 			g.breakWhen = bp
+		}
+	})
+
+	g.AddDebugFunc("reg", "Set register", func(gbc *GameboyColor, remaining ...string) {
+		if len(remaining) < 2 {
+			fmt.Println("You must provide a register and value!")
+			return
+		}
+
+
+		var register string = strings.ToLower(remaining[0])
+		value, err := utils.StringToByte(remaining[1])
+
+		if err != nil {
+			fmt.Println("Could not parse value", remaining[1])
+			fmt.Println("\t", err)
+			return
+		}
+
+		fmt.Println("Attempting to set register",register, "with value", utils.ByteToString(value))
+		switch register {
+		case "a":
+			gbc.cpu.R.A = value
+		case "b":
+			gbc.cpu.R.B = value
+		case "c":
+			gbc.cpu.R.C = value
+		case "d":
+			gbc.cpu.R.D = value
+		case "e":
+			gbc.cpu.R.E = value
+		case "h":
+			gbc.cpu.R.H = value
+		case "l":
+			gbc.cpu.R.L = value
+		default:
+			fmt.Println("Unknown register:", register)
 		}
 	})
 
