@@ -429,7 +429,7 @@ func (g *GPU) RenderSprites() {
 }
 
 func (g *GPU) RenderWindow() {
-	log.Println(g.windowX)
+	//log.Println(g.windowX)
 }
 
 //debug helpers

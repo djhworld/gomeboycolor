@@ -110,7 +110,6 @@ func (m *MBC1) Read(addr types.Word) byte {
 }
 
 func (m *MBC1) switchROMBank(bank int) {
-	log.Println("Switiching to ROM Bank:", bank)
 	m.selectedROMBank = bank
 }
 
