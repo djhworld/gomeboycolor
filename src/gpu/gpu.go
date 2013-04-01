@@ -152,14 +152,14 @@ func (g *GPU) Step(t int) {
 		g.mode = VBLANK
 
 		//for each step revert back 10 lines
-		if g.ly < 154 {
+		if g.ly <= 154 {
 
 			if g.clock >= 456 {
 				g.clock = 0
 				g.ly += 1
-			if g.ly == 154 {
-				g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
-			}
+				if g.ly == 146 {
+					g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
+				}
 			}
 
 		} else {
@@ -409,23 +409,23 @@ func (g *GPU) RenderLine() {
 //TODO: Sprite precedence rules
 //TODO: 8x16 sprites
 func (g *GPU) RenderSprites() {
-	//	if g.spriteSize == 0x64 {
-	for _, sprite := range g.sprites {
-		if sprite.X != 0x00 && sprite.Y != 0x00 {
-			tileId := int(sprite.TileID)
-			tile := g.tiledata[tileId]
-			for y := 0; y < 8; y++ {
-				for x := 0; x < 8; x++ {
-					if tile[x][y] != 0 {
-						sx, sy := sprite.X-8, sprite.Y-16
-						tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[x][y]]
-						g.screenData[y+sy][x+sx] = tilecolor
+	if g.spriteSize == 0x64 {
+		for _, sprite := range g.sprites {
+			if sprite.X != 0x00 && sprite.Y != 0x00 {
+				tileId := int(sprite.TileID)
+				tile := g.tiledata[tileId]
+				for y := 0; y < 8; y++ {
+					for x := 0; x < 8; x++ {
+						if tile[x][y] != 0 {
+							sx, sy := sprite.X-8, sprite.Y-16
+							tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[x][y]]
+							g.screenData[y+sy][x+sx] = tilecolor
+						}
 					}
 				}
 			}
 		}
 	}
-	//	}
 }
 
 func (g *GPU) RenderWindow() {

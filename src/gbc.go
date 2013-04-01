@@ -2,7 +2,6 @@ package main
 
 import (
 	"apu"
-	"timer"
 	"bufio"
 	"cartridge"
 	"cpu"
@@ -14,6 +13,7 @@ import (
 	"mmu"
 	"os"
 	"strings"
+	"timer"
 	"types"
 	"utils"
 )
@@ -34,7 +34,7 @@ type GameboyColor struct {
 	mmu          *mmu.GbcMMU
 	io           *inputoutput.IO
 	apu          *apu.APU
-	timer		 *timer.Timer
+	timer        *timer.Timer
 	debugOptions *DebugOptions
 	cpuClockAcc  int
 	frameCount   int
@@ -71,7 +71,7 @@ func NewGBC() *GameboyColor {
 }
 
 func (gbc *GameboyColor) DoFrame() {
-	for gbc.cpuClockAcc < FRAME_CYCLES {
+	for gbc.cpuClockAcc <= FRAME_CYCLES {
 		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
 			gbc.Pause()
 		}
@@ -186,7 +186,7 @@ func (gbc *GameboyColor) setupWithoutBoot() {
 	gbc.inBootMode = false
 	gbc.mmu.SetInBootMode(false)
 	gbc.cpu.PC = 0x100
-	gbc.cpu.R.A = 0x11
+	gbc.cpu.R.A = 0x01
 	gbc.cpu.R.F = 0xB0
 	gbc.cpu.R.B = 0x00
 	gbc.cpu.R.C = 0x13

@@ -15,8 +15,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"types"
 	"strings"
+	"types"
 	"utils"
 )
 
@@ -28,7 +28,7 @@ type DebugOptions struct {
 	watches      map[types.Word]byte
 	debugFuncMap map[string]DebugCommandHandler
 	debugHelpStr []string
-	stepDump bool
+	stepDump     bool
 }
 
 func (g *DebugOptions) help() {
@@ -117,7 +117,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		for i := 0; i < noOfSteps; i++ {
 			gbc.Step()
 			if g.stepDump {
-				fmt.Println(i, ":",gbc.cpu)
+				fmt.Println(i, ":", gbc.cpu)
 			}
 			g.checkWatches(gbc)
 		}
@@ -148,7 +148,6 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 			return
 		}
 
-
 		var register string = strings.ToLower(remaining[0])
 		value, err := utils.StringToByte(remaining[1])
 
@@ -158,7 +157,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 			return
 		}
 
-		fmt.Println("Attempting to set register",register, "with value", utils.ByteToString(value))
+		fmt.Println("Attempting to set register", register, "with value", utils.ByteToString(value))
 		switch register {
 		case "a":
 			gbc.cpu.R.A = value

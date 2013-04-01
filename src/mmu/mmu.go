@@ -32,6 +32,7 @@ type GbcMMU struct {
 	cartridge         *cartridge.Cartridge
 	internalRAM       [8192]byte //0xC000 -> 0xDFFF
 	internalRAMShadow [7680]byte //0xE000 -> 0xFDFF
+	emptySpace        [52]byte   //0xFF4C -> 0xFF7F
 	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFE
 	inBootMode        bool
 	dmgStatusRegister byte
@@ -66,16 +67,10 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 
 	switch {
 	case addr >= 0x0000 && addr <= 0x9FFF:
-		log.Printf("%s: Attempted to write value %X to %s, hmmmm", PREFIX, value, addr)
-		return
+		mmu.cartridge.MBC.Write(addr, value)
 	//Cartridge External RAM
 	case addr >= 0xA000 && addr <= 0xBFFF:
-		switch mmu.cartridge.Type.ID {
-		case cartridge.MBC0:
-			mmu.cartridge.WriteByteToSwitchableRAM(0, addr, value)
-		default:
-			log.Fatalf("Write is not set up for address %s for cartridge type %s", addr, mmu.cartridge.Type.Description)
-		}
+		mmu.cartridge.MBC.Write(addr, value)
 	//GB Internal RAM
 	case addr >= 0xC000 && addr <= 0xDFFF:
 		mmu.internalRAM[addr&(0xDFFF-0xC000)] = value
@@ -86,9 +81,14 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		mmu.interruptsFlag = value
-	//DMG flag
-	case addr == 0xFF50:
-		mmu.dmgStatusRegister = value
+	//Empty but "unusable for I/O"
+	case addr >= 0xFF4C && addr <= 0xFF7F:
+		//DMG flag
+		if addr == 0xFF50 {
+			mmu.dmgStatusRegister = value
+		} else {
+			mmu.emptySpace[addr-0xFF4D] = value
+		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		if addr == 0xFFFF {
@@ -117,23 +117,13 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 			//in bios mode, read from bios
 			return mmu.bios[addr]
 		}
-		return mmu.cartridge.ReadByteFromROM(addr)
+		return mmu.cartridge.MBC.Read(addr)
 	//ROM Bank 1 (switchable)
 	case addr >= 0x4000 && addr <= 0x7FFF:
-		switch mmu.cartridge.Type.ID {
-		case cartridge.MBC0:
-			return mmu.cartridge.ReadByteFromSwitchableROM(0, addr)
-		default:
-			log.Fatalf("Read is not set up for address %s for cartridge type %s", addr, mmu.cartridge.Type.Description)
-		}
+		return mmu.cartridge.MBC.Read(addr)
 	//RAM Bank (switchable)
 	case addr >= 0xA000 && addr <= 0xBFFF:
-		switch mmu.cartridge.Type.ID {
-		case cartridge.MBC0:
-			return mmu.cartridge.ReadByteFromSwitchableRAM(0, addr)
-		default:
-			log.Fatalf("Read is not set up for address %s for cartridge type %s", addr, mmu.cartridge.Type.Description)
-		}
+		return mmu.cartridge.MBC.Read(addr)
 	//GB Internal RAM
 	case addr >= 0xC000 && addr <= 0xDFFF:
 		return mmu.internalRAM[addr&(0xDFFF-0xC000)]
@@ -143,9 +133,14 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		return mmu.interruptsFlag
-	//DMG FLAG
-	case addr == 0xFF50:
-		return mmu.dmgStatusRegister
+	//Empty but "unusable for I/O"
+	case addr >= 0xFF4C && addr <= 0xFF7F:
+		//DMG flag
+		if addr == 0xFF50 {
+			return mmu.dmgStatusRegister
+		} else {
+			return mmu.emptySpace[addr-0xFF4C]
+		}
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		if addr == 0xFFFF {

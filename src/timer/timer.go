@@ -8,13 +8,13 @@
 package timer
 
 import (
-	"log"
 	"components"
+	"log"
 	"types"
 	"utils"
 )
 
-type Timer struct{
+type Timer struct {
 	a int
 }
 

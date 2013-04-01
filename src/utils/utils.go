@@ -53,30 +53,6 @@ func SwapNibbles(a byte) byte {
 	return (a&0xF0)>>4 ^ ((a & 0x0F) << 4)
 }
 
-//If you pass a number in between 0-7 it returns the 
-//value in relation to the position of the bit.
-func BitToValue(b byte) byte {
-	switch b {
-	case 0x00:
-		return 0x01
-	case 0x01:
-		return 0x02
-	case 0x02:
-		return 0x04
-	case 0x03:
-		return 0x08
-	case 0x04:
-		return 0x10
-	case 0x05:
-		return 0x20
-	case 0x06:
-		return 0x40
-	case 0x07:
-		return 0x80
-	}
-	return 0x01
-}
-
 func CompareBytes(a, b byte, operator string) bool {
 	switch operator {
 	case "==":

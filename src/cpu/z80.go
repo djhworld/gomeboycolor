@@ -153,39 +153,33 @@ func (cpu *Z80) String() string {
 func (cpu *Z80) ResetFlag(flag int) {
 	switch flag {
 	case Z:
-		cpu.R.F = cpu.R.F &^ 0x80
+		cpu.R.F = cpu.resetBit(7, cpu.R.F)
 	case N:
-		cpu.R.F = cpu.R.F &^ 0x40
+		cpu.R.F = cpu.resetBit(6, cpu.R.F)
 	case H:
-		cpu.R.F = cpu.R.F &^ 0x20
+		cpu.R.F = cpu.resetBit(5, cpu.R.F)
 	case C:
-		cpu.R.F = cpu.R.F &^ 0x10
+		cpu.R.F = cpu.resetBit(4, cpu.R.F)
 	default:
 		log.Fatalf(PREFIX+" Unknown flag %c", flag)
 	}
+	cpu.R.F &= 0xF0
 }
 
 func (cpu *Z80) SetFlag(flag int) {
 	switch flag {
 	case Z:
-		if !cpu.IsFlagSet(Z) {
-			cpu.R.F = cpu.R.F ^ 0x80
-		}
+		cpu.R.F = cpu.setBit(7, cpu.R.F)
 	case N:
-		if !cpu.IsFlagSet(N) {
-			cpu.R.F = cpu.R.F ^ 0x40
-		}
+		cpu.R.F = cpu.setBit(6, cpu.R.F)
 	case H:
-		if !cpu.IsFlagSet(H) {
-			cpu.R.F = cpu.R.F ^ 0x20
-		}
+		cpu.R.F = cpu.setBit(5, cpu.R.F)
 	case C:
-		if !cpu.IsFlagSet(C) {
-			cpu.R.F = cpu.R.F ^ 0x10
-		}
+		cpu.R.F = cpu.setBit(4, cpu.R.F)
 	default:
 		log.Fatalf(PREFIX+" Unknown flag %c", flag)
 	}
+	cpu.R.F &= 0xF0
 }
 
 func (cpu *Z80) IsFlagSet(flag int) bool {
@@ -1195,7 +1189,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	case 0xF0: //LDH r, n
 		cpu.LDHr_n(&cpu.R.A)
 	case 0xF1: //POP AF
-		cpu.Pop_nn(&cpu.R.A, &cpu.R.F)
+		cpu.Pop_AF()
 	case 0xF2: //LD A,(C)
 		cpu.LDr_ffplusc(&cpu.R.A)
 	case 0xF3: //DI
@@ -1271,11 +1265,11 @@ func (cpu *Z80) Step() int {
 
 	//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
 	//do any incrementing
-	if cpu.PCJumped {
-		cpu.PCJumped = false
-	} else {
+	if cpu.PCJumped == false {
 		cpu.IncrementPC(cpu.CurrentInstruction.OperandsSize + 1)
 	}
+
+	cpu.PCJumped = false
 
 	//calculate cycles
 	cpu.LastInstrCycle.M += cpu.CurrentInstruction.Cycles
@@ -1340,25 +1334,11 @@ func (cpu *Z80) ReadByte(addr types.Word) byte {
 	return cpu.mmu.ReadByte(addr)
 }
 
-func (cpu *Z80) ReadWord(addr types.Word) types.Word {
-	if err := cpu.Validate(); err != nil {
-		log.Fatalln(PREFIX, err)
-	}
-	return cpu.mmu.ReadWord(addr)
-}
-
 func (cpu *Z80) WriteByte(addr types.Word, value byte) {
 	if err := cpu.Validate(); err != nil {
 		log.Fatalln(PREFIX, err)
 	}
 	cpu.mmu.WriteByte(addr, value)
-}
-
-func (cpu *Z80) WriteWord(addr types.Word, value types.Word) {
-	if err := cpu.Validate(); err != nil {
-		log.Fatalln(PREFIX, err)
-	}
-	cpu.mmu.WriteWord(addr, value)
 }
 
 // INSTRUCTION HELPERS
@@ -1396,12 +1376,6 @@ func (cpu *Z80) addBytes(a, b byte) byte {
 //side effect is flags are set on the cpu accordingly
 func (cpu *Z80) addWords(a, b types.Word) types.Word {
 	var calculation types.Word = a + b
-
-	if calculation == 0x0000 {
-		cpu.SetFlag(Z)
-	} else {
-		cpu.ResetFlag(Z)
-	}
 
 	if calculation < a {
 		cpu.SetFlag(C)
@@ -1569,9 +1543,7 @@ func (cpu *Z80) swapByte(a byte) byte {
 //General bit - test function
 //Side effect is CPU flags get set accordingly
 func (cpu *Z80) bitTest(bit byte, a byte) {
-	bit = utils.BitToValue(bit)
-
-	if (a & bit) != bit {
+	if (a >> bit & 1) == 0 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
@@ -1583,14 +1555,12 @@ func (cpu *Z80) bitTest(bit byte, a byte) {
 
 //General set bit function
 func (cpu *Z80) setBit(bit byte, a byte) byte {
-	bit = utils.BitToValue(bit)
-	return a ^ bit
+	return a | (1 << uint(bit))
 }
 
 //General reset bit function
 func (cpu *Z80) resetBit(bit byte, a byte) byte {
-	bit = utils.BitToValue(bit)
-	return a &^ bit
+	return a & ^(1 << uint(bit))
 }
 
 // INSTRUCTIONS START
@@ -1746,7 +1716,7 @@ func (cpu *Z80) LDHn_r(r *byte) {
 //Load value (n) in register (r) and store it in memory address FF00+PC. Increment PC by 1
 func (cpu *Z80) LDHr_n(r *byte) {
 	var n byte = cpu.CurrentInstruction.Operands[0]
-	*r = cpu.ReadByte(types.Word(0xFF00) + types.Word(n))
+	*r = cpu.ReadByte((types.Word(0xFF00) + types.Word(n)))
 }
 
 //LD n, nn
@@ -1769,8 +1739,12 @@ func (cpu *Z80) LDSP_nn() {
 
 //LD nn, SP
 func (cpu *Z80) LDnn_SP() {
-	var nn types.Word = types.Word(utils.JoinBytes(cpu.CurrentInstruction.Operands[0], cpu.CurrentInstruction.Operands[1]))
-	cpu.WriteWord(nn, cpu.SP)
+	var ls byte = cpu.CurrentInstruction.Operands[0]
+	var hs byte = cpu.CurrentInstruction.Operands[1]
+	var addr types.Word = types.Word(utils.JoinBytes(hs, ls))
+
+	cpu.WriteByte(addr+1, byte(cpu.SP&0xFF00>>8))
+	cpu.WriteByte(addr, byte(cpu.SP&0x00FF))
 }
 
 //LD SP, rr
@@ -1783,6 +1757,7 @@ func (cpu *Z80) LDHLSP_n() {
 	var n byte = cpu.CurrentInstruction.Operands[0]
 
 	var HL types.Word
+
 	if n > 127 {
 		HL = cpu.SP - types.Word(-n)
 	} else {
@@ -1822,6 +1797,13 @@ func (cpu *Z80) Push_nn(r1, r2 *byte) {
 //Pop the stack twice onto register pair nn 
 func (cpu *Z80) Pop_nn(r1, r2 *byte) {
 	*r1, *r2 = utils.SplitIntoBytes(uint16(cpu.popWordFromStack()))
+}
+
+//POP AF
+//Pop the stack twice onto register pair AF
+func (cpu *Z80) Pop_AF() {
+	cpu.R.A, cpu.R.F = utils.SplitIntoBytes(uint16(cpu.popWordFromStack()))
+	cpu.R.F &= 0xF0
 }
 
 //ADD A,r
@@ -2220,7 +2202,7 @@ func (cpu *Z80) Inc_rr(r1, r2 *byte) {
 
 //INC SP
 func (cpu *Z80) Inc_sp() {
-	cpu.SP += 1
+	cpu.SP = (cpu.SP + 1) & 0xFFFF
 }
 
 //DEC rr
@@ -2232,7 +2214,7 @@ func (cpu *Z80) Dec_rr(r1, r2 *byte) {
 
 //DEC SP
 func (cpu *Z80) Dec_sp() {
-	cpu.SP -= 1
+	cpu.SP = (cpu.SP - 1) & 0xFFFF
 }
 
 //CPL
@@ -2262,15 +2244,18 @@ func (cpu *Z80) SCF() {
 	cpu.ResetFlag(H)
 }
 
-//DAA
+//DAA - this instruction was a complete PITA to implement
+//thankfully DParrot from here http://forums.nesdev.com/viewtopic.php?t=9088
+//provided a correct solution that passes the blargg tests
 func (cpu *Z80) Daa() {
-	var oldA byte = cpu.R.A
-	var a byte = cpu.R.A
+	var a types.Word = types.Word(cpu.R.A)
+
 	if cpu.IsFlagSet(N) == false {
-		if cpu.IsFlagSet(H) || (a&0x0F) > 9 {
-			a += 6
+		if cpu.IsFlagSet(H) || a&0x0F > 9 {
+			a += 0x06
 		}
-		if cpu.IsFlagSet(C) || (a > 0x9F) {
+
+		if cpu.IsFlagSet(C) || a > 0x9F {
 			a += 0x60
 		}
 	} else {
@@ -2285,19 +2270,19 @@ func (cpu *Z80) Daa() {
 
 	cpu.ResetFlag(H)
 
-	cpu.R.A = a
+	if a&0x100 == 0x100 {
+		cpu.SetFlag(C)
+	}
 
-	if cpu.R.A == 0 {
+	a &= 0xFF
+
+	if a == 0 {
 		cpu.SetFlag(Z)
 	} else {
 		cpu.ResetFlag(Z)
 	}
 
-	if cpu.R.A < oldA {
-		cpu.SetFlag(C)
-	} else {
-		cpu.ResetFlag(C)
-	}
+	cpu.R.A = byte(a)
 }
 
 //SWAP r
@@ -2691,7 +2676,6 @@ func (cpu *Z80) Sla_r(r *byte) {
 	}
 
 	calculation = calculation << 1
-	calculation &= 0xFE
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2723,7 +2707,6 @@ func (cpu *Z80) Sla_hl() {
 	}
 
 	calculation = calculation << 1
-	calculation &= 0xFE
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2752,7 +2735,7 @@ func (cpu *Z80) Sra_r(r *byte) {
 		bit0 = true
 	}
 
-	calculation = calculation >> 1
+	calculation = (calculation >> 1) | (calculation & 0x80)
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2783,7 +2766,7 @@ func (cpu *Z80) Sra_hl() {
 		bit0 = true
 	}
 
-	calculation = calculation >> 1
+	calculation = (calculation >> 1) | (calculation & 0x80)
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2813,7 +2796,6 @@ func (cpu *Z80) Srl_r(r *byte) {
 	}
 
 	calculation = calculation >> 1
-	calculation &= 0xEF
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2845,7 +2827,6 @@ func (cpu *Z80) Srl_hl() {
 	}
 
 	calculation = calculation >> 1
-	calculation &= 0xEF
 
 	cpu.ResetFlag(N)
 	cpu.ResetFlag(H)
@@ -2916,7 +2897,6 @@ func (cpu *Z80) JP_nn() {
 //JP (HL)
 func (cpu *Z80) JP_hl() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
-	//	var addr types.Word = cpu.ReadWord(HL)
 	cpu.PC = HL
 	cpu.PCJumped = true
 }
@@ -2929,24 +2909,25 @@ func (cpu *Z80) JPcc_nn(flag int, jumpWhen bool) {
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		cpu.PCJumped = true
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
-		cpu.LastInstrCycle.M = 4
+		cpu.CurrentInstruction.Cycles = 4
 	} else {
-		cpu.LastInstrCycle.M = 3
+		cpu.CurrentInstruction.Cycles = 3
 	}
 }
 
 //JR n
 func (cpu *Z80) JR_n() {
 	var n byte = cpu.CurrentInstruction.Operands[0]
+	if n != 0x00 {
+		cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize + 1)
 
-	cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize) + types.Word(1) //advance PC forward so we know how far to jump back
+		if n > 127 {
+			cpu.PC -= types.Word(-n)
+		} else {
+			cpu.PC += types.Word(n)
+		}
 
-	if n > 127 {
 		cpu.PCJumped = true
-		cpu.PC -= types.Word(-n)
-	} else {
-		cpu.PCJumped = true
-		cpu.PC += types.Word(n)
 	}
 }
 
@@ -2955,17 +2936,20 @@ func (cpu *Z80) JRcc_nn(flag int, jumpWhen bool) {
 	var n byte = cpu.CurrentInstruction.Operands[0]
 
 	if cpu.IsFlagSet(flag) == jumpWhen {
-		cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize + 1) //advance PC forward so we know how far to jump back
-		if n > 127 {
+		if n != 0x00 {
+			cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize + 1)
+
+			if n > 127 {
+				cpu.PC -= types.Word(-n)
+			} else {
+				cpu.PC += types.Word(n)
+			}
+
 			cpu.PCJumped = true
-			cpu.PC -= types.Word(-n)
-		} else {
-			cpu.PCJumped = true
-			cpu.PC += types.Word(n)
 		}
-		cpu.LastInstrCycle.M = 3
+		cpu.CurrentInstruction.Cycles = 3
 	} else {
-		cpu.LastInstrCycle.M = 2
+		cpu.CurrentInstruction.Cycles = 2
 	}
 }
 
@@ -2990,9 +2974,9 @@ func (cpu *Z80) Callcc_nn(flag int, callWhen bool) {
 		cpu.pushWordToStack(nextInstr)
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 		cpu.PCJumped = true
-		cpu.LastInstrCycle.M = 6
+		cpu.CurrentInstruction.Cycles = 6
 	} else {
-		cpu.LastInstrCycle.M = 3
+		cpu.CurrentInstruction.Cycles = 3
 	}
 }
 
@@ -3007,9 +2991,9 @@ func (cpu *Z80) Retcc(flag int, returnWhen bool) {
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
 		cpu.PCJumped = true
-		cpu.LastInstrCycle.M = 5
+		cpu.CurrentInstruction.Cycles = 5
 	} else {
-		cpu.LastInstrCycle.M = 2
+		cpu.CurrentInstruction.Cycles = 2
 	}
 }
 
@@ -3023,7 +3007,7 @@ func (cpu *Z80) Ret_i() {
 // RST n
 func (cpu *Z80) Rst(n byte) {
 	cpu.pushWordToStack(cpu.PC + 1)
-	cpu.PC = 0x0000 + types.Word(n)
+	cpu.PC = types.Word(n)
 	cpu.PCJumped = true
 }
 
