@@ -11,13 +11,15 @@ import "types"
 
 //interrupt handler addresses
 const (
-	V_BLANK_IR_ADDR byte = 0x40
-	LCD_IR_ADDR          = 0x48
+	V_BLANK_IR_ADDR        byte = 0x40
+	LCD_IR_ADDR                 = 0x48
+	TIMER_OVERFLOW_IR_ADDR      = 0x50
 )
 
 const (
-	V_BLANK_IRQ byte = 0x01
-	LCD_IRQ          = 0x02
+	V_BLANK_IRQ        byte = 0x01
+	LCD_IRQ                 = 0x02
+	TIMER_OVERFLOW_IRQ      = 0x04
 )
 
 //memory addresses

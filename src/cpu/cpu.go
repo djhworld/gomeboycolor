@@ -47,11 +47,11 @@ func (r Registers) String() string {
 
 //See ZILOG z80 cpu manual p.80  (http://www.zilog.com/docs/z80/um0080.pdf)
 type Clock struct {
-	M int
-	t int
+	M int64
+	t int64
 }
 
-func (c *Clock) T() int {
+func (c *Clock) T() int64 {
 	return c.M * 4
 }
 
@@ -1217,7 +1217,7 @@ func (cpu *Z80) Dispatch(Opcode byte) {
 	}
 }
 
-func (cpu *Z80) Step() int {
+func (cpu *Z80) Step() int64 {
 	if err := cpu.Validate(); err != nil {
 		log.Fatalln(PREFIX, err)
 	}
@@ -1234,6 +1234,7 @@ func (cpu *Z80) Step() int {
 		}
 		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
 		cpu.DispatchCB(Opcode)
+		cpu.LastInstrCycle.M += 1 //CB adds one machine instruction
 	} else {
 		cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
 		if !ok {
@@ -1244,20 +1245,29 @@ func (cpu *Z80) Step() int {
 	}
 
 	if cpu.InterruptsEnabled {
-		if ie, iflag := cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR), cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR); ie != 0 && iflag != 0 {
+		if ie, iflag := cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR), cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR); ie != 0x0 && iflag != 0x0 {
 			if cpu.DoInterruptOnNext == false {
 				cpu.DoInterruptOnNext = true
 			} else {
-				var interrupt byte = ie & iflag
+				cpu.InterruptsEnabled = false
+				var interrupt byte = iflag & ie
 				switch interrupt {
 				case constants.V_BLANK_IRQ:
 					cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFE)
-					cpu.InterruptsEnabled = false
 					cpu.DoInterruptOnNext = false
-					cpu.Rst(constants.V_BLANK_IR_ADDR)
+					cpu.pushWordToStack(cpu.PC + 1)
+					cpu.PC = types.Word(constants.V_BLANK_IR_ADDR)
+					cpu.PCJumped = true
+					cpu.LastInstrCycle.M += 3
+				case constants.TIMER_OVERFLOW_IRQ:
+					cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFB)
+					cpu.DoInterruptOnNext = false
+					cpu.pushWordToStack(cpu.PC + 1)
+					cpu.PC = types.Word(constants.TIMER_OVERFLOW_IR_ADDR)
+					cpu.PCJumped = true
 					cpu.LastInstrCycle.M += 3
 				default:
-					log.Println("Interrupt", utils.ByteToString(interrupt), "not implemented")
+					cpu.InterruptsEnabled = true
 				}
 			}
 		}

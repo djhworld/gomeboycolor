@@ -36,7 +36,7 @@ type GameboyColor struct {
 	apu          *apu.APU
 	timer        *timer.Timer
 	debugOptions *DebugOptions
-	cpuClockAcc  int
+	cpuClockAcc  int64
 	frameCount   int
 	stepCount    int
 	inBootMode   bool

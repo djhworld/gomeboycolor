@@ -73,7 +73,7 @@ type GPU struct {
 	oamRam     [160]byte
 
 	mode            byte
-	clock           int
+	clock           int64
 	ly              int
 	lcdc            byte
 	lyc             byte
@@ -133,7 +133,7 @@ func (g *GPU) Reset() {
 	g.clock = 0
 }
 
-func (g *GPU) Step(t int) {
+func (g *GPU) Step(t int64) {
 	g.clock += t
 	if g.ly < DISPLAY_HEIGHT {
 		if g.clock >= 204 {
@@ -157,7 +157,7 @@ func (g *GPU) Step(t int) {
 			if g.clock >= 456 {
 				g.clock = 0
 				g.ly += 1
-				if g.ly == 146 {
+				if g.ly == 154 {
 					g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
 				}
 			}
