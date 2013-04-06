@@ -30,7 +30,7 @@ const VERSION float32 = 0.1
 //A type
 type GameboyColor struct {
 	gpu          *gpu.GPU
-	cpu          *cpu.Z80
+	cpu          *cpu.GbcCPU
 	mmu          *mmu.GbcMMU
 	io           *inputoutput.IO
 	apu          *apu.APU

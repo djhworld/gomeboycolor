@@ -15,14 +15,14 @@ import (
 	"utils"
 )
 
-var c *Z80
+var c *GbcCPU
 
 func before() {
 	c = NewCPU()
 	c.LinkMMU(NewMockMMU())
 }
 
-func AssertTimings(c *Z80, t *testing.T, instr byte, expectedTiming int64, isCB bool) {
+func AssertTimings(c *GbcCPU, t *testing.T, instr byte, expectedTiming int64, isCB bool) {
 	tick := c.Step()
 
 	if isCB {
