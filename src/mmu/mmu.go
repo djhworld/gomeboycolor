@@ -36,6 +36,7 @@ type GbcMMU struct {
 	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFE
 	inBootMode        bool
 	dmgStatusRegister byte
+	DMARegister 	  byte
 	interruptsEnabled byte
 	interruptsFlag    byte
 	peripheralIOMap   map[types.Word]components.Peripheral
@@ -57,9 +58,6 @@ func (mmu *GbcMMU) Reset() {
 //TODO: NEED TO HANDLE WRITES TO ROM SPACE SO CAN CALCULATE ROM BANKS ETC
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//Check peripherals first
-	//Graphics sprite information 0xFE00 - 0xFE9F
-	//Graphics VRAM: 0x8000 - 0x9FFF
-	//Graphics Registers: 0xFF40-0xFF49, 0xFF51-0xFF70
 	if p, ok := mmu.peripheralIOMap[addr]; ok {
 		p.Write(addr, value)
 		return
@@ -81,12 +79,22 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		mmu.interruptsFlag = value
+	//DMA transfer
+	case addr == 0xFF46:
+		dmaStartAddr := types.Word(value) << 8;
+		var i types.Word
+		for i = 0; i < 0xA0; i++ {
+			oamAddr := 0xFE00 + i
+			oamData := mmu.ReadByte(dmaStartAddr + i)
+			mmu.WriteByte(oamAddr, oamData)
+		}
 	//Empty but "unusable for I/O"
-	case addr >= 0xFF4C && addr <= 0xFF7F:
+	case addr > 0xFF4C && addr <= 0xFF7F: //TODO: hmmmm
 		//DMG flag
 		if addr == 0xFF50 {
 			mmu.dmgStatusRegister = value
 		} else {
+			log.Println(addr, addr-0xFF4D, len(mmu.emptySpace))
 			mmu.emptySpace[addr-0xFF4D] = value
 		}
 	//Zero page RAM
@@ -130,6 +138,9 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	//GB Internal RAM shadow
 	case addr >= 0xE000 && addr <= 0xFDFF:
 		return mmu.internalRAMShadow[addr&(0xFDFF-0xE000)]
+	//DMA register
+	case addr == 0xFF46:
+		return mmu.DMARegister
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		return mmu.interruptsFlag
@@ -227,6 +238,8 @@ func (mmu *GbcMMU) RequestInterrupt(interrupt byte) {
 	case constants.V_BLANK_IRQ:
 		//TODO: SORT THIS OUT SO THAT IT SETS THE INTERRUPTS ACCORDINGLY
 		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, 0x01)
+	case constants.TIMER_OVERFLOW_IRQ:
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, 0x04)
 	default:
 		log.Println(PREFIX, "WARNING - interrupt", interrupt, "is currently unimplemented")
 	}

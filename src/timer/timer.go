@@ -8,11 +8,12 @@
 package timer
 
 import (
-	"types"
+	"components"
 	"fmt"
 	"log"
-	"components"
-	"utils"
+	"time"
+	"types"
+	"constants"
 )
 
 const (
@@ -22,74 +23,139 @@ const (
 	TAC_REGISTER             = 0xFF07
 )
 
-/*
-var ClockFrequencies map[int]int = map[int]int{
-	0: 4194304/2^10,
-	1: 4194304/2^4/1024,
-	2: 4194304/2^6/1024,
-	3: 4194304/2^8/1024,
+const (
+	NAME = "TIMER"
+)
+
+var ClockFrequencies map[int]time.Duration = map[int]time.Duration{
+	4096:   time.Duration(244141 * time.Nanosecond),
+	16384:  time.Duration(61035 * time.Nanosecond),
+	65536:  time.Duration(15259 * time.Nanosecond),
+	262144: time.Duration(3815 * time.Nanosecond),
 }
-*/
+
+type TimerCounter struct {
+	Name       string
+	Value      byte
+	ticker     *time.Ticker
+	duration   time.Duration
+	irqHandler components.IRQHandler
+	timerOn    bool
+}
+
+func NewTimerCounter(name string, d time.Duration, irqHandler components.IRQHandler) *TimerCounter {
+	c := new(TimerCounter)
+	c.Value = 0x00
+	c.Name = name
+	c.duration = d
+	c.ticker = time.NewTicker(c.duration)
+	c.irqHandler = irqHandler
+	c.timerOn = true
+	log.Println(NAME+":", "Started a new timer", name, "with a duration of", d)
+	return c
+}
+
+func (c *TimerCounter) Run() {
+	for {
+		select {
+		case <-c.ticker.C:
+			if c.timerOn {
+
+				c.Value++
+				if c.Value == 0x00 && c.irqHandler != nil {
+					c.irqHandler.RequestInterrupt(constants.TIMER_OVERFLOW_IRQ)
+				}
+			}
+		}
+	}
+}
+
+func (c *TimerCounter) Reset() {
+	c.Value = 0x00
+}
+
+func (c *TimerCounter) Stop() {
+	c.ticker.Stop()
+}
 
 type Timer struct {
-	timerOn              bool
-	dividerRegister      byte //DIV 0xFF04
-	timerCounterRegister byte //TIMA 0xFF05
-	timerModuloRegister  byte //TMA 0xFF06
-	timerControlRegister byte //TAC 0xFF07
-	inputClockFrequency  int
-	a int
+	timaCounter  *TimerCounter
+	divCounter   *TimerCounter
+	tacFrequency *time.Duration
+	tacRegister  byte
+	tmaRegister  byte
+	irqHandler   components.IRQHandler
 }
 
 func NewTimer() *Timer {
 	var t *Timer = new(Timer)
-	t.Reset()
+	t.divCounter = NewTimerCounter("DIV", ClockFrequencies[16384], nil)
+	go t.divCounter.Run()
+	t.ResetTIMACounter()
 	return t
 }
 
 func (timer *Timer) Name() string {
-	return "Timer"
+	return NAME
 }
 
 func (timer *Timer) Read(Address types.Word) byte {
-	log.Printf("Reading from timer register %s", Address)
 	switch Address {
 	case DIV_REGISTER:
-		timer.dividerRegister++ //TODO: this is obviously wrong, timers need to work properly
-		return timer.dividerRegister
+		return timer.divCounter.Value
 	case TIMA_REGISTER:
-		return timer.timerCounterRegister
+		return timer.timaCounter.Value
 	case TMA_REGISTER:
-		return timer.timerModuloRegister
+		return timer.tmaRegister
 	case TAC_REGISTER:
-		return timer.timerControlRegister
+		return timer.tacRegister
 	default:
 		panic(fmt.Sprintln("Timer module is not set up to handle address", Address))
 	}
 	return 0x00
 }
 
-func (timer *Timer) Write(Address types.Word, Value byte) {
-	log.Printf("Writing %s to timer register %s", utils.ByteToString(Value), Address)
-
-	switch Address {
+func (timer *Timer) Write(address types.Word, value byte) {
+	switch address {
 	case DIV_REGISTER:
-		//writing any value sets this to 0
-		timer.dividerRegister = 0x00
+		timer.divCounter.Reset()
 	case TIMA_REGISTER:
-		timer.timerCounterRegister = Value
+		timer.timaCounter.Value = value
 	case TMA_REGISTER:
-		timer.timerModuloRegister = Value
+		timer.tmaRegister = value
 	case TAC_REGISTER:
-		timer.timerControlRegister = Value
-		timer.timerOn = (timer.timerControlRegister & 0x04 == 0x04)
+		timer.tacRegister = value
+		timer.ResetTIMACounter()
 	default:
-		panic(fmt.Sprintln("Timer module is not set up to handle address", Address))
+		panic(fmt.Sprintln("Timer module is not set up to handle address", address))
 	}
 }
 
-func (timer *Timer) LinkIRQHandler(m components.IRQHandler) {
+func (timer *Timer) ResetTIMACounter() {
+	var frequency byte = timer.tacRegister & 0x03
 
+	if timer.timaCounter != nil {
+		timer.timaCounter.Stop()
+	}
+
+	switch frequency {
+	case 0x00:
+		timer.timaCounter = NewTimerCounter("TIMA", ClockFrequencies[4096], timer.irqHandler)
+	case 0x01:
+		timer.timaCounter = NewTimerCounter("TIMA", ClockFrequencies[262144], timer.irqHandler)
+	case 0x10:
+		timer.timaCounter = NewTimerCounter("TIMA", ClockFrequencies[65536], timer.irqHandler)
+	case 0x11:
+		timer.timaCounter = NewTimerCounter("TIMA", ClockFrequencies[16384], timer.irqHandler)
+	}
+
+	timer.timaCounter.timerOn = timer.tacRegister&0x04 == 0x04
+
+	go timer.timaCounter.Run()
+}
+
+func (timer *Timer) LinkIRQHandler(m components.IRQHandler) {
+	timer.irqHandler = m
 }
 
 func (timer *Timer) Reset() {

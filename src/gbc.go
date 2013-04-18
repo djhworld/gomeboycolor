@@ -57,6 +57,7 @@ func NewGBC() *GameboyColor {
 	gbc.gpu.LinkScreen(gbc.io.Display)
 	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
 	gbc.gpu.LinkIRQHandler(gbc.mmu)
+	gbc.timer.LinkIRQHandler(gbc.mmu)
 
 	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
@@ -71,7 +72,7 @@ func NewGBC() *GameboyColor {
 }
 
 func (gbc *GameboyColor) DoFrame() {
-	for gbc.cpuClockAcc <= FRAME_CYCLES {
+	for gbc.cpuClockAcc < FRAME_CYCLES {
 		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
 			gbc.Pause()
 		}
@@ -102,10 +103,9 @@ func (gbc *GameboyColor) Step() {
 func (gbc *GameboyColor) Run() {
 	log.Println("Starting emulator")
 	for {
-		//gbc.mmu.RequestInterrupt(1)
 		gbc.DoFrame()
 		gbc.frameCount++
-		gbc.cpuClockAcc = 0
+		gbc.cpuClockAcc -= FRAME_CYCLES
 	}
 }
 

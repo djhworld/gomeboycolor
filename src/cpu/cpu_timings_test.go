@@ -26,9 +26,9 @@ func AssertTimings(c *GbcCPU, t *testing.T, instr byte, expectedTiming int64, is
 	tick := c.Step()
 
 	if isCB {
-		log.Println("0xCB " + utils.ByteToString(instr) + " (" + c.CurrentInstruction.Description + ")", "testing that instruction runs for", expectedTiming, "cycles")
+		log.Println("0xCB "+utils.ByteToString(instr)+" ("+c.CurrentInstruction.Description+")", "testing that instruction runs for", expectedTiming, "cycles")
 	} else {
-		log.Println(utils.ByteToString(instr) + " (" + c.CurrentInstruction.Description + ")", "testing that instruction runs for", expectedTiming, "cycles")
+		log.Println(utils.ByteToString(instr)+" ("+c.CurrentInstruction.Description+")", "testing that instruction runs for", expectedTiming, "cycles")
 	}
 
 	if tick != expectedTiming {
@@ -68,7 +68,7 @@ func RunInstrAndAssertTimings(instr byte, expectedTiming int64, flags []int, t *
 		c.ResetFlag(H)
 		c.ResetFlag(N)
 		c.ResetFlag(C)
-		c.R.F = 0x00;
+		c.R.F = 0x00
 	}
 	c.PC = 0x0000
 	c.WriteByte(c.PC, instr)
