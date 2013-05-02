@@ -321,7 +321,7 @@ func SpritesToImage(sprites [40][8][8]types.RGB, w, h int) (*image.NRGBA, error)
 	return out, nil
 }
 
-func TilesToImage(tiles [384][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
+func TilesToImage(tiles [512][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
 	out := image.NewNRGBA(image.Rect(0, 0, w, h))
 
 	font, err := GetFont("../resources/FreeUniversal-Regular.ttf")

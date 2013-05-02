@@ -99,8 +99,8 @@ type GPU struct {
 
 	bgTilemap     types.Word
 	windowTilemap types.Word
-	rawTiledata   [384]RawTile
-	tiledata      [384]Tile
+	rawTiledata   [512]RawTile
+	tiledata      [512]Tile
 	sprites       [40]Sprite
 
 	bgPalette      Palette
@@ -161,10 +161,6 @@ func (g *GPU) Step(t int64) {
 	g.clock -= t
 
 	if g.clock <= 0 {
-
-		g.clock = 456 + g.clock
-		g.ly += 1
-
 		if g.ly < 144 {
 			if g.displayOn {
 				g.RenderLine()
@@ -188,6 +184,9 @@ func (g *GPU) Step(t int64) {
 			g.vBlankInterruptThrown = false
 			g.ly = 0
 		}
+
+		g.clock = 456 + g.clock
+		g.ly += 1
 	}
 
 	g.coincidenceFlag = false
@@ -368,10 +367,7 @@ func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 //Update the tile at address with value
 func (g *GPU) UpdateTile(addr types.Word, value byte) {
 	//get the ID of the tile being updated (between 0 and 383)
-	var tileId types.Word = ((addr & 0x17FF) >> 4)
-	if addr >= 0x8800 && addr < 0x9000 {
-		tileId += 128
-	}
+	var tileId types.Word = ((addr & 0x1FFF) >> 4) & 511
 	g.rawTiledata[tileId][addr%16] = value
 
 	recalcTile := func(rawtile RawTile) Tile {
@@ -401,7 +397,7 @@ func (g *GPU) RenderLine() {
 		//get the ID of the tile being drawn
 		tileId := int(g.Read(types.Word(mo + lo)))
 		if g.tileDataSelect == TILEDATA0 {
-			if tileId < 127 {
+			if tileId < 128 {
 				tileId += 256
 			}
 		}
@@ -443,7 +439,13 @@ func (g *GPU) RenderSprites() {
 							if tile[y][x] != 0 {
 								tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[y][x]]
 								if sy+y < DISPLAY_HEIGHT && sx+x < DISPLAY_WIDTH {
-									g.screenData[y+sy][x+sx] = tilecolor
+									if sprite.SpriteHasPriority == false {
+										g.screenData[y+sy][x+sx] = tilecolor
+									} else {
+										if g.screenData[y+sy][x+sx] == (types.RGB{235,235,235}) {
+											g.screenData[y+sy][x+sx] = tilecolor
+										}
+									}
 								}
 							}
 						}
@@ -489,9 +491,9 @@ func (g *GPU) RenderWindow() {
 }
 
 //debug helpers
-func (g *GPU) DumpTiles() [384][8][8]types.RGB {
+func (g *GPU) DumpTiles() [512][8][8]types.RGB {
 	fmt.Println("Dumping", len(g.tiledata), "tiles")
-	var out [384][8][8]types.RGB
+	var out [512][8][8]types.RGB
 	for i, tile := range g.tiledata {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
@@ -538,7 +540,7 @@ func (g *GPU) DumpTilemap(tileMapAddr types.Word, tileDataSigned bool) [256][256
 			for lineY := 0; lineY < 32; lineY++ {
 				tileId := int(g.Read(tileMapAddrOffset + types.Word(lineY)))
 				if tileDataSigned {
-					if tileId < 127 {
+					if tileId < 128 {
 						tileId += 256
 					}
 				}
