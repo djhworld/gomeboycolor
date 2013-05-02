@@ -3,13 +3,13 @@ package mmu
 import (
 	"cartridge"
 	"components"
-	"constants"
 	"errors"
-	"fmt"
 	"log"
-	"sort"
 	"types"
 	"utils"
+	"sort"
+	"fmt"
+	"constants"
 )
 
 const PREFIX = "MMU"
@@ -190,6 +190,14 @@ func (mmu *GbcMMU) ConnectPeripheral(p components.Peripheral, startAddr, endAddr
 		for addr := startAddr; addr <= endAddr; addr++ {
 			mmu.peripheralIOMap[addr] = p
 		}
+	}
+}
+
+//Helper method for connecting peripherals that don't look at contiguous chunks of memory
+func (mmu *GbcMMU) ConnectPeripheralOn(p components.Peripheral, addrs... types.Word) {
+	log.Printf("%s: Connecting MMU to %s to address(es): %s", PREFIX, p.Name(), addrs)
+	for _, addr := range addrs {
+		mmu.peripheralIOMap[addr] = p
 	}
 }
 
