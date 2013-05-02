@@ -1,6 +1,7 @@
 package cartridge
 
 import (
+	"fmt"
 	"log"
 	"types"
 )
@@ -23,6 +24,7 @@ type MBC1 struct {
 	NoOfROMBanks    int
 	NoOfRAMBanks    int
 	MaxMemMode      int
+	ROMSize         int
 }
 
 func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
@@ -30,6 +32,7 @@ func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
 
 	m.Name = "CARTRIDGE-MBC1"
 	m.MaxMemMode = SIXTEENMB_ROM_8KBRAM
+	m.ROMSize = romSize
 
 	if ramSize > 0 {
 		m.hasRAM = true
@@ -48,8 +51,11 @@ func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
 
 	m.romBanks = populateROMBanks(rom, m.NoOfROMBanks)
 
-	log.Println(m.Name+": Initialised memory bank controller with", len(m.romBanks), "ROM banks,", len(m.ramBanks), "RAM banks")
+	log.Println(m)
 	return m
+}
+func (m *MBC1) String() string {
+	return fmt.Sprint(m.Name+": ROM Banks: ", len(m.romBanks), ", RAM Banks: ", len(m.ramBanks), ". ROM size: ", m.ROMSize, " bytes")
 }
 
 func (m *MBC1) Write(addr types.Word, value byte) {
@@ -79,7 +85,12 @@ func (m *MBC1) Write(addr types.Word, value byte) {
 		}
 	case addr >= 0xA000 && addr <= 0xBFFF:
 		if m.hasRAM && m.ramEnabled {
-			m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
+			switch m.MaxMemMode {
+			case FOURMB_ROM_32KBRAM:
+				m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
+			case SIXTEENMB_ROM_8KBRAM:
+				m.ramBanks[0][addr-0xA000] = value
+			}
 		}
 	}
 }
@@ -97,13 +108,14 @@ func (m *MBC1) Read(addr types.Word) byte {
 
 	//Upper bounds of memory map.
 	if addr >= 0xA000 && addr <= 0xC000 {
-		//		if m.MaxMemMode == FOURMB_ROM_32KBRAM {
-		return m.ramBanks[m.selectedRAMBank][addr-0xA000]
-		//		} else {
-		//TODO: sort this out for 16/8
-		//log.Fatalf("Unimplemented for 16/8 mode (Addr = %s)", addr)
-		//			return 0x00
-		//		}
+		if m.hasRAM && m.ramEnabled {
+			switch m.MaxMemMode {
+			case FOURMB_ROM_32KBRAM:
+				return m.ramBanks[m.selectedRAMBank][addr-0xA000]
+			case SIXTEENMB_ROM_8KBRAM:
+				return m.ramBanks[0][addr-0xA000]
+			}
+		}
 	}
 
 	return 0x00

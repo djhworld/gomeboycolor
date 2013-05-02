@@ -68,11 +68,12 @@ func (s Sprite) String() string {
 }
 
 type GPU struct {
-	screenData [144][160]types.RGB
-	screen     inputoutput.Screen
-	irqHandler components.IRQHandler
-	vram       [8192]byte
-	oamRam     [160]byte
+	screenData            [144][160]types.RGB
+	screen                inputoutput.Screen
+	irqHandler            components.IRQHandler
+	vram                  [8192]byte
+	oamRam                [160]byte
+	vBlankInterruptThrown bool
 
 	mode            byte
 	clock           int64
@@ -119,7 +120,7 @@ func (g *GPU) LinkScreen(screen inputoutput.Screen) {
 
 func (g *GPU) LinkIRQHandler(m components.IRQHandler) {
 	g.irqHandler = m
-	log.Println(PREFIX, "Linked IRQHandler to GPU")
+	log.Println(PREFIX, "Linked IRQ Handler to GPU")
 }
 
 func (g *GPU) Name() string {
@@ -136,53 +137,65 @@ func (g *GPU) Reset() {
 }
 
 func (g *GPU) Step(t int64) {
-	g.clock += t
-	if g.ly < DISPLAY_HEIGHT {
-		if g.clock >= 204 {
-			g.mode = HBLANK
-			if g.clock >= 456 {
-				g.RenderLine()
-				g.clock = 0
-				g.ly += 1
-			}
-		} else if g.clock >= 172 {
+
+	if g.displayOn == false {
+		g.clock = 456
+		g.ly = 0
+		g.mode = VBLANK
+	} else {
+		if g.ly >= 144 {
+			g.mode = VBLANK
+		} else if g.clock >= 456-80 {
+			g.mode = OAMREAD
+		} else if g.clock >= 456-80-172 {
 			g.mode = VRAMREAD
 		} else {
-			g.mode = OAMREAD
+			g.mode = HBLANK
 		}
-	} else {
-		g.mode = VBLANK
+	}
 
-		//for each step revert back 10 lines
-		if g.ly <= 154 {
+	if !g.displayOn {
+		return
+	}
 
-			if g.clock >= 456 {
-				g.clock = 0
-				g.ly += 1
-				if g.ly == 151 {
-					g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
-				}
+	g.clock -= t
+
+	if g.clock <= 0 {
+
+		g.clock = 456 + g.clock
+		g.ly += 1
+
+		if g.ly < 144 {
+			if g.displayOn {
+				g.RenderLine()
 			}
-
-		} else {
+		} else if g.ly == 144 {
+			if g.spritesOn {
+				g.RenderSprites()
+			}
 			if g.windowOn {
 				g.RenderWindow()
 			}
 
-			if g.spritesOn {
-				g.RenderSprites()
+			//throw vblank interrupt
+			if g.vBlankInterruptThrown == false {
+				g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
+				g.vBlankInterruptThrown = true
 			}
-
 			g.screen.DrawFrame(&g.screenData)
-			g.clock = 0
+
+		} else if g.ly > 153 {
+			g.vBlankInterruptThrown = false
 			g.ly = 0
 		}
 	}
 
 	g.coincidenceFlag = false
 	if byte(g.ly) == g.lyc && (g.stat&0x40) == 0x40 {
+		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 		g.coincidenceFlag = true
 	}
+
 }
 
 //Called from mmu
@@ -239,6 +252,8 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.windowX = value
 		case WY:
 			g.windowY = value
+		case LY:
+			g.ly = 0
 		case LYC:
 			g.lyc = value
 		case BGP:
@@ -378,13 +393,12 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 func (g *GPU) RenderLine() {
 	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))>>3)<<5
 	var lineoffset types.Word = types.Word(g.scrollX) >> 3 % 32
-	tileY := (g.ly + int(g.scrollY)) % 8
-	tileX := int(g.scrollX) % 8
+	tileY := (g.ly + int(g.scrollY)) & 7
+	tileX := int(g.scrollX) & 7
 
 	//function to calculate the tilenumber
 	calculateTileNo := func(mo types.Word, lo types.Word) int {
 		//get the ID of the tile being drawn
-		//TODO: calculate value if in tileset #1
 		tileId := int(g.Read(types.Word(mo + lo)))
 		if g.tileDataSelect == TILEDATA0 {
 			if tileId < 127 {
@@ -423,12 +437,14 @@ func (g *GPU) RenderSprites() {
 				sx, sy := sprite.X-8, sprite.Y-16
 
 				//TODO: sort out when sprite goes off screen!!!!!!
-				if sx >= 0 && sx < DISPLAY_WIDTH-8 && sy >= 0 && sy < DISPLAY_HEIGHT {
+				if sx >= 0 && sy >= 0 {
 					for y := 0; y < 8; y++ {
 						for x := 0; x < 8; x++ {
 							if tile[y][x] != 0 {
 								tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[y][x]]
-								g.screenData[y+sy][x+sx] = tilecolor
+								if sy+y < DISPLAY_HEIGHT && sx+x < DISPLAY_WIDTH {
+									g.screenData[y+sy][x+sx] = tilecolor
+								}
 							}
 						}
 					}
@@ -454,17 +470,12 @@ func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
 	}
 
 	if s.ShouldFlipVertically {
-		log.Println("Flipping vertically")
 		var t2 *Tile = new(Tile)
-		var flippedX int = 7
 
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
-				t2[y][x] = t[y][flippedX]
-				flippedX--
+				t2[y][x] = t[7-y][x]
 			}
-
-			flippedX = 7 //end of the line
 		}
 
 		return t2
@@ -474,7 +485,7 @@ func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
 }
 
 func (g *GPU) RenderWindow() {
-	log.Println(g.windowX, g.windowY)
+	//	log.Println(g.windowX, g.windowY)
 }
 
 //debug helpers

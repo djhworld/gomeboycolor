@@ -2,6 +2,7 @@ package inputoutput
 
 import (
 	"components"
+	"constants"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
 	"log"
@@ -31,6 +32,7 @@ type KeyHandler struct {
 	controlScheme ControlScheme
 	colSelect     byte
 	rows          [2]byte
+	irqHandler    components.IRQHandler
 }
 
 func NewKeyHandler(cs ControlScheme) *KeyHandler {
@@ -51,7 +53,8 @@ func (k *KeyHandler) Reset() {
 }
 
 func (k *KeyHandler) LinkIRQHandler(m components.IRQHandler) {
-
+	k.irqHandler = m
+	log.Println(k.Name() + ": Linked IRQ Handler to Keyboard Handler")
 }
 
 func (k *KeyHandler) Read(addr types.Word) byte {
@@ -75,6 +78,7 @@ func (k *KeyHandler) Write(addr types.Word, value byte) {
 
 //released sets bit for key to 0
 func (k *KeyHandler) KeyDown(key int) {
+	k.irqHandler.RequestInterrupt(constants.JOYP_HILO_IRQ)
 	switch key {
 	case k.controlScheme.UP:
 		k.rows[0] &= 0xB

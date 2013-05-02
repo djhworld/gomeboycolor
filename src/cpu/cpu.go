@@ -64,17 +64,16 @@ func (c *Clock) String() string {
 }
 
 type GbcCPU struct {
-	PC                 types.Word // Program Counter
-	SP                 types.Word // Stack Pointer
-	R                  Registers
-	Running            bool
-	InterruptsEnabled  bool
-	DoInterruptOnNext  bool
-	CurrentInstruction Instruction
-	MachineCycles      Clock
-	LastInstrCycle     Clock
-	mmu                mmu.MemoryMappedUnit
-	PCJumped           bool
+	PC                      types.Word // Program Counter
+	SP                      types.Word // Stack Pointer
+	R                       Registers
+	InterruptsEnabled       bool
+	CurrentInstruction      Instruction
+	LastInstrCycle          Clock
+	mmu                     mmu.MemoryMappedUnit
+	PCJumped                bool
+	Halted                  bool
+	InterruptFlagBeforeHalt byte
 }
 
 func NewCPU() *GbcCPU {
@@ -109,11 +108,9 @@ func (cpu *GbcCPU) Reset() {
 	cpu.R.L = 0
 	cpu.CurrentInstruction, _ = cpu.Decode(0x00)
 	cpu.InterruptsEnabled = true
-	cpu.DoInterruptOnNext = false
-	cpu.Running = true
-	cpu.MachineCycles.Reset()
 	cpu.LastInstrCycle.Reset()
 	cpu.PCJumped = false
+	cpu.Halted = false
 }
 
 func (cpu *GbcCPU) FlagsString() string {
@@ -1221,74 +1218,94 @@ func (cpu *GbcCPU) Step() int64 {
 	if err := cpu.Validate(); err != nil {
 		log.Fatalln(PREFIX, err)
 	}
+	cpu.LastInstrCycle.Reset()
 
-	var Opcode byte = cpu.ReadByte(cpu.PC)
-	var ok bool = false
+	if !cpu.Halted {
+		cpu.CheckForInterrupts()
+		var Opcode byte = cpu.ReadByte(cpu.PC)
+		var ok bool = false
 
-	if Opcode == 0xCB {
-		cpu.IncrementPC(1)
-		Opcode = cpu.ReadByte(cpu.PC)
-		cpu.CurrentInstruction, ok = cpu.DecodeCB(Opcode)
-		if !ok {
-			panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+		if Opcode == 0xCB {
+			cpu.IncrementPC(1)
+			Opcode = cpu.ReadByte(cpu.PC)
+			cpu.CurrentInstruction, ok = cpu.DecodeCB(Opcode)
+			if !ok {
+				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+			}
+			cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
+			cpu.DispatchCB(Opcode)
+		} else {
+			cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
+			if !ok {
+				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+			}
+			cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
+			cpu.Dispatch(Opcode)
 		}
-		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
-		cpu.DispatchCB(Opcode)
-		cpu.LastInstrCycle.M += 1 //CB adds one machine instruction
+
+		//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
+		//do any incrementing
+		if cpu.PCJumped == false {
+			cpu.IncrementPC(cpu.CurrentInstruction.OperandsSize + 1)
+		}
+
+		cpu.PCJumped = false
+
+		//calculate cycles
+		cpu.LastInstrCycle.M += cpu.CurrentInstruction.Cycles
 	} else {
-		cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
-		if !ok {
-			panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+		iflagnow := cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
+
+		//if IF flag has changed then the cpu should resume...
+		if cpu.InterruptFlagBeforeHalt != iflagnow {
+			cpu.Halted = false
 		}
-		cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
-		cpu.Dispatch(Opcode)
+
+		//Halt consumes 1 cpu cycle
+		cpu.LastInstrCycle.M = 1
 	}
 
+	return cpu.LastInstrCycle.M
+}
+
+func (cpu *GbcCPU) CheckForInterrupts() bool {
 	if cpu.InterruptsEnabled {
-		if ie, iflag := cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR), cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR); ie != 0x0 && iflag != 0x0 {
-			if cpu.DoInterruptOnNext == false {
-				cpu.DoInterruptOnNext = true
-			} else {
+		var ie byte = cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR)
+		var iflag byte = cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
+		if iflag != 0x00 {
+			var interrupt byte = iflag & ie
+			switch interrupt {
+			case constants.V_BLANK_IRQ:
+				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFE)
+				cpu.pushWordToStack(cpu.PC)
+				cpu.PC = types.Word(constants.V_BLANK_IR_ADDR)
 				cpu.InterruptsEnabled = false
-				var interrupt byte = iflag & ie
-				switch interrupt {
-				case constants.V_BLANK_IRQ:
-					cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFE)
-					cpu.DoInterruptOnNext = false
-					cpu.pushWordToStack(cpu.PC + 1)
-					cpu.PC = types.Word(constants.V_BLANK_IR_ADDR)
-					cpu.PCJumped = true
-					cpu.LastInstrCycle.M += 3
-				case constants.TIMER_OVERFLOW_IRQ:
-					cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFB)
-					cpu.DoInterruptOnNext = false
-					cpu.pushWordToStack(cpu.PC + 1)
-					cpu.PC = types.Word(constants.TIMER_OVERFLOW_IR_ADDR)
-					cpu.PCJumped = true
-					cpu.LastInstrCycle.M += 3
-				default:
-					cpu.InterruptsEnabled = true
-				}
+				return true
+			case constants.LCD_IRQ:
+				log.Println("LCD!")
+				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFD)
+				cpu.pushWordToStack(cpu.PC)
+				cpu.PC = types.Word(constants.LCD_IR_ADDR)
+				cpu.InterruptsEnabled = false
+				return true
+			case constants.TIMER_OVERFLOW_IRQ:
+				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFB)
+				cpu.pushWordToStack(cpu.PC)
+				cpu.PC = types.Word(constants.TIMER_OVERFLOW_IR_ADDR)
+				cpu.InterruptsEnabled = false
+				return true
+			case constants.JOYP_HILO_IRQ:
+				log.Println("JOYP!")
+				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xEF)
+				cpu.pushWordToStack(cpu.PC)
+				cpu.PC = types.Word(constants.JOYP_HILO_IR_ADDR)
+				cpu.InterruptsEnabled = false
+				return true
 			}
 		}
 	}
 
-	//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
-	//do any incrementing
-	if cpu.PCJumped == false {
-		cpu.IncrementPC(cpu.CurrentInstruction.OperandsSize + 1)
-	}
-
-	cpu.PCJumped = false
-
-	//calculate cycles
-	cpu.LastInstrCycle.M += cpu.CurrentInstruction.Cycles
-	cpu.MachineCycles.M += cpu.LastInstrCycle.M
-
-	t := cpu.LastInstrCycle.T()
-	cpu.LastInstrCycle.Reset()
-
-	return t
+	return false
 }
 
 func (cpu *GbcCPU) Compile(instruction Instruction) Instruction {
@@ -1585,7 +1602,9 @@ func (cpu *GbcCPU) NOP() {
 //HALT
 //Halt CPU
 func (cpu *GbcCPU) HALT() {
-	cpu.Running = false
+	//get and store the state of the IF FLAG now so we know when it changes
+	cpu.InterruptFlagBeforeHalt = cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
+	cpu.Halted = true
 }
 
 //STOP

@@ -36,7 +36,7 @@ type GbcMMU struct {
 	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFE
 	inBootMode        bool
 	dmgStatusRegister byte
-	DMARegister 	  byte
+	DMARegister       byte
 	interruptsEnabled byte
 	interruptsFlag    byte
 	peripheralIOMap   map[types.Word]components.Peripheral
@@ -81,7 +81,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		mmu.interruptsFlag = value
 	//DMA transfer
 	case addr == 0xFF46:
-		dmaStartAddr := types.Word(value) << 8;
+		dmaStartAddr := types.Word(value) << 8
 		var i types.Word
 		for i = 0; i < 0xA0; i++ {
 			oamAddr := 0xFE00 + i
@@ -94,7 +94,6 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		if addr == 0xFF50 {
 			mmu.dmgStatusRegister = value
 		} else {
-			log.Println(addr, addr-0xFF4D, len(mmu.emptySpace))
 			mmu.emptySpace[addr-0xFF4D] = value
 		}
 	//Zero page RAM
@@ -234,12 +233,16 @@ func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
 
 //USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU
 func (mmu *GbcMMU) RequestInterrupt(interrupt byte) {
+	oldVal := mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
 	switch interrupt {
 	case constants.V_BLANK_IRQ:
-		//TODO: SORT THIS OUT SO THAT IT SETS THE INTERRUPTS ACCORDINGLY
-		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, 0x01)
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, oldVal|constants.V_BLANK_IRQ)
+	case constants.LCD_IRQ:
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, oldVal|constants.LCD_IRQ)
 	case constants.TIMER_OVERFLOW_IRQ:
-		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, 0x04)
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, oldVal|constants.TIMER_OVERFLOW_IRQ)
+	case constants.JOYP_HILO_IRQ:
+		mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, oldVal|constants.JOYP_HILO_IRQ)
 	default:
 		log.Println(PREFIX, "WARNING - interrupt", interrupt, "is currently unimplemented")
 	}

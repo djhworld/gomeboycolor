@@ -3,7 +3,6 @@ package cartridge
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"utils"
 )
@@ -85,7 +84,6 @@ func (c *Cartridge) Init(rom []byte) error {
 
 	c.IsJapanese = (rom[0x014A] == 0x00)
 
-	log.Println(c.ROMSize, c.RAMSize)
 	switch c.Type.ID {
 	case MBC_0:
 		c.MBC = NewMBC0(rom)

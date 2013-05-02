@@ -47,17 +47,16 @@ func NewGBC() *GameboyColor {
 
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU()
-	gbc.cpu.LinkMMU(gbc.mmu)
 
 	gbc.io = inputoutput.NewIO(inputoutput.DefaultControlScheme)
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
 	gbc.timer = timer.NewTimer()
 
-	gbc.gpu.LinkScreen(gbc.io.Display)
 	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
 	gbc.gpu.LinkIRQHandler(gbc.mmu)
 	gbc.timer.LinkIRQHandler(gbc.mmu)
+	gbc.io.KeyHandler.LinkIRQHandler(gbc.mmu)
 
 	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
@@ -67,6 +66,9 @@ func NewGBC() *GameboyColor {
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF51, 0xFF70)
 	gbc.mmu.ConnectPeripheral(gbc.io.KeyHandler, 0xFF00, 0xFF00)
 	gbc.mmu.ConnectPeripheral(gbc.timer, 0xFF04, 0xFF07)
+
+	gbc.cpu.LinkMMU(gbc.mmu)
+	gbc.gpu.LinkScreen(gbc.io.Display)
 
 	return gbc
 }
@@ -87,6 +89,7 @@ func (gbc *GameboyColor) DoFrame() {
 func (gbc *GameboyColor) Step() {
 	cycles := gbc.cpu.Step()
 	gbc.gpu.Step(cycles)
+	gbc.timer.Step(cycles)
 	gbc.cpuClockAcc += cycles
 	gbc.stepCount++
 	//value in FF50 means gameboy has finished booting
@@ -105,7 +108,8 @@ func (gbc *GameboyColor) Run() {
 	for {
 		gbc.DoFrame()
 		gbc.frameCount++
-		gbc.cpuClockAcc -= FRAME_CYCLES
+		gbc.cpuClockAcc = 0
+		//gbc.cpuClockAcc -= FRAME_CYCLES
 	}
 }
 
