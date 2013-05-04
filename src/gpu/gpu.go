@@ -76,20 +76,19 @@ type GPU struct {
 	vBlankInterruptThrown bool
 	lcdInterruptThrown    bool
 
-	mode            byte
-	clock           int64
-	ly              int
-	lcdc            byte
-	lyc             byte
-	stat            byte
-	scrollY         byte
-	scrollX         byte
-	windowX         byte
-	windowY         byte
-	bgp             byte
-	obp0            byte
-	obp1            byte
-	coincidenceFlag bool
+	mode    byte
+	clock   int64
+	ly      int
+	lcdc    byte
+	lyc     byte
+	stat    byte
+	scrollY byte
+	scrollX byte
+	windowX byte
+	windowY byte
+	bgp     byte
+	obp0    byte
+	obp1    byte
 
 	bgrdOn         bool
 	spritesOn      bool
@@ -141,10 +140,10 @@ func (g *GPU) Reset() {
 
 func (g *GPU) Step(t int64) {
 
-	if g.displayOn == false {
-		g.clock = 456
+	if !g.displayOn {
 		g.ly = 0
-		g.mode = VBLANK
+		g.clock = 456
+		g.mode = HBLANK
 	} else {
 		if g.ly >= 144 {
 			g.mode = VBLANK
@@ -188,21 +187,31 @@ func (g *GPU) Step(t int64) {
 			g.ly = 0
 		}
 
-		g.clock = 456 + g.clock
+		g.clock += 456
 		g.ly += 1
-	}
 
-	g.coincidenceFlag = false
-	if byte(g.ly) == g.lyc && (g.stat&0x40) == 0x40 {
-		g.coincidenceFlag = true
-		if g.lcdInterruptThrown == false {
-			g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-			g.lcdInterruptThrown = true
+		if byte(g.ly) == g.lyc {
+			g.stat |= 0x04
 		}
-	} else {
-		g.lcdInterruptThrown = false
+
+		g.CheckForLCDCSTATInterrupt()
 	}
 
+}
+
+func (g *GPU) CheckForLCDCSTATInterrupt() {
+	switch {
+	case byte(g.ly) == g.lyc && (g.Read(STAT)&0x40) == 0x40:
+		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		/*
+			case g.mode == OAMREAD && (g.Read(STAT)&0x20) == 0x20:
+				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+			case g.mode == VBLANK && (g.Read(STAT)&0x10) == 0x10:
+				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+			case g.mode == HBLANK && (g.Read(STAT)&0x08) == 0x08:
+				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		*/
+	}
 }
 
 //Called from mmu
@@ -221,7 +230,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 
 			g.displayOn = value&0x80 == 0x80 //bit 7
 
-			if value&0x40 == 0x40 { //bit 6 
+			if value&0x40 == 0x40 { //bit 6
 				g.windowTilemap = TILEMAP1
 			} else {
 				g.windowTilemap = TILEMAP0
@@ -288,20 +297,7 @@ func (g *GPU) Read(addr types.Word) byte {
 		case LCDC:
 			return g.lcdc
 		case STAT:
-			var stat byte = 0x00
-			if byte(g.ly) == g.lyc {
-				stat |= 4
-			}
-			switch g.mode {
-			case VBLANK:
-				g.stat |= 1
-			case OAMREAD:
-				g.stat |= 2
-			case VRAMREAD:
-				g.stat |= 3
-			}
-
-			return (stat | g.stat&0xF8)
+			return (g.mode | g.stat&0xF8)
 		case SCROLLY:
 			return g.scrollY
 		case SCROLLX:
@@ -459,7 +455,7 @@ func (g *GPU) RenderSprites() {
 			}
 		}
 	} else {
-		log.Println("Is in 8x16 mode")
+		//		log.Println("Is in 8x16 mode")
 	}
 }
 
@@ -492,7 +488,10 @@ func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
 }
 
 func (g *GPU) RenderWindow() {
-	//	log.Println(g.windowX, g.windowY)
+	if (g.windowX >= 0 && g.windowX <= 166) && (g.windowY >= 0 && g.windowY <= 143) {
+		screenX, screenY := g.windowX-7, g.windowY
+		log.Println(screenX, screenY)
+	}
 }
 
 //debug helpers

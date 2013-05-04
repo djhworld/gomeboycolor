@@ -30,9 +30,9 @@ func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
 
-	m.ramEnabled = true
 	if ramSize > 0 {
 		m.hasRAM = true
+		m.ramEnabled = true
 		m.selectedRAMBank = 0
 		m.ramBanks = populateRAMBanks(m.RAMSize / 0x2000)
 	}
