@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"cartridge"
 	"cpu"
+	"errors"
 	"flag"
 	"fmt"
 	"gpu"
@@ -19,6 +20,7 @@ import (
 )
 
 var printState *bool = flag.Bool("dump", false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
+var screenSizeMultiplier *int = flag.Int("size", 1, "Screen size multiplier")
 var skipBoot *bool = flag.Bool("noboot", false, "Skip boot sequence")
 var debug *bool = flag.Bool("d", false, "Enable debugger")
 var breakOn *string = flag.String("b", "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
@@ -48,7 +50,7 @@ func NewGBC() *GameboyColor {
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU()
 
-	gbc.io = inputoutput.NewIO(inputoutput.DefaultControlScheme)
+	gbc.io = inputoutput.NewIO()
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
 	gbc.timer = timer.NewTimer()
@@ -157,9 +159,16 @@ func main() {
 		}
 	}
 
-	screenInitErr := gbc.io.Init(TITLE, onClose)
-	if screenInitErr != nil {
-		log.Fatalf("%v", screenInitErr)
+	ioConfig, err := GetIoConfig()
+
+	if err != nil {
+		log.Fatalln("Error setting up IO:", err)
+	}
+
+	ioInitializeErr := gbc.io.Init(*ioConfig)
+
+	if ioInitializeErr != nil {
+		log.Fatalf("%v", ioInitializeErr)
 	}
 
 	gbc.setupBoot()
@@ -279,6 +288,20 @@ func (gbc *GameboyColor) Reset() {
 	gbc.io.KeyHandler.Reset()
 	gbc.io.Display.DrawFrame(&([144][160]types.RGB{}))
 	gbc.setupBoot()
+}
+
+func GetIoConfig() (*inputoutput.IOConfig, error) {
+	ioConfig := new(inputoutput.IOConfig)
+	ioConfig.Title = TITLE
+	ioConfig.ControlScheme = inputoutput.DefaultControlScheme
+	ioConfig.OnCloseHandler = onClose
+
+	if *screenSizeMultiplier > 5 {
+		return nil, errors.New("Cannot scale screen size to greater than 5x")
+	}
+
+	ioConfig.ScreenSizeMultiplier = *screenSizeMultiplier
+	return ioConfig, nil
 }
 
 func RetrieveROM(filename string) ([]byte, error) {

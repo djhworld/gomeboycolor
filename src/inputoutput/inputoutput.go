@@ -35,26 +35,24 @@ type KeyHandler struct {
 	irqHandler    components.IRQHandler
 }
 
-func NewKeyHandler(cs ControlScheme) *KeyHandler {
-	var kh *KeyHandler = new(KeyHandler)
-	kh.controlScheme = cs
-	kh.Reset()
-	return kh
+func (k *KeyHandler) Init(cs ControlScheme) {
+	k.controlScheme = cs
+	k.Reset()
 }
 
 func (k *KeyHandler) Name() string {
-	return PREFIX
+	return PREFIX + "-KEYB"
 }
 
 func (k *KeyHandler) Reset() {
-	log.Println("Resetting", k.Name())
+	log.Printf("%s: Resetting", k.Name())
 	k.rows[0], k.rows[1] = 0x0F, 0x0F
 	k.colSelect = 0x00
 }
 
 func (k *KeyHandler) LinkIRQHandler(m components.IRQHandler) {
 	k.irqHandler = m
-	log.Println(k.Name() + ": Linked IRQ Handler to Keyboard Handler")
+	log.Printf("%s: Linked IRQ Handler to Keyboard Handler", k.Name())
 }
 
 func (k *KeyHandler) Read(addr types.Word) byte {
@@ -126,19 +124,26 @@ type Screen interface {
 	DrawFrame(screenData *[144][160]types.RGB)
 }
 
+type IOConfig struct {
+	Title                string
+	ScreenSizeMultiplier int
+	OnCloseHandler       func()
+	ControlScheme        ControlScheme
+}
+
 type IO struct {
 	KeyHandler *KeyHandler
 	Display    *Display
 }
 
-func NewIO(controlScheme ControlScheme) *IO {
+func NewIO() *IO {
 	var i *IO = new(IO)
-	i.KeyHandler = NewKeyHandler(controlScheme)
+	i.KeyHandler = new(KeyHandler)
 	i.Display = new(Display)
 	return i
 }
 
-func (i *IO) Init(title string, onCloseHandler func()) error {
+func (i *IO) Init(config IOConfig) error {
 	var err error
 
 	err = glfw.Init()
@@ -146,11 +151,12 @@ func (i *IO) Init(title string, onCloseHandler func()) error {
 		return err
 	}
 
-	err = i.Display.init(title)
+	err = i.Display.init(config.Title, config.ScreenSizeMultiplier)
 	if err != nil {
 		return err
 	}
 
+	i.KeyHandler.Init(config.ControlScheme)
 	glfw.SetKeyCallback(func(key, state int) {
 		if state == glfw.KeyPress {
 			i.KeyHandler.KeyDown(key)
@@ -162,21 +168,29 @@ func (i *IO) Init(title string, onCloseHandler func()) error {
 	glfw.SetWindowCloseCallback(func() int {
 		glfw.CloseWindow()
 		glfw.Terminate()
-		onCloseHandler()
+		config.OnCloseHandler()
 		return 0
 	})
 
 	return nil
 }
 
-type Display struct{}
+type Display struct {
+	Name                 string
+	ScreenSizeMultiplier int
+}
 
-func (s *Display) init(title string) error {
-	log.Println(PREFIX, "Initialising display")
+func (s *Display) init(title string, screenSizeMultiplier int) error {
+	s.Name = PREFIX + "-SCREEN"
+
+	log.Printf("%s: Initialising display", s.Name)
 	var err error
 
+	s.ScreenSizeMultiplier = screenSizeMultiplier
+	log.Printf("%s: Set screen size multiplier to %dx", s.Name, s.ScreenSizeMultiplier)
+
 	glfw.OpenWindowHint(glfw.WindowNoResize, 1)
-	err = glfw.OpenWindow(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0, 0, 0, 0, glfw.Windowed)
+	err = glfw.OpenWindow(SCREEN_WIDTH*s.ScreenSizeMultiplier, SCREEN_HEIGHT*s.ScreenSizeMultiplier, 0, 0, 0, 0, 0, 0, glfw.Windowed)
 	if err != nil {
 		return err
 	}
@@ -206,14 +220,14 @@ func (s *Display) init(title string) error {
 
 func (s *Display) DrawFrame(screenData *[144][160]types.RGB) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.Enable(gl.POINT_SMOOTH)
-	gl.PointSize(1)
+	gl.Disable(gl.DEPTH_TEST)
+	gl.PointSize(float32(s.ScreenSizeMultiplier) + 1.0)
 	gl.Begin(gl.POINTS)
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {
 			var pixel types.RGB = screenData[y][x]
 			gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
-			gl.Vertex2i(x, y)
+			gl.Vertex2i(x*s.ScreenSizeMultiplier, y*s.ScreenSizeMultiplier)
 		}
 	}
 

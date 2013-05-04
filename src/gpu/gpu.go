@@ -431,15 +431,15 @@ func (g *GPU) RenderSprites() {
 			if sprite.X != 0x00 && sprite.Y != 0x00 {
 				tileId := int(sprite.TileID)
 				tile := g.FormatSpriteTile(&g.tiledata[tileId], &sprite)
-				sx, sy := sprite.X-8, sprite.Y-16
 
 				//TODO: sort out when sprite goes off screen!!!!!!
-				if sx >= 0 && sy >= 0 {
+				if sprite.X >= 0 && sprite.Y >= 0 {
+					sx, sy := sprite.X-8, sprite.Y-16
 					for y := 0; y < 8; y++ {
 						for x := 0; x < 8; x++ {
 							if tile[y][x] != 0 {
 								tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[y][x]]
-								if sy+y < DISPLAY_HEIGHT && sx+x < DISPLAY_WIDTH {
+								if (sy+y < DISPLAY_HEIGHT && sy+y >= 0) && (sx+x < DISPLAY_WIDTH && sx+x >= 0) {
 									if sprite.SpriteHasPriority == false {
 										g.screenData[y+sy][x+sx] = tilecolor
 									} else {
