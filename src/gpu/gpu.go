@@ -74,6 +74,7 @@ type GPU struct {
 	vram                  [8192]byte
 	oamRam                [160]byte
 	vBlankInterruptThrown bool
+	lcdInterruptThrown    bool
 
 	mode            byte
 	clock           int64
@@ -134,6 +135,8 @@ func (g *GPU) Reset() {
 	g.mode = 0
 	g.ly = 0
 	g.clock = 0
+	g.vBlankInterruptThrown = false
+	g.lcdInterruptThrown = false
 }
 
 func (g *GPU) Step(t int64) {
@@ -191,8 +194,13 @@ func (g *GPU) Step(t int64) {
 
 	g.coincidenceFlag = false
 	if byte(g.ly) == g.lyc && (g.stat&0x40) == 0x40 {
-		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 		g.coincidenceFlag = true
+		if g.lcdInterruptThrown == false {
+			g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+			g.lcdInterruptThrown = true
+		}
+	} else {
+		g.lcdInterruptThrown = false
 	}
 
 }
@@ -280,23 +288,20 @@ func (g *GPU) Read(addr types.Word) byte {
 		case LCDC:
 			return g.lcdc
 		case STAT:
-			g.stat = 0x00
-			if g.coincidenceFlag {
-				g.stat ^= 0x44
+			var stat byte = 0x00
+			if byte(g.ly) == g.lyc {
+				stat |= 4
 			}
-
 			switch g.mode {
-			case HBLANK:
-				g.stat &^= 0x33
 			case VBLANK:
-				g.stat ^= 0x11
+				g.stat |= 1
 			case OAMREAD:
-				g.stat ^= 0x22
+				g.stat |= 2
 			case VRAMREAD:
-				g.stat ^= 0x33
+				g.stat |= 3
 			}
 
-			return g.stat
+			return (stat | g.stat&0xF8)
 		case SCROLLY:
 			return g.scrollY
 		case SCROLLX:
@@ -389,8 +394,8 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 func (g *GPU) RenderLine() {
 	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))>>3)<<5
 	var lineoffset types.Word = types.Word(g.scrollX) >> 3 % 32
-	tileY := (g.ly + int(g.scrollY)) & 7
-	tileX := int(g.scrollX) & 7
+	tileY := (g.ly + int(g.scrollY)) % 8
+	tileX := int(g.scrollX) % 8
 
 	//function to calculate the tilenumber
 	calculateTileNo := func(mo types.Word, lo types.Word) int {
@@ -442,7 +447,7 @@ func (g *GPU) RenderSprites() {
 									if sprite.SpriteHasPriority == false {
 										g.screenData[y+sy][x+sx] = tilecolor
 									} else {
-										if g.screenData[y+sy][x+sx] == (types.RGB{235,235,235}) {
+										if g.screenData[y+sy][x+sx] == (types.RGB{235, 235, 235}) {
 											g.screenData[y+sy][x+sx] = tilecolor
 										}
 									}

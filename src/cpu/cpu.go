@@ -1282,7 +1282,6 @@ func (cpu *GbcCPU) CheckForInterrupts() bool {
 				cpu.InterruptsEnabled = false
 				return true
 			case constants.LCD_IRQ:
-				log.Println("LCD!")
 				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFD)
 				cpu.pushWordToStack(cpu.PC)
 				cpu.PC = types.Word(constants.LCD_IR_ADDR)

@@ -1,6 +1,7 @@
 package cartridge
 
 import (
+	"fmt"
 	"log"
 	"types"
 )
@@ -20,8 +21,12 @@ func NewMBC0(rom []byte) *MBC0 {
 	//ensure only first 32768 bytes are taken
 	m.romBank = rom[0x0000:0x8000]
 
-	log.Println(m.Name + ": Initialised memory bank controller")
+	log.Println(m)
 	return m
+}
+
+func (m *MBC0) String() string {
+	return fmt.Sprint(m.Name+": ROM size: ", len(m.romBank), " bytes")
 }
 
 func (m *MBC0) Write(addr types.Word, value byte) {

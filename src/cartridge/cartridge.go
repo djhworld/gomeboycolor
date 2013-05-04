@@ -12,6 +12,7 @@ const (
 	MBC_1          = 0x01
 	MBC_1_RAM      = 0x02
 	MBC_1_RAM_BATT = 0x03
+	MBC_3_RAM_BATT = 0x13
 )
 
 type CartridgeType struct {
@@ -24,6 +25,7 @@ var CartridgeTypes map[byte]CartridgeType = map[byte]CartridgeType{
 	MBC_1:          CartridgeType{MBC_1, "ROM+MBC1"},
 	MBC_1_RAM:      CartridgeType{MBC_1_RAM, "ROM+MBC1+RAM"},
 	MBC_1_RAM_BATT: CartridgeType{MBC_1_RAM_BATT, "ROM+MBC1+RAM+BATT"},
+	MBC_3_RAM_BATT: CartridgeType{MBC_3_RAM_BATT, "ROM+MBC3+RAM+BATT"},
 }
 
 type Cartridge struct {
@@ -89,7 +91,8 @@ func (c *Cartridge) Init(rom []byte) error {
 		c.MBC = NewMBC0(rom)
 	case MBC_1, MBC_1_RAM, MBC_1_RAM_BATT:
 		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize)
-
+	case MBC_3_RAM_BATT:
+		c.MBC = NewMBC3(rom, c.ROMSize, c.RAMSize)
 	default:
 		return errors.New("Error: Cartridge type " + utils.ByteToString(c.Type.ID) + " is currently unsupported")
 	}

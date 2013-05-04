@@ -24,6 +24,11 @@ const (
 	JOYP_HILO_IRQ           = 0x10 //bit 4
 )
 
+const (
+	SIXTEENMB_ROM_8KBRAM = iota
+	FOURMB_ROM_32KBRAM
+)
+
 //memory addresses
 const (
 	INTERRUPT_ENABLED_FLAG_ADDR types.Word = 0xFFFF

@@ -1,3 +1,10 @@
+/**
+ * Created with IntelliJ IDEA.
+ * User: danielharper
+ * Date: 04/05/2013
+ * Time: 11:55
+ * To change this template use File | Settings | File Templates.
+ */
 package cartridge
 
 import (
@@ -7,8 +14,8 @@ import (
 	"types"
 )
 
-//Represents MBC1
-type MBC1 struct {
+//Represents MBC3
+type MBC3 struct {
 	Name            string
 	romBank0        []byte
 	romBanks        [][]byte
@@ -22,10 +29,10 @@ type MBC1 struct {
 	RAMSize         int
 }
 
-func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
-	var m *MBC1 = new(MBC1)
+func NewMBC3(rom []byte, romSize int, ramSize int) *MBC3 {
+	var m *MBC3 = new(MBC3)
 
-	m.Name = "CARTRIDGE-MBC1"
+	m.Name = "CARTRIDGE-MBC3"
 	m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
@@ -44,11 +51,11 @@ func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
 	log.Println(m)
 	return m
 }
-func (m *MBC1) String() string {
+func (m *MBC3) String() string {
 	return fmt.Sprint(m.Name+": ROM Banks: ", len(m.romBanks), ", RAM Banks: ", len(m.ramBanks), ". ROM size: ", m.ROMSize, " bytes. RAM size: ", m.RAMSize, " bytes")
 }
 
-func (m *MBC1) Write(addr types.Word, value byte) {
+func (m *MBC3) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x0000 && addr <= 0x1FFF:
 		//when in 4/32 mode...
@@ -67,10 +74,10 @@ func (m *MBC1) Write(addr types.Word, value byte) {
 		m.switchRAMBank(int(value & 0x03))
 	case addr >= 0x6000 && addr <= 0x7FFF:
 		if mode := value & 0x01; mode == 0x00 {
-			log.Println(m.Name + ": Switching MBC1 mode to 16/8")
+			log.Println(m.Name + ": Switching MBC3 mode to 16/8")
 			m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
 		} else {
-			log.Println(m.Name + ": Switching MBC1 mode to 4/32")
+			log.Println(m.Name + ": Switching MBC3 mode to 4/32")
 			m.MaxMemMode = constants.FOURMB_ROM_32KBRAM
 		}
 	case addr >= 0xA000 && addr <= 0xBFFF:
@@ -85,7 +92,7 @@ func (m *MBC1) Write(addr types.Word, value byte) {
 	}
 }
 
-func (m *MBC1) Read(addr types.Word) byte {
+func (m *MBC3) Read(addr types.Word) byte {
 	//ROM Bank 0
 	if addr < 0x4000 {
 		return m.romBank0[addr]
@@ -111,10 +118,10 @@ func (m *MBC1) Read(addr types.Word) byte {
 	return 0x00
 }
 
-func (m *MBC1) switchROMBank(bank int) {
+func (m *MBC3) switchROMBank(bank int) {
 	m.selectedROMBank = bank
 }
 
-func (m *MBC1) switchRAMBank(bank int) {
+func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
