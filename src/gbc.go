@@ -17,6 +17,7 @@ import (
 	"timer"
 	"types"
 	"utils"
+	"path/filepath"
 )
 
 var printState *bool = flag.Bool("dump", false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
@@ -124,7 +125,8 @@ func main() {
 		return
 	}
 
-	rom, err := RetrieveROM(flag.Arg(0))
+	romFilename := flag.Arg(0)
+	rom, err := RetrieveROM(romFilename)
 	if err != nil {
 		log.Fatalf("Error retrieving ROM file: %v", err)
 	}
@@ -160,6 +162,7 @@ func main() {
 	}
 
 	ioConfig, err := GetIoConfig()
+	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(romFilename), cart.Title)
 
 	if err != nil {
 		log.Fatalln("Error setting up IO:", err)
