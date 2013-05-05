@@ -162,11 +162,12 @@ func main() {
 	}
 
 	ioConfig, err := GetIoConfig()
-	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(romFilename), cart.Title)
-
 	if err != nil {
 		log.Fatalln("Error setting up IO:", err)
 	}
+
+	//append cartridge name and filename to title
+	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(romFilename), cart.Title)
 
 	ioInitializeErr := gbc.io.Init(*ioConfig)
 
@@ -299,8 +300,8 @@ func GetIoConfig() (*inputoutput.IOConfig, error) {
 	ioConfig.ControlScheme = inputoutput.DefaultControlScheme
 	ioConfig.OnCloseHandler = onClose
 
-	if *screenSizeMultiplier > 5 {
-		return nil, errors.New("Cannot scale screen size to greater than 5x")
+	if *screenSizeMultiplier > 6 {
+		return nil, errors.New("Cannot scale screen size to greater than 6x, please provide a size of 6 or below")
 	}
 
 	ioConfig.ScreenSizeMultiplier = *screenSizeMultiplier
