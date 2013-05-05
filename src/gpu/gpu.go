@@ -389,7 +389,7 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 
 func (g *GPU) RenderLine() {
 	//find where in the tile map we are related to the current scan line + scroll Y (wraps around)
-	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly + int(g.scrollY)))%256)/8*32
+	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))%256)/8*32
 	var lineoffset types.Word = types.Word(g.scrollX) / 8 % 32
 
 	//find where in the tile we are

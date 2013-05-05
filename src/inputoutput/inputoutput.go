@@ -211,7 +211,7 @@ func (s *Display) init(title string, screenSizeMultiplier int) error {
 
 	glfw.SetWindowSizeCallback(onResize)
 	desktopMode := glfw.DesktopMode()
-	glfw.SetWindowPos((desktopMode.W - SCREEN_WIDTH*s.ScreenSizeMultiplier)/2, (desktopMode.H - SCREEN_HEIGHT*s.ScreenSizeMultiplier)/2)
+	glfw.SetWindowPos((desktopMode.W-SCREEN_WIDTH*s.ScreenSizeMultiplier)/2, (desktopMode.H-SCREEN_HEIGHT*s.ScreenSizeMultiplier)/2)
 
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 

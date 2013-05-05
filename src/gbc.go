@@ -13,11 +13,11 @@ import (
 	"log"
 	"mmu"
 	"os"
+	"path/filepath"
 	"strings"
 	"timer"
 	"types"
 	"utils"
-	"path/filepath"
 )
 
 var printState *bool = flag.Bool("dump", false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
