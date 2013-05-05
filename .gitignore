@@ -1,3 +1,7 @@
 .idea/*
 *.iml
 out/*
+.DS_Store
+pkg/*
+src/code.google.com/*
+src/github.com/*
