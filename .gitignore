@@ -1,6 +1,7 @@
 .idea/*
 *.iml
 out/*
+bin/*
 .DS_Store
 pkg/*
 src/code.google.com/*
