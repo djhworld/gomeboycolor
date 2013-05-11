@@ -165,14 +165,15 @@ func (g *GPU) Step(t int64) {
 	if g.clock <= 0 {
 		if g.ly < 144 {
 			if g.displayOn {
-				g.RenderLine()
+				g.RenderBackgroundScanline()
+			}
+
+			if g.windowOn {
+				g.RenderWindowScanline()
 			}
 		} else if g.ly == 144 {
 			if g.spritesOn {
 				g.RenderSprites()
-			}
-			if g.windowOn {
-				g.RenderWindow()
 			}
 
 			//throw vblank interrupt
@@ -203,14 +204,12 @@ func (g *GPU) CheckForLCDCSTATInterrupt() {
 	switch {
 	case byte(g.ly) == g.lyc && (g.Read(STAT)&0x40) == 0x40:
 		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-		/*
-			case g.mode == OAMREAD && (g.Read(STAT)&0x20) == 0x20:
-				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-			case g.mode == VBLANK && (g.Read(STAT)&0x10) == 0x10:
-				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-			case g.mode == HBLANK && (g.Read(STAT)&0x08) == 0x08:
-				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-		*/
+	case g.mode == OAMREAD && (g.Read(STAT)&0x20) == 0x20:
+		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+	case g.mode == VBLANK && (g.Read(STAT)&0x10) == 0x10:
+		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+	case g.mode == HBLANK && (g.Read(STAT)&0x08) == 0x08:
+		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 	}
 }
 
@@ -387,43 +386,70 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 	g.tiledata[tileId] = recalcTile(g.rawTiledata[tileId])
 }
 
-func (g *GPU) RenderLine() {
+func (g *GPU) RenderBackgroundScanline() {
 	//find where in the tile map we are related to the current scan line + scroll Y (wraps around)
-	var mapoffset types.Word = g.bgTilemap + ((types.Word(g.ly+int(g.scrollY)))%256)/8*32
-	var lineoffset types.Word = types.Word(g.scrollX) / 8 % 32
+	screenYAdjusted := int(g.ly) + int(g.scrollY)
+	var initialTilemapOffset types.Word = g.bgTilemap + types.Word(screenYAdjusted)%256/8*32
+	var initialLineOffset types.Word = types.Word(g.scrollX) / 8 % 32
 
 	//find where in the tile we are
-	tileY := (g.ly + int(g.scrollY)) % 8
-	tileX := int(g.scrollX) % 8
+	initialTileX := int(g.scrollX) % 8
+	initialTileY := screenYAdjusted % 8
 
-	//function to calculate the tilenumber
-	calculateTileNo := func(mo types.Word, lo types.Word) int {
-		//get the ID of the tile being drawn
-		tileId := int(g.Read(types.Word(mo + lo)))
-		if g.tileDataSelect == TILEDATA0 {
-			if tileId < 128 {
-				tileId += 256
-			}
+	//screen will always draw from X = 0
+	g.DrawScanline(initialTilemapOffset, initialLineOffset, 0, initialTileX, initialTileY)
+}
+
+func (g *GPU) RenderWindowScanline() {
+	screenYAdjusted := g.ly - int(g.windowY)
+
+	if (g.windowX >= 0 && g.windowX < 167) && (g.windowY >= 0 && g.windowY < 144) && screenYAdjusted >= 0 {
+		var initialTilemapOffset types.Word = g.windowTilemap + types.Word(screenYAdjusted)/8*32
+		var initialLineOffset types.Word = 0
+		var screenXAdjusted int = int(g.windowX) - 7
+
+		//find where in the tile we are
+		initialTileX := screenXAdjusted % 8
+		initialTileY := screenYAdjusted % 8
+
+		if screenXAdjusted >= 0 {
+			g.DrawScanline(initialTilemapOffset, initialLineOffset, screenXAdjusted, initialTileX, initialTileY)
 		}
-		return tileId
 	}
+}
 
-	tileId := calculateTileNo(mapoffset, lineoffset)
+func (g *GPU) DrawScanline(tilemapOffset, lineOffset types.Word, screenX, tileX, tileY int) {
+	//get tile to start from
+	tileId := g.calculateTileNo(tilemapOffset, lineOffset)
 
-	for x := 0; x < DISPLAY_WIDTH; x++ {
+	for ; screenX < DISPLAY_WIDTH; screenX++ {
 		//draw the pixel to the screenData data buffer (running through the bgPalette)
 		color := g.bgPalette[g.tiledata[tileId][tileY][tileX]]
-		g.screenData[g.ly][x] = color
+		g.screenData[g.ly][screenX] = color
 
 		//move along line in tile until you reach the end
 		tileX++
 		if tileX == 8 {
 			tileX = 0
-			lineoffset = (lineoffset + 1) % 32
+			lineOffset = (lineOffset + 1) % 32
+
 			//get next tile in line
-			tileId = calculateTileNo(mapoffset, lineoffset)
+			tileId = g.calculateTileNo(tilemapOffset, lineOffset)
 		}
 	}
+}
+
+//method to calculate the tilenumber within the tilemap
+func (g *GPU) calculateTileNo(tilemapOffset types.Word, lineOffset types.Word) int {
+	tileId := int(g.Read(types.Word(tilemapOffset + lineOffset)))
+
+	//if tile data is 0 then it is signed
+	if g.tileDataSelect == TILEDATA0 {
+		if tileId < 128 {
+			tileId += 256
+		}
+	}
+	return tileId
 }
 
 //TODO: Sprite precedence rules
@@ -488,13 +514,6 @@ func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
 	}
 
 	return t
-}
-
-func (g *GPU) RenderWindow() {
-	if (g.windowX >= 0 && g.windowX <= 166) && (g.windowY >= 0 && g.windowY <= 143) {
-		screenX, screenY := g.windowX-7, g.windowY
-		log.Println(screenX, screenY)
-	}
 }
 
 //debug helpers
