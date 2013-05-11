@@ -47,11 +47,11 @@ func (r Registers) String() string {
 
 //See ZILOG z80 cpu manual p.80  (http://www.zilog.com/docs/z80/um0080.pdf)
 type Clock struct {
-	M int64
-	t int64
+	M int
+	t int
 }
 
-func (c *Clock) T() int64 {
+func (c *Clock) T() int {
 	return c.M * 4
 }
 
@@ -1214,7 +1214,7 @@ func (cpu *GbcCPU) Dispatch(Opcode byte) {
 	}
 }
 
-func (cpu *GbcCPU) Step() int64 {
+func (cpu *GbcCPU) Step() int {
 	if err := cpu.Validate(); err != nil {
 		log.Fatalln(PREFIX, err)
 	}

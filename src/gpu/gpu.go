@@ -77,7 +77,7 @@ type GPU struct {
 	lcdInterruptThrown    bool
 
 	mode    byte
-	clock   int64
+	clock   int
 	ly      int
 	lcdc    byte
 	lyc     byte
@@ -138,7 +138,7 @@ func (g *GPU) Reset() {
 	g.lcdInterruptThrown = false
 }
 
-func (g *GPU) Step(t int64) {
+func (g *GPU) Step(t int) {
 
 	if !g.displayOn {
 		g.ly = 0

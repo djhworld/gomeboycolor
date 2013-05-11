@@ -35,7 +35,7 @@ const (
 	freq262144           = "262144hz"
 )
 
-var FrequenciesToCycles map[Frequency]int64 = map[Frequency]int64{
+var FrequenciesToCycles map[Frequency]int = map[Frequency]int{
 	freq4096:   256, //1024,
 	freq262144: 4,
 	freq65536:  16,
@@ -45,7 +45,7 @@ var FrequenciesToCycles map[Frequency]int64 = map[Frequency]int64{
 type Counter struct {
 	Name           string
 	ClockFrequency Frequency
-	ClockCounter   int64
+	ClockCounter   int
 	Value          byte
 }
 
@@ -73,7 +73,7 @@ func (c *Counter) SetFrequency(freq Frequency) {
 }
 
 //returns true when overflowed
-func (c *Counter) Step(cycles int64) bool {
+func (c *Counter) Step(cycles int) bool {
 	c.ClockCounter -= cycles
 
 	for c.ClockCounter <= 0 {
@@ -110,7 +110,7 @@ func (timer *Timer) Name() string {
 	return NAME
 }
 
-func (timer *Timer) Step(cycles int64) {
+func (timer *Timer) Step(cycles int) {
 	if timer.tacRegister&0x04 == 0x04 {
 		if overflowed := timer.timaCounter.Step(cycles); overflowed {
 			timer.irqHandler.RequestInterrupt(constants.TIMER_OVERFLOW_IRQ)

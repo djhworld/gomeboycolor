@@ -9,7 +9,7 @@ type Instruction struct {
 	Opcode       byte
 	Description  string
 	OperandsSize int
-	Cycles       int64
+	Cycles       int
 	Operands     [2]byte
 }
 
