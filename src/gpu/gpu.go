@@ -7,7 +7,6 @@ import (
 	"inputoutput"
 	"log"
 	"types"
-	"utils"
 )
 
 const NAME = "GPU"
@@ -39,8 +38,8 @@ const HBLANK byte = 0x00
 const VBLANK byte = 0x01
 const OAMREAD byte = 0x02
 const VRAMREAD byte = 0x03
-const Sprite8x16 byte = 0
-const Sprite8x8 byte = 1
+const Sprite8x16Mode byte = 0
+const Sprite8x8Mode byte = 1
 
 var GBColours []types.RGB = []types.RGB{
 	types.RGB{235, 235, 235},
@@ -52,20 +51,6 @@ var GBColours []types.RGB = []types.RGB{
 type RawTile [16]byte
 type Tile [8][8]int
 type Palette [4]types.RGB
-
-type Sprite struct {
-	Y                      int
-	X                      int
-	TileID                 byte
-	SpriteHasPriority      bool
-	ShouldFlipVertically   bool
-	ShouldFlipHorizontally bool
-	PaletteSelected        int
-}
-
-func (s Sprite) String() string {
-	return fmt.Sprintf("[Y: %d | X: %d | Pattern: %s | Sprite has priority? %v | Flip sprite vertically? %v | Flip sprite horizontally? %v | Palette no: %d]", s.Y, s.X, utils.ByteToString(s.TileID), s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
-}
 
 type GPU struct {
 	screenData            [144][160]types.RGB
@@ -95,13 +80,14 @@ type GPU struct {
 	windowOn       bool
 	displayOn      bool
 	tileDataSelect types.Word
-	spriteSize     byte
+	spriteSizeMode byte
 
 	bgTilemap     types.Word
 	windowTilemap types.Word
 	rawTiledata   [512]RawTile
 	tiledata      [512]Tile
-	sprites       [40]Sprite
+	sprites8x8    [40]Sprite
+	sprites8x16   [40]Sprite
 
 	bgPalette      Palette
 	objectPalettes [2]Palette
@@ -136,10 +122,14 @@ func (g *GPU) Reset() {
 	g.clock = 0
 	g.vBlankInterruptThrown = false
 	g.lcdInterruptThrown = false
+
+	for i := 0; i < 40; i++ {
+		g.sprites8x8[i] = NewSprite8x8()
+		g.sprites8x16[i] = NewSprite8x16()
+	}
 }
 
 func (g *GPU) Step(t int) {
-
 	if !g.displayOn {
 		g.ly = 0
 		g.clock = 456
@@ -165,11 +155,13 @@ func (g *GPU) Step(t int) {
 	if g.clock <= 0 {
 		if g.ly < 144 {
 			if g.displayOn {
-				g.RenderBackgroundScanline()
-			}
+				if g.bgrdOn {
+					g.RenderBackgroundScanline()
+				}
 
-			if g.windowOn {
-				g.RenderWindowScanline()
+				if g.windowOn {
+					g.RenderWindowScanline()
+				}
 			}
 		} else if g.ly == 144 {
 			if g.spritesOn {
@@ -250,9 +242,9 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			}
 
 			if value&0x04 == 0x04 { //bit 2
-				g.spriteSize = Sprite8x16
+				g.spriteSizeMode = Sprite8x16Mode
 			} else {
-				g.spriteSize = Sprite8x8
+				g.spriteSizeMode = Sprite8x8Mode
 			}
 
 			g.spritesOn = value&0x02 == 0x02 //bit 1
@@ -325,42 +317,10 @@ func (g *GPU) Read(addr types.Word) byte {
 
 func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 	var spriteId types.Word = (addr & 0x00FF) / 4
-	var spriteAttrId int = int(addr % 4)
-	switch spriteAttrId {
-	case 0:
-		g.sprites[spriteId].Y = int(value)
-	case 1:
-		g.sprites[spriteId].X = int(value)
-	case 2:
-		if g.spriteSize == Sprite8x16 {
-			g.sprites[spriteId].TileID = value & 0xFE
-		} else {
-			g.sprites[spriteId].TileID = value
-		}
-	case 3:
-		if (value & 0x80) == 0x80 {
-			g.sprites[spriteId].SpriteHasPriority = true
-		} else {
-			g.sprites[spriteId].SpriteHasPriority = false
-		}
-
-		if (value & 0x40) == 0x40 {
-			g.sprites[spriteId].ShouldFlipVertically = true
-		} else {
-			g.sprites[spriteId].ShouldFlipVertically = false
-		}
-
-		if (value & 0x20) == 0x20 {
-			g.sprites[spriteId].ShouldFlipHorizontally = true
-		} else {
-			g.sprites[spriteId].ShouldFlipHorizontally = false
-		}
-
-		if (value & 0x10) == 0x10 {
-			g.sprites[spriteId].PaletteSelected = 1
-		} else {
-			g.sprites[spriteId].PaletteSelected = 0
-		}
+	if g.spriteSizeMode == Sprite8x8Mode {
+		g.sprites8x8[spriteId].UpdateSprite(addr, value)
+	} else {
+		g.sprites8x16[spriteId].UpdateSprite(addr, value)
 	}
 }
 
@@ -452,44 +412,51 @@ func (g *GPU) calculateTileNo(tilemapOffset types.Word, lineOffset types.Word) i
 	return tileId
 }
 
-//TODO: Sprite precedence rules
-//TODO: 8x16 sprites
 func (g *GPU) RenderSprites() {
-	if g.spriteSize == Sprite8x8 {
-		for _, sprite := range g.sprites {
-			if sprite.X != 0x00 && sprite.Y != 0x00 {
-				tileId := int(sprite.TileID)
-				tile := g.FormatSpriteTile(&g.tiledata[tileId], &sprite)
+	if g.spriteSizeMode == Sprite8x8Mode {
+		for _, sprite := range g.sprites8x8 {
+			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
+				g.DrawSpriteTile(sprite, sprite.GetTileID(0), 0, 0)
+			}
+		}
+	} else {
+		for _, sprite := range g.sprites8x16 {
+			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
+				g.DrawSpriteTile(sprite, sprite.GetTileID(0), 0, 0)
+				g.DrawSpriteTile(sprite, sprite.GetTileID(1), 0, 8) //8 pixels down for second tile
+			}
+		}
+	}
+}
 
-				//TODO: sort out when sprite goes off screen!!!!!!
-				if sprite.X >= 0 && sprite.Y >= 0 {
-					sx, sy := sprite.X-8, sprite.Y-16
-					for y := 0; y < 8; y++ {
-						for x := 0; x < 8; x++ {
-							if tile[y][x] != 0 {
-								tilecolor := g.objectPalettes[sprite.PaletteSelected][tile[y][x]]
-								if (sy+y < DISPLAY_HEIGHT && sy+y >= 0) && (sx+x < DISPLAY_WIDTH && sx+x >= 0) {
-									if sprite.SpriteHasPriority == false {
-										g.screenData[y+sy][x+sx] = tilecolor
-									} else {
-										if g.screenData[y+sy][x+sx] == (types.RGB{235, 235, 235}) {
-											g.screenData[y+sy][x+sx] = tilecolor
-										}
-									}
-								}
-							}
+//TODO: Sprite precedence rules
+// Draws a tile for the given sprite. Only draws one tile
+func (g *GPU) DrawSpriteTile(s Sprite, tileId int, screenXOffset int, screenYOffset int) {
+	tile := g.FormatTileForSprite(s, tileId)
+	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
+		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				if tile[y][x] != 0 {
+					tilecolor := g.objectPalettes[s.SpriteAttributes().PaletteSelected][tile[y][x]]
+					adjX, adjY := sx+x+screenXOffset, sy+y+screenYOffset
+					if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
+						if s.SpriteAttributes().SpriteHasPriority == false {
+							g.screenData[adjY][adjX] = tilecolor
+						} else if g.screenData[adjY][adjX] == (types.RGB{235, 235, 235}) {
+							g.screenData[adjY][adjX] = tilecolor
 						}
 					}
 				}
 			}
 		}
-	} else {
-		//		log.Println("Is in 8x16 mode")
 	}
 }
 
-func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
-	if s.ShouldFlipHorizontally {
+func (g *GPU) FormatTileForSprite(s Sprite, tileId int) *Tile {
+	t := &g.tiledata[tileId]
+
+	if s.SpriteAttributes().ShouldFlipHorizontally {
 		var t2 *Tile = new(Tile)
 
 		for y := 0; y < 8; y++ {
@@ -501,7 +468,7 @@ func (g *GPU) FormatSpriteTile(t *Tile, s *Sprite) *Tile {
 		return t2
 	}
 
-	if s.ShouldFlipVertically {
+	if s.SpriteAttributes().ShouldFlipVertically {
 		var t2 *Tile = new(Tile)
 
 		for y := 0; y < 8; y++ {
@@ -533,12 +500,12 @@ func (g *GPU) DumpTiles() [512][8][8]types.RGB {
 }
 
 func (g *GPU) Dump8x8Sprites() [40][8][8]types.RGB {
-	fmt.Println("Dumping", len(g.sprites), "sprites")
+	fmt.Println("Dumping", len(g.sprites8x8), "sprites")
 	var out [40][8][8]types.RGB
-	for i, spr := range g.sprites {
+	for i, spr := range g.sprites8x8 {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
-				tileId := int(spr.TileID)
+				tileId := spr.GetTileID(0)
 				tile := g.tiledata[tileId]
 				cr := GBColours[tile[y][x]]
 				out[i][y][x] = cr
