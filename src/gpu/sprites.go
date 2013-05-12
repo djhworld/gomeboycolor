@@ -1,4 +1,5 @@
 package gpu
+
 //Thought it would be appropriate to put the sprite type code in a different file
 
 import (
