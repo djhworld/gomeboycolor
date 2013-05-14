@@ -1,10 +1,3 @@
-/**
- * Created with IntelliJ IDEA.
- * User: danielharper
- * Date: 15/03/2013
- * Time: 20:34
- * To change this template use File | Settings | File Templates.
- */
 package timer
 
 import (

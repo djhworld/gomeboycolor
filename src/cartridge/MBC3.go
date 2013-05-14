@@ -1,10 +1,3 @@
-/**
- * Created with IntelliJ IDEA.
- * User: danielharper
- * Date: 04/05/2013
- * Time: 11:55
- * To change this template use File | Settings | File Templates.
- */
 package cartridge
 
 import (

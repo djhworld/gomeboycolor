@@ -21,6 +21,7 @@ var testControlScheme ControlScheme = ControlScheme{UP, DOWN, LEFT, RIGHT, A, B,
 func TestWrite(t *testing.T) {
 	//given
 	kbh := new(KeyHandler)
+	kbh.Init(testControlScheme)
 	var expected byte = 0x10
 
 	//when
@@ -127,9 +128,10 @@ func TestKeyUpForSelect(t *testing.T) {
 }
 
 //TODO: combination of keys pressed
-
 func doKeyUpAndRead(t *testing.T, row byte, key int) byte {
-	kbh := NewKeyHandler(testControlScheme)
+	kbh := new(KeyHandler)
+	kbh.Init(testControlScheme)
+	kbh.LinkIRQHandler(new(MockIRQHandler))
 	kbh.Write(0x0000, row)
 	kbh.KeyDown(key)
 	kbh.KeyUp(key)
@@ -137,8 +139,16 @@ func doKeyUpAndRead(t *testing.T, row byte, key int) byte {
 }
 
 func doKeyDownAndRead(t *testing.T, row byte, key int) byte {
-	kbh := NewKeyHandler(testControlScheme)
+	kbh := new(KeyHandler)
+	kbh.Init(testControlScheme)
+	kbh.LinkIRQHandler(new(MockIRQHandler))
 	kbh.Write(0x0000, row)
 	kbh.KeyDown(key)
 	return kbh.Read(0x0000)
+}
+
+type MockIRQHandler struct{}
+
+func (m *MockIRQHandler) RequestInterrupt(interrupt byte) {
+	//does nothing
 }

@@ -1,10 +1,3 @@
-/**
- * Created with IntelliJ IDEA.
- * User: danielharper
- * Date: 02/03/2013
- * Time: 10:32
- * To change this template use File | Settings | File Templates.
- */
 package constants
 
 import "types"

@@ -469,7 +469,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x00, &cpu.R.H)
 	case 0x85: //RES 0, L
 		cpu.Resb_r(0x00, &cpu.R.L)
-	case 0x86: //RES 0,(HL) 
+	case 0x86: //RES 0,(HL)
 		cpu.Resb_hl(0x00)
 	case 0x87: //RES 0, A
 		cpu.Resb_r(0x00, &cpu.R.A)
@@ -485,7 +485,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x01, &cpu.R.H)
 	case 0x8D: //RES 1, L
 		cpu.Resb_r(0x01, &cpu.R.L)
-	case 0x8E: //RES 1,(HL) 
+	case 0x8E: //RES 1,(HL)
 		cpu.Resb_hl(0x01)
 	case 0x8F: //RES 1, A
 		cpu.Resb_r(0x01, &cpu.R.A)
@@ -501,7 +501,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x02, &cpu.R.H)
 	case 0x95: //RES 2, L
 		cpu.Resb_r(0x02, &cpu.R.L)
-	case 0x96: //RES 2,(HL) 
+	case 0x96: //RES 2,(HL)
 		cpu.Resb_hl(0x02)
 	case 0x97: //RES 2, A
 		cpu.Resb_r(0x02, &cpu.R.A)
@@ -517,7 +517,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x03, &cpu.R.H)
 	case 0x9D: //RES 3, L
 		cpu.Resb_r(0x03, &cpu.R.L)
-	case 0x9E: //RES 3,(HL) 
+	case 0x9E: //RES 3,(HL)
 		cpu.Resb_hl(0x03)
 	case 0x9F: //RES 3, A
 		cpu.Resb_r(0x03, &cpu.R.A)
@@ -533,7 +533,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x04, &cpu.R.H)
 	case 0xA5: //RES 4, L
 		cpu.Resb_r(0x04, &cpu.R.L)
-	case 0xA6: //RES 4,(HL) 
+	case 0xA6: //RES 4,(HL)
 		cpu.Resb_hl(0x04)
 	case 0xA7: //RES 4, A
 		cpu.Resb_r(0x04, &cpu.R.A)
@@ -549,7 +549,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x05, &cpu.R.H)
 	case 0xAD: //RES 5, L
 		cpu.Resb_r(0x05, &cpu.R.L)
-	case 0xAE: //RES 5,(HL) 
+	case 0xAE: //RES 5,(HL)
 		cpu.Resb_hl(0x05)
 	case 0xAF: //RES 5, A
 		cpu.Resb_r(0x05, &cpu.R.A)
@@ -565,7 +565,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x06, &cpu.R.H)
 	case 0xB5: //RES 6, L
 		cpu.Resb_r(0x06, &cpu.R.L)
-	case 0xB6: //RES 6,(HL) 
+	case 0xB6: //RES 6,(HL)
 		cpu.Resb_hl(0x06)
 	case 0xB7: //RES 6, A
 		cpu.Resb_r(0x06, &cpu.R.A)
@@ -581,7 +581,7 @@ func (cpu *GbcCPU) DispatchCB(Opcode byte) {
 		cpu.Resb_r(0x07, &cpu.R.H)
 	case 0xBD: //RES 7, L
 		cpu.Resb_r(0x07, &cpu.R.L)
-	case 0xBE: //RES 7,(HL) 
+	case 0xBE: //RES 7,(HL)
 		cpu.Resb_hl(0x07)
 	case 0xBF: //RES 7, A
 		cpu.Resb_r(0x07, &cpu.R.A)
@@ -1625,7 +1625,7 @@ func (cpu *GbcCPU) EI() {
 }
 
 //LD r,n
-//Load value (n) from memory address in the PC into register (r) and increment PC by 1 
+//Load value (n) from memory address in the PC into register (r) and increment PC by 1
 func (cpu *GbcCPU) LDrn(r *byte) {
 	*r = cpu.CurrentInstruction.Operands[0]
 }
@@ -1684,7 +1684,7 @@ func (cpu *GbcCPU) LDr_ffplusc(r *byte) {
 }
 
 //LD (C),r
-//Load the value from register (r) and store it in memory addressed 0xFF00 + value in register C. 
+//Load the value from register (r) and store it in memory addressed 0xFF00 + value in register C.
 func (cpu *GbcCPU) LDffplusc_r(r *byte) {
 	var valueAddr types.Word = 0xFF00 + types.Word(cpu.R.C)
 	cpu.WriteByte(valueAddr, *r)
@@ -1821,8 +1821,8 @@ func (cpu *GbcCPU) Push_nn(r1, r2 *byte) {
 	cpu.pushWordToStack(word)
 }
 
-//POP nn 
-//Pop the stack twice onto register pair nn 
+//POP nn
+//Pop the stack twice onto register pair nn
 func (cpu *GbcCPU) Pop_nn(r1, r2 *byte) {
 	*r1, *r2 = utils.SplitIntoBytes(uint16(cpu.popWordFromStack()))
 }
@@ -2131,7 +2131,7 @@ func (cpu *GbcCPU) CPA_r(r *byte) {
 	cpu.subBytes(cpu.R.A, *r)
 }
 
-//CP A, (HL) 
+//CP A, (HL)
 func (cpu *GbcCPU) CPA_hl() {
 	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var hlValue byte = cpu.ReadByte(hlAddr)
@@ -2879,7 +2879,7 @@ func (cpu *GbcCPU) Bitb_r(b byte, r *byte) {
 	cpu.bitTest(b, *r)
 }
 
-//BIT b,(HL) 
+//BIT b,(HL)
 func (cpu *GbcCPU) Bitb_hl(b byte) {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var value byte = cpu.ReadByte(HL)
@@ -3025,7 +3025,7 @@ func (cpu *GbcCPU) Retcc(flag int, returnWhen bool) {
 	}
 }
 
-// RETI 
+// RETI
 func (cpu *GbcCPU) Ret_i() {
 	cpu.PC = cpu.popWordFromStack()
 	cpu.InterruptsEnabled = true

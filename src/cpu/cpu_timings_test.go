@@ -1,10 +1,3 @@
-/**
- * Created with IntelliJ IDEA.
- * User: danielharper
- * Date: 02/04/2013
- * Time: 22:10
- * To change this template use File | Settings | File Templates.
- */
 package cpu
 
 import (
