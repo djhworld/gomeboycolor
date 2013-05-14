@@ -135,7 +135,6 @@ func (timer *Timer) Read(Address types.Word) byte {
 	default:
 		panic(fmt.Sprintln("Timer module is not set up to handle address", Address))
 	}
-	return 0x00
 }
 
 func (timer *Timer) Write(address types.Word, value byte) {
@@ -174,7 +173,6 @@ func (timer *Timer) GetFrequency(freqId byte) Frequency {
 	default:
 		panic("Unknown frequency!")
 	}
-	return ""
 }
 
 func (timer *Timer) LinkIRQHandler(m components.IRQHandler) {

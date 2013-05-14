@@ -42,10 +42,10 @@ const Sprite8x16Mode byte = 0
 const Sprite8x8Mode byte = 1
 
 var GBColours []types.RGB = []types.RGB{
-	types.RGB{235, 235, 235},
-	types.RGB{196, 196, 196},
-	types.RGB{96, 96, 96},
-	types.RGB{0, 0, 0},
+	types.RGB{Red: 235, Green: 235, Blue: 235},
+	types.RGB{Red: 196, Green: 196, Blue: 196},
+	types.RGB{Red: 96, Green: 96, Blue: 96},
+	types.RGB{Red: 0, Green: 0, Blue: 0},
 }
 
 type RawTile [16]byte
@@ -312,7 +312,6 @@ func (g *GPU) Read(addr types.Word) byte {
 			return 0x00
 		}
 	}
-	return 0x00
 }
 
 func (g *GPU) UpdateSprite(addr types.Word, value byte) {
@@ -443,7 +442,7 @@ func (g *GPU) DrawSpriteTile(s Sprite, tileId int, screenXOffset int, screenYOff
 					if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
 						if s.SpriteAttributes().SpriteHasPriority == false {
 							g.screenData[adjY][adjX] = tilecolor
-						} else if g.screenData[adjY][adjX] == (types.RGB{235, 235, 235}) {
+						} else if g.screenData[adjY][adjX] == (types.RGB{Red: 235, Green: 235, Blue: 235}) {
 							g.screenData[adjY][adjX] = tilecolor
 						}
 					}
