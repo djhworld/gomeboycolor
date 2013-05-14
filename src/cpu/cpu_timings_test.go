@@ -26,7 +26,7 @@ func before() {
 	c.LinkMMU(NewMockMMU())
 }
 
-func AssertTimings(c *GbcCPU, t *testing.T, instr byte, expectedTiming int64, isCB bool) {
+func AssertTimings(c *GbcCPU, t *testing.T, instr byte, expectedTiming int, isCB bool) {
 	tick := c.Step()
 
 	if isCB {
@@ -52,7 +52,7 @@ func RunCBInstrAndAssertTimings(instr byte, flags []int, t *testing.T) {
 	c.PC = 0x0000
 	c.WriteByte(c.PC, 0xCB)
 	c.WriteByte(c.PC+1, instr)
-	var expectedTiming int64 = getTimingFromInstructionServer(instr)
+	var expectedTiming int = getTimingFromInstructionServer(instr)
 	AssertTimings(c, t, instr, expectedTiming, true)
 }
 
@@ -82,11 +82,11 @@ func RunInstrAndAssertTimings(instr byte, flags []int, t *testing.T) {
 	}
 	c.PC = 0x0000
 	c.WriteByte(c.PC, instr)
-	var expectedTiming int64 = getTimingFromInstructionServer(instr)
+	var expectedTiming int = getTimingFromInstructionServer(instr)
 	AssertTimings(c, t, instr, expectedTiming, false)
 }
 
-func getTimingFromInstructionServer(instr byte) int64 {
+func getTimingFromInstructionServer(instr byte) int {
 	conn, err := net.Dial("tcp", "localhost:8012")
 	if err != nil {
 		fmt.Println("error!")
@@ -99,7 +99,7 @@ func getTimingFromInstructionServer(instr byte) int64 {
 	result, _ := reader.ReadString('\n')
 	conn.Close()
 	i, _ := strconv.Atoi(result)
-	return int64(i)
+	return int(i)
 }
 
 func TestTest(t *testing.T) {
