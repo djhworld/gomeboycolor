@@ -365,15 +365,13 @@ func (g *GPU) RenderWindowScanline() {
 	if (g.windowX >= 0 && g.windowX < 167) && (g.windowY >= 0 && g.windowY < 144) && screenYAdjusted >= 0 {
 		var initialTilemapOffset types.Word = g.windowTilemap + types.Word(screenYAdjusted)/8*32
 		var initialLineOffset types.Word = 0
-		var screenXAdjusted int = int(g.windowX) - 7
+		var screenXAdjusted int = int((g.windowX - 7) % 255)
 
 		//find where in the tile we are
 		initialTileX := screenXAdjusted % 8
 		initialTileY := screenYAdjusted % 8
 
-		if screenXAdjusted >= 0 {
-			g.DrawScanline(initialTilemapOffset, initialLineOffset, screenXAdjusted, initialTileX, initialTileY)
-		}
+		g.DrawScanline(initialTilemapOffset, initialLineOffset, screenXAdjusted, initialTileX, initialTileY)
 	}
 }
 
