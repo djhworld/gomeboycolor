@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"types"
+	"utils"
 )
 
 //Represents MBC1
@@ -17,16 +18,18 @@ type MBC1 struct {
 	selectedRAMBank int
 	hasRAM          bool
 	ramEnabled      bool
+	hasBattery      bool
 	MaxMemMode      int
 	ROMSize         int
 	RAMSize         int
 }
 
-func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
+func NewMBC1(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC1 {
 	var m *MBC1 = new(MBC1)
 
 	m.Name = "CARTRIDGE-MBC1"
 	m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
+	m.hasBattery = hasBattery
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
 
@@ -41,11 +44,21 @@ func NewMBC1(rom []byte, romSize int, ramSize int) *MBC1 {
 	m.romBank0 = rom[0x0000:0x4000]
 	m.romBanks = populateROMBanks(rom, m.ROMSize/0x4000)
 
-	log.Println(m)
 	return m
 }
+
 func (m *MBC1) String() string {
-	return fmt.Sprint(m.Name+": ROM Banks: ", len(m.romBanks), ", RAM Banks: ", len(m.ramBanks), ". ROM size: ", m.ROMSize, " bytes. RAM size: ", m.RAMSize, " bytes")
+	var batteryStr string
+	if m.hasBattery {
+		batteryStr += "Yes"
+	} else {
+		batteryStr += "No"
+	}
+
+	return fmt.Sprintln("\nMemory Bank Controller\n--------------------------------") +
+		fmt.Sprintln(utils.PadRight("Battery:", 18, " "), batteryStr) +
+		fmt.Sprintln(utils.PadRight("ROM Banks:", 18, " "), len(m.romBanks), fmt.Sprintf("(%d bytes)", m.ROMSize)) +
+		fmt.Sprintln(utils.PadRight("RAM Banks:", 18, " "), len(m.ramBanks), fmt.Sprintf("(%d bytes)", m.RAMSize))
 }
 
 func (m *MBC1) Write(addr types.Word, value byte) {

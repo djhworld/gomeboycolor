@@ -55,7 +55,6 @@ func (mmu *GbcMMU) Reset() {
 	mmu.interruptsFlag = 0x00
 }
 
-//TODO: NEED TO HANDLE WRITES TO ROM SPACE SO CAN CALCULATE ROM BANKS ETC
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//Check peripherals first
 	if p, ok := mmu.peripheralIOMap[addr]; ok {
@@ -110,9 +109,6 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 
 func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	//Check peripherals first
-	//Graphics sprite information 0xFE00 - 0xFE9F
-	//Graphics VRAM: 0x8000 - 0x9FFF
-	//Graphics Registers: 0xFF40-0xFF49, 0xFF51-0xFF70
 	if p, ok := mmu.peripheralIOMap[addr]; ok {
 		return p.Read(addr)
 	}
@@ -177,6 +173,7 @@ func (mmu *GbcMMU) WriteWord(addr types.Word, value types.Word) {
 	mmu.WriteByte(addr+1, b2)
 }
 
+//When the MMU is in boot mode, the area below 0x0100 is reserved for the BIOS
 func (mmu *GbcMMU) SetInBootMode(mode bool) {
 	mmu.inBootMode = mode
 }
@@ -221,6 +218,7 @@ func (mmu *GbcMMU) PrintPeripheralMap() {
 	fmt.Println()
 }
 
+//Puts BIOS ROM into special area in MMU
 func (mmu *GbcMMU) LoadBIOS(data []byte) (bool, error) {
 	log.Println(PREFIX+": Loading", len(data), "byte BIOS ROM into MMU")
 	if len(data) > len(mmu.bios) {
@@ -236,7 +234,6 @@ func (mmu *GbcMMU) LoadBIOS(data []byte) (bool, error) {
 func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
 	mmu.cartridge = cart
 	log.Printf("%s: Loaded cartridge into MMU: -\n%s\n", PREFIX, cart)
-
 }
 
 //USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU

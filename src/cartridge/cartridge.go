@@ -89,8 +89,10 @@ func (c *Cartridge) Init(rom []byte) error {
 	switch c.Type.ID {
 	case MBC_0:
 		c.MBC = NewMBC0(rom)
-	case MBC_1, MBC_1_RAM, MBC_1_RAM_BATT:
-		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize)
+	case MBC_1, MBC_1_RAM:
+		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize, false)
+	case MBC_1_RAM_BATT:
+		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize, true)
 	case MBC_3_RAM_BATT:
 		c.MBC = NewMBC3(rom, c.ROMSize, c.RAMSize)
 	default:
@@ -116,12 +118,11 @@ func (c *Cartridge) String() string {
 	var header []string = []string{
 		fmt.Sprintf(utils.PadRight("Title:", 19, " ")+"%s", c.Title),
 		fmt.Sprintf(utils.PadRight("Type:", 19, " ")+"%s %s", c.Type.Description, utils.ByteToString(c.Type.ID)),
-		fmt.Sprintf(utils.PadRight("ROM Size:", 19, " ")+"%d", c.ROMSize),
-		fmt.Sprintf(utils.PadRight("RAM Size:", 19, " ")+"%d", c.RAMSize),
 		fmt.Sprintf(utils.PadRight("Destination code:", 19, " ")+"%s", destinationRegion),
 	}
 
-	return fmt.Sprint("\n", startingString, " Cartridge\n--------------------------------------\n") +
+	return fmt.Sprintln("\n" + startingString, "Cartridge\n----------------------------------------------------------") +
 		fmt.Sprintln(strings.Join(header, "\n")) +
-		fmt.Sprint("--------------------------------------\n")
+		fmt.Sprintln(c.MBC) +
+		fmt.Sprintln("----------------------------------------------------------")
 }
