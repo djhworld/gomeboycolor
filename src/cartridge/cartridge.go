@@ -1,8 +1,11 @@
 package cartridge
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"utils"
 )
@@ -35,13 +38,20 @@ type Cartridge struct {
 	ROMSize    int
 	RAMSize    int
 	IsJapanese bool
+	Filename   string
 	MBC        MemoryBankController
 }
 
-func NewCartridge(rom []byte) (*Cartridge, error) {
+func NewCartridge(romFile string) (*Cartridge, error) {
 	var cart *Cartridge = new(Cartridge)
-	err := cart.Init(rom)
 
+	rom, err := RetrieveROM(romFile)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Error retrieving ROM file: %v", err))
+	}
+
+	cart.Filename = romFile
+	err = cart.Init(rom)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +112,16 @@ func (c *Cartridge) Init(rom []byte) error {
 	return nil
 }
 
+func (c *Cartridge) SaveRam(savesDir string) error {
+	base := filepath.Base(c.Filename) + ".ramsave"
+	return c.MBC.SaveRam(filepath.Join(savesDir, base))
+}
+
+func (c *Cartridge) LoadRam(savesDir string) error {
+	base := filepath.Base(c.Filename) + ".ramsave"
+	return c.MBC.LoadRam(filepath.Join(savesDir, base))
+}
+
 func (c *Cartridge) String() string {
 	startingString := "Gameboy"
 	if c.IsColourGB {
@@ -119,10 +139,34 @@ func (c *Cartridge) String() string {
 		fmt.Sprintf(utils.PadRight("Title:", 19, " ")+"%s", c.Title),
 		fmt.Sprintf(utils.PadRight("Type:", 19, " ")+"%s %s", c.Type.Description, utils.ByteToString(c.Type.ID)),
 		fmt.Sprintf(utils.PadRight("Destination code:", 19, " ")+"%s", destinationRegion),
+		fmt.Sprintf(utils.PadRight("File:", 19, " ")+"%s", c.Filename),
 	}
 
-	return fmt.Sprintln("\n" + startingString, "Cartridge\n----------------------------------------------------------") +
+	return fmt.Sprintln("\n"+startingString, "Cartridge") +
+		fmt.Sprintln(strings.Repeat("-", 100)) +
 		fmt.Sprintln(strings.Join(header, "\n")) +
 		fmt.Sprintln(c.MBC) +
-		fmt.Sprintln("----------------------------------------------------------")
+		fmt.Sprintln(strings.Repeat("-", 100))
+}
+
+func RetrieveROM(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	stats, statsErr := file.Stat()
+	if statsErr != nil {
+		return nil, statsErr
+	}
+
+	var size int64 = stats.Size()
+	bytes := make([]byte, size)
+
+	bufr := bufio.NewReader(file)
+	_, err = bufr.Read(bytes)
+
+	return bytes, err
 }

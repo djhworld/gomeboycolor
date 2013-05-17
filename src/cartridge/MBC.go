@@ -5,6 +5,8 @@ import "types"
 type MemoryBankController interface {
 	Write(addr types.Word, value byte)
 	Read(addr types.Word) byte
+	SaveRam(filename string) error
+	LoadRam(filename string) error
 	switchROMBank(bank int)
 	switchRAMBank(bank int)
 }

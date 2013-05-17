@@ -236,6 +236,20 @@ func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
 	log.Printf("%s: Loaded cartridge into MMU: -\n%s\n", PREFIX, cart)
 }
 
+func (mmu *GbcMMU) SaveCartridgeRam(savesDir string) {
+	err := mmu.cartridge.SaveRam(savesDir)
+	if err != nil {
+		log.Println("Error occured attempting to save RAM to disk: ", err)
+	}
+}
+
+func (mmu *GbcMMU) LoadCartridgeRam(savesDir string) {
+	err := mmu.cartridge.LoadRam(savesDir)
+	if err != nil {
+		log.Println("Error occured attempting to load RAM from disk: ", err)
+	}
+}
+
 //USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU
 func (mmu *GbcMMU) RequestInterrupt(interrupt byte) {
 	oldVal := mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)

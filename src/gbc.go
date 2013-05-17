@@ -25,6 +25,7 @@ var screenSizeMultiplier *int = flag.Int("size", 1, "Screen size multiplier")
 var skipBoot *bool = flag.Bool("noboot", false, "Skip boot sequence")
 var debug *bool = flag.Bool("d", false, "Enable debugger")
 var breakOn *string = flag.String("b", "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
+var savesDir *string = flag.String("savedir", "", "Location where game saves are stored")
 
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
@@ -126,12 +127,7 @@ func main() {
 	}
 
 	romFilename := flag.Arg(0)
-	rom, err := RetrieveROM(romFilename)
-	if err != nil {
-		log.Fatalf("Error retrieving ROM file: %v", err)
-	}
-
-	cart, err := cartridge.NewCartridge(rom)
+	cart, err := cartridge.NewCartridge(romFilename)
 	if err != nil {
 		log.Println(err)
 		return
@@ -167,7 +163,9 @@ func main() {
 	}
 
 	//append cartridge name and filename to title
-	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(romFilename), cart.Title)
+	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(cart.Filename), cart.Title)
+	//this will be called when the window closes
+	ioConfig.OnCloseHandler = gbc.onClose
 
 	ioInitializeErr := gbc.io.Init(*ioConfig)
 
@@ -180,6 +178,8 @@ func main() {
 	log.Println("Completed setup")
 	log.Println(strings.Repeat("*", 80))
 
+	//load RAM into MBC (if supported)
+	gbc.mmu.LoadCartridgeRam(*savesDir)
 	gbc.Run()
 }
 
@@ -245,8 +245,8 @@ func (gbc *GameboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
-func onClose() {
-	log.Println("Closing")
+func (gbc *GameboyColor) onClose() {
+	gbc.mmu.SaveCartridgeRam(*savesDir)
 	os.Exit(0)
 }
 
@@ -298,7 +298,6 @@ func GetIoConfig() (*inputoutput.IOConfig, error) {
 	ioConfig := new(inputoutput.IOConfig)
 	ioConfig.Title = TITLE
 	ioConfig.ControlScheme = inputoutput.DefaultControlScheme
-	ioConfig.OnCloseHandler = onClose
 
 	if *screenSizeMultiplier > 6 {
 		return nil, errors.New("Cannot scale screen size to greater than 6x, please provide a size of 6 or below")
@@ -306,28 +305,6 @@ func GetIoConfig() (*inputoutput.IOConfig, error) {
 
 	ioConfig.ScreenSizeMultiplier = *screenSizeMultiplier
 	return ioConfig, nil
-}
-
-func RetrieveROM(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
-
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	stats, statsErr := file.Stat()
-	if statsErr != nil {
-		return nil, statsErr
-	}
-
-	var size int64 = stats.Size()
-	bytes := make([]byte, size)
-
-	bufr := bufio.NewReader(file)
-	_, err = bufr.Read(bytes)
-
-	return bytes, err
 }
 
 var BOOTROM []byte = []byte{

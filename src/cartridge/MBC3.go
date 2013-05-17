@@ -118,3 +118,13 @@ func (m *MBC3) switchROMBank(bank int) {
 func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
+
+func (m *MBC3) SaveRam(filename string) error {
+	log.Println("Saving RAM")
+	return nil
+}
+
+func (m *MBC3) LoadRam(filename string) error {
+	log.Println("Loading RAM")
+	return nil
+}
