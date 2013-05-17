@@ -7,6 +7,7 @@ Nintendo Gameboy Color emulator, this is my first emulator so I'm learning as I 
 Progress
 ---------------------------
 ![Emulator boots to boot screen](https://github.com/djhworld/gomeboycolor/raw/master/images/boot_sequence.png)&nbsp;
+![Zelda](https://github.com/djhworld/gomeboycolor/raw/master/images/zelda.gb.png)&nbsp;
 ![Super Mario Land](https://github.com/djhworld/gomeboycolor/raw/master/images/sml.gb.png)&nbsp;
 ![Super Mario Land game](https://github.com/djhworld/gomeboycolor/raw/master/images/sml_game.gb.png)&nbsp;
 ![Super Mario Land 2](https://github.com/djhworld/gomeboycolor/raw/master/images/sml2.gb.png)&nbsp;

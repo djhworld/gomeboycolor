@@ -51,6 +51,7 @@ func NewGBC() *GameboyColor {
 
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU()
+	gbc.cpu.LinkMMU(gbc.mmu)
 
 	gbc.io = inputoutput.NewIO()
 	gbc.gpu = gpu.NewGPU()
@@ -69,8 +70,6 @@ func NewGBC() *GameboyColor {
 	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B)
 	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
 	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)
-
-	gbc.cpu.LinkMMU(gbc.mmu)
 	gbc.gpu.LinkScreen(gbc.io.Display)
 
 	return gbc
