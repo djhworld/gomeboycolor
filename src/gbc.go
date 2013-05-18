@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"timer"
 	"types"
 	"utils"
@@ -26,28 +27,31 @@ var skipBoot *bool = flag.Bool("noboot", false, "Skip boot sequence")
 var debug *bool = flag.Bool("d", false, "Enable debugger")
 var breakOn *string = flag.String("b", "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
 var savesDir *string = flag.String("savedir", "", "Location where game saves are stored")
+var fps *bool = flag.Bool("fps", false, "Calculate and display frames per second")
 
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
 const VERSION float32 = 0.1
 
 //A type
-type GameboyColor struct {
-	gpu          *gpu.GPU
-	cpu          *cpu.GbcCPU
-	mmu          *mmu.GbcMMU
-	io           *inputoutput.IO
-	apu          *apu.APU
-	timer        *timer.Timer
-	debugOptions *DebugOptions
-	cpuClockAcc  int
-	frameCount   int
-	stepCount    int
-	inBootMode   bool
+type GomeboyColor struct {
+	gpu                    *gpu.GPU
+	cpu                    *cpu.GbcCPU
+	mmu                    *mmu.GbcMMU
+	io                     *inputoutput.IO
+	apu                    *apu.APU
+	timer                  *timer.Timer
+	debugOptions           *DebugOptions
+	cpuClockAcc            int
+	frameCount             int
+	stepCount              int
+	inBootMode             bool
+	fpsSamples             []int
+	averageFramesPerSecond int
 }
 
-func NewGBC() *GameboyColor {
-	gbc := new(GameboyColor)
+func NewGBC() *GomeboyColor {
+	gbc := new(GomeboyColor)
 
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU()
@@ -75,7 +79,7 @@ func NewGBC() *GameboyColor {
 	return gbc
 }
 
-func (gbc *GameboyColor) DoFrame() {
+func (gbc *GomeboyColor) DoFrame() {
 	for gbc.cpuClockAcc < FRAME_CYCLES {
 		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
 			gbc.Pause()
@@ -88,7 +92,7 @@ func (gbc *GameboyColor) DoFrame() {
 	}
 }
 
-func (gbc *GameboyColor) Step() {
+func (gbc *GomeboyColor) Step() {
 	cycles := gbc.cpu.Step()
 	gbc.gpu.Step(cycles)
 	gbc.timer.Step(cycles)
@@ -105,13 +109,33 @@ func (gbc *GameboyColor) Step() {
 	}
 }
 
-func (gbc *GameboyColor) Run() {
+func (gbc *GomeboyColor) Run() {
 	log.Println("Starting emulator")
+	currentTime := time.Now()
 	for {
 		gbc.DoFrame()
-		gbc.frameCount++
 		gbc.cpuClockAcc = 0
-		//gbc.cpuClockAcc -= FRAME_CYCLES
+		gbc.frameCount++
+		if *fps {
+			if time.Since(currentTime) >= (1 * time.Second) {
+				gbc.StoreFPSSample(gbc.frameCount / 1.0)
+				log.Println("Average frames per second:", gbc.averageFramesPerSecond)
+				currentTime = time.Now()
+				gbc.frameCount = 0
+			}
+		}
+	}
+}
+
+func (gbc *GomeboyColor) StoreFPSSample(sample int) {
+	gbc.fpsSamples = append(gbc.fpsSamples, sample)
+	if len(gbc.fpsSamples) == 5 {
+		average := 0
+		for _, i := range gbc.fpsSamples {
+			average += i
+		}
+		gbc.averageFramesPerSecond = average / 5
+		gbc.fpsSamples = gbc.fpsSamples[1:]
 	}
 }
 
@@ -132,7 +156,7 @@ func main() {
 		return
 	}
 
-	var gbc *GameboyColor = NewGBC()
+	var gbc *GomeboyColor = NewGBC()
 	b, er := gbc.mmu.LoadBIOS(BOOTROM)
 	if !b {
 		log.Println("Error loading bootrom:", er)
@@ -182,7 +206,7 @@ func main() {
 	gbc.Run()
 }
 
-func (gbc *GameboyColor) setupBoot() {
+func (gbc *GomeboyColor) setupBoot() {
 	if *skipBoot {
 		log.Println("Boot sequence disabled")
 		gbc.setupWithoutBoot()
@@ -192,12 +216,12 @@ func (gbc *GameboyColor) setupBoot() {
 	}
 }
 
-func (gbc *GameboyColor) setupWithBoot() {
+func (gbc *GomeboyColor) setupWithBoot() {
 	gbc.inBootMode = true
 	gbc.mmu.WriteByte(0xFF50, 0x00)
 }
 
-func (gbc *GameboyColor) setupWithoutBoot() {
+func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.inBootMode = false
 	gbc.mmu.SetInBootMode(false)
 	gbc.cpu.PC = 0x100
@@ -244,12 +268,13 @@ func (gbc *GameboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
-func (gbc *GameboyColor) onClose() {
+func (gbc *GomeboyColor) onClose() {
 	gbc.mmu.SaveCartridgeRam(*savesDir)
+	log.Println("Goodbye!")
 	os.Exit(0)
 }
 
-func (gbc *GameboyColor) Pause() {
+func (gbc *GomeboyColor) Pause() {
 
 	log.Println("DEBUGGER: Breaking because PC ==", gbc.debugOptions.breakWhen)
 	b := bufio.NewWriter(os.Stdout)
@@ -282,7 +307,7 @@ func (gbc *GameboyColor) Pause() {
 	}
 }
 
-func (gbc *GameboyColor) Reset() {
+func (gbc *GomeboyColor) Reset() {
 	log.Println("Resetting system")
 	gbc.cpu.Reset()
 	gbc.gpu.Reset()

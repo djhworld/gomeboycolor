@@ -20,7 +20,7 @@ import (
 	"utils"
 )
 
-type DebugCommandHandler func(*GameboyColor, ...string)
+type DebugCommandHandler func(*GomeboyColor, ...string)
 
 type DebugOptions struct {
 	debuggerOn   bool
@@ -43,27 +43,27 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 	g.debugFuncMap = make(map[string]DebugCommandHandler)
 	g.watches = make(map[types.Word]byte)
 	g.stepDump = cpuDumpOnStep
-	g.AddDebugFunc("p", "Print CPU state", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("p", "Print CPU state", func(gbc *GomeboyColor, remaining ...string) {
 		fmt.Println(gbc.cpu)
 	})
 
-	g.AddDebugFunc("r", "Reset", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("r", "Reset", func(gbc *GomeboyColor, remaining ...string) {
 		gbc.Reset()
 	})
 
-	g.AddDebugFunc("?", "Print this help message", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("?", "Print this help message", func(gbc *GomeboyColor, remaining ...string) {
 		g.help()
 	})
 
-	g.AddDebugFunc("help", "Print this help message", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("help", "Print this help message", func(gbc *GomeboyColor, remaining ...string) {
 		g.help()
 	})
 
-	g.AddDebugFunc("d", "Disconnect from debugger", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("d", "Disconnect from debugger", func(gbc *GomeboyColor, remaining ...string) {
 		gbc.debugOptions.debuggerOn = false
 	})
 
-	g.AddDebugFunc("dg", "Dump everything in graphics RAM to a file", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("dg", "Dump everything in graphics RAM to a file", func(gbc *GomeboyColor, remaining ...string) {
 		var filename string
 		if len(remaining) == 0 {
 			filename = "gfxdump.png"
@@ -102,7 +102,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		fmt.Println("Done!")
 	})
 
-	g.AddDebugFunc("s", "Step", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("s", "Step", func(gbc *GomeboyColor, remaining ...string) {
 		var noOfSteps int = 1
 		if len(remaining) > 0 {
 			val, err := strconv.ParseInt(remaining[0], 10, 64)
@@ -125,7 +125,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		fmt.Println(gbc.cpu)
 	})
 
-	g.AddDebugFunc("b", "Set breakpoint", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("b", "Set breakpoint", func(gbc *GomeboyColor, remaining ...string) {
 		if len(remaining) == 0 {
 			fmt.Println("You must provide a PC address to break on!")
 			return
@@ -142,7 +142,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		}
 	})
 
-	g.AddDebugFunc("reg", "Set register", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("reg", "Set register", func(gbc *GomeboyColor, remaining ...string) {
 		if len(remaining) < 2 {
 			fmt.Println("You must provide a register and value!")
 			return
@@ -178,7 +178,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		}
 	})
 
-	g.AddDebugFunc("rm", "Read data from memory", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("rm", "Read data from memory", func(gbc *GomeboyColor, remaining ...string) {
 		var startAddr types.Word
 		switch len(remaining) {
 		case 0:
@@ -209,7 +209,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 
 	})
 
-	g.AddDebugFunc("wm", "Write data to memory", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("wm", "Write data to memory", func(gbc *GomeboyColor, remaining ...string) {
 		var value byte
 		var toAddr types.Word
 		switch len(remaining) {
@@ -238,7 +238,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		gbc.mmu.WriteByte(toAddr, value)
 	})
 
-	g.AddDebugFunc("w", "Set memory location to watch for changes", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("w", "Set memory location to watch for changes", func(gbc *GomeboyColor, remaining ...string) {
 		if len(remaining) == 0 {
 			fmt.Println("You must provide a memory address to watch!")
 			return
@@ -256,7 +256,7 @@ func (g *DebugOptions) Init(cpuDumpOnStep bool) {
 		}
 	})
 
-	g.AddDebugFunc("q", "Quit emulator", func(gbc *GameboyColor, remaining ...string) {
+	g.AddDebugFunc("q", "Quit emulator", func(gbc *GomeboyColor, remaining ...string) {
 		os.Exit(0)
 	})
 }
@@ -266,7 +266,7 @@ func (g *DebugOptions) AddDebugFunc(command string, description string, f DebugC
 	g.debugHelpStr = append(g.debugHelpStr, utils.PadRight(command, 4, " ")+" = "+description)
 }
 
-func (g *DebugOptions) checkWatches(gbc *GameboyColor) {
+func (g *DebugOptions) checkWatches(gbc *GomeboyColor) {
 	for k, oldVal := range g.watches {
 		currentValue := gbc.mmu.ReadByte(k)
 		if oldVal != currentValue {

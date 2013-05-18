@@ -22,7 +22,32 @@ const (
 	Z
 )
 
-//hz
+
+type CPUFrame struct {
+	PC                      types.Word // Program Counter
+	SP                      types.Word // Stack Pointer
+	R                       Registers
+	InterruptsEnabled       bool
+	CurrentInstruction      Instruction
+	LastInstrCycle          Clock
+	PCJumped                bool
+	Halted                  bool
+	InterruptFlagBeforeHalt byte
+}
+
+func (cpu *GbcCPU) GetFrame() *CPUFrame {
+	var frame *CPUFrame = new(CPUFrame)
+	frame.PC = cpu.PC
+	frame.SP = cpu.SP
+	frame.R = cpu.R
+	frame.InterruptsEnabled = cpu.InterruptsEnabled
+	frame.CurrentInstruction = cpu.CurrentInstruction
+	frame.LastInstrCycle = cpu.LastInstrCycle
+	frame.PCJumped = cpu.PCJumped
+	frame.Halted = cpu.Halted
+	frame.InterruptFlagBeforeHalt = cpu.InterruptFlagBeforeHalt
+	return frame
+}
 
 type Registers struct {
 	A byte
