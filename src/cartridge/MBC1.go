@@ -1,13 +1,9 @@
 package cartridge
 
 import (
-	"bufio"
 	"constants"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 	"types"
 	"utils"
@@ -140,19 +136,11 @@ func (m *MBC1) switchRAMBank(bank int) {
 
 func (m *MBC1) SaveRam(filename string) error {
 	if m.hasRAM && m.hasBattery {
-		file, err := os.Create(filename)
+		log.Println(m.Name+":", "Saving RAM to", filename)
+		err := WriteRAMToDisk(filename, m.ramBanks)
 		if err != nil {
 			return err
 		}
-		defer file.Close()
-
-		writer := bufio.NewWriter(file)
-		log.Println(m.Name+":", "Saving RAM to", filename)
-		for i := 0; i < len(m.ramBanks); i++ {
-			log.Println(m.Name+":", "--> Saving RAM bank", i)
-			writer.Write(m.ramBanks[i])
-		}
-		writer.Flush()
 	}
 
 	return nil
@@ -160,26 +148,14 @@ func (m *MBC1) SaveRam(filename string) error {
 
 func (m *MBC1) LoadRam(filename string) error {
 	if m.hasRAM && m.hasBattery {
-		fileBytes, err := ioutil.ReadFile(filename)
+		log.Println(m.Name+":", "Loading RAM from", filename)
+		ramBanks, err := ReadRAMFromDisk(filename, 0x2000, 0x8000)
 		if err != nil {
-			if os.IsNotExist(err) {
-				log.Println(m.Name+":", "Could not find a file named", filename, "on disk. RAM will be empty.")
-				return nil
-			}
 			return err
 		}
-		log.Println(m.Name+":", "Loading RAM from", filename)
 
-		if len(fileBytes) != 0x8000 {
-			return errors.New("RAM file is not 32768 bytes!")
-		}
-
-		var chunk types.Word = 0x0000
-		for i := 0; i < 4; i++ {
-			log.Println(m.Name+":", "--> Populating RAM bank", i)
-			m.ramBanks[i] = fileBytes[chunk : chunk+0x2000]
-			chunk += 0x2000
-		}
+		m.ramBanks = ramBanks
 	}
+
 	return nil
 }

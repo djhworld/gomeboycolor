@@ -1,6 +1,13 @@
 package cartridge
 
-import "types"
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"types"
+)
 
 type MemoryBankController interface {
 	Write(addr types.Word, value byte)
@@ -33,4 +40,41 @@ func populateRAMBanks(noOfBanks int) [][]byte {
 	}
 
 	return ramBanks
+}
+
+func WriteRAMToDisk(path string, ramBanks [][]byte) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	for i := 0; i < len(ramBanks); i++ {
+		writer.Write(ramBanks[i])
+	}
+	writer.Flush()
+	return nil
+}
+
+func ReadRAMFromDisk(path string, chunkSize int, expectedSize int) ([][]byte, error) {
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(fileBytes) != expectedSize {
+		return nil, errors.New(fmt.Sprintf("RAM file is not %d bytes!", expectedSize))
+	}
+
+	var chunk int = 0x0000
+	var noOfBanks int = expectedSize / chunkSize
+	var ramBanks [][]byte = make([][]byte, noOfBanks)
+
+	for i := 0; i < noOfBanks; i++ {
+		ramBanks[i] = fileBytes[chunk : chunk+chunkSize]
+		chunk += chunkSize
+	}
+
+	return ramBanks, nil
 }

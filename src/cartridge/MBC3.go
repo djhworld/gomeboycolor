@@ -1,10 +1,11 @@
 package cartridge
 
 import (
-	"constants"
 	"fmt"
 	"log"
+	"strings"
 	"types"
+	"utils"
 )
 
 //Represents MBC3
@@ -17,42 +18,52 @@ type MBC3 struct {
 	selectedRAMBank int
 	hasRAM          bool
 	ramEnabled      bool
-	MaxMemMode      int
 	ROMSize         int
 	RAMSize         int
+	hasBattery      bool
 }
 
-func NewMBC3(rom []byte, romSize int, ramSize int) *MBC3 {
+func NewMBC3(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC3 {
 	var m *MBC3 = new(MBC3)
 
 	m.Name = "CARTRIDGE-MBC3"
-	m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
+	m.hasBattery = hasBattery
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
 
-	m.ramEnabled = true
 	if ramSize > 0 {
 		m.hasRAM = true
+		m.ramEnabled = true
 		m.selectedRAMBank = 0
-		m.ramBanks = populateRAMBanks(m.RAMSize / 0x2000)
+		m.ramBanks = populateRAMBanks(4)
 	}
 
 	m.selectedROMBank = 0
 	m.romBank0 = rom[0x0000:0x4000]
 	m.romBanks = populateROMBanks(rom, m.ROMSize/0x4000)
 
-	log.Println(m)
 	return m
 }
+
 func (m *MBC3) String() string {
-	return fmt.Sprint(m.Name+": ROM Banks: ", len(m.romBanks), ", RAM Banks: ", len(m.ramBanks), ". ROM size: ", m.ROMSize, " bytes. RAM size: ", m.RAMSize, " bytes")
+	var batteryStr string
+	if m.hasBattery {
+		batteryStr += "Yes"
+	} else {
+		batteryStr += "No"
+	}
+
+	return fmt.Sprintln("\nMemory Bank Controller") +
+		fmt.Sprintln(strings.Repeat("-", 50)) +
+		fmt.Sprintln(utils.PadRight("ROM Banks:", 18, " "), len(m.romBanks), fmt.Sprintf("(%d bytes)", m.ROMSize)) +
+		fmt.Sprintln(utils.PadRight("RAM Banks:", 18, " "), m.RAMSize/0x2000, fmt.Sprintf("(%d bytes)", m.RAMSize)) +
+		fmt.Sprintln(utils.PadRight("Battery:", 18, " "), batteryStr)
 }
 
 func (m *MBC3) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x0000 && addr <= 0x1FFF:
-		//when in 4/32 mode...
-		if m.MaxMemMode == constants.FOURMB_ROM_32KBRAM && m.hasRAM {
+		if m.hasRAM {
 			if r := value & 0x0F; r == 0x0A {
 				log.Println(m.Name + ": Enabling RAM")
 				m.ramEnabled = true
@@ -62,25 +73,15 @@ func (m *MBC3) Write(addr types.Word, value byte) {
 			}
 		}
 	case addr >= 0x2000 && addr <= 0x3FFF:
-		m.switchROMBank(int(value & 0x1F))
+		m.switchROMBank(int(value & 0x7F)) //7 bits rather than 5
 	case addr >= 0x4000 && addr <= 0x5FFF:
 		m.switchRAMBank(int(value & 0x03))
-	case addr >= 0x6000 && addr <= 0x7FFF:
-		if mode := value & 0x01; mode == 0x00 {
-			log.Println(m.Name + ": Switching MBC3 mode to 16/8")
-			m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
-		} else {
-			log.Println(m.Name + ": Switching MBC3 mode to 4/32")
-			m.MaxMemMode = constants.FOURMB_ROM_32KBRAM
-		}
+	//case addr >= 0x6000 && addr <= 0x7FFF:
+	// RTC stuff....
+	//	return
 	case addr >= 0xA000 && addr <= 0xBFFF:
 		if m.hasRAM && m.ramEnabled {
-			switch m.MaxMemMode {
-			case constants.FOURMB_ROM_32KBRAM:
-				m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
-			case constants.SIXTEENMB_ROM_8KBRAM:
-				m.ramBanks[0][addr-0xA000] = value
-			}
+			m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
 		}
 	}
 }
@@ -99,12 +100,7 @@ func (m *MBC3) Read(addr types.Word) byte {
 	//Upper bounds of memory map.
 	if addr >= 0xA000 && addr <= 0xC000 {
 		if m.hasRAM && m.ramEnabled {
-			switch m.MaxMemMode {
-			case constants.FOURMB_ROM_32KBRAM:
-				return m.ramBanks[m.selectedRAMBank][addr-0xA000]
-			case constants.SIXTEENMB_ROM_8KBRAM:
-				return m.ramBanks[0][addr-0xA000]
-			}
+			return m.ramBanks[m.selectedRAMBank][addr-0xA000]
 		}
 	}
 
@@ -120,11 +116,27 @@ func (m *MBC3) switchRAMBank(bank int) {
 }
 
 func (m *MBC3) SaveRam(filename string) error {
-	log.Println("Saving RAM")
+	if m.hasRAM && m.hasBattery {
+		log.Println(m.Name+":", "Saving RAM to", filename)
+		err := WriteRAMToDisk(filename, m.ramBanks)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (m *MBC3) LoadRam(filename string) error {
-	log.Println("Loading RAM")
+	if m.hasRAM && m.hasBattery {
+		log.Println(m.Name+":", "Loading RAM from", filename)
+		ramBanks, err := ReadRAMFromDisk(filename, 0x2000, 0x8000)
+		if err != nil {
+			return err
+		}
+
+		m.ramBanks = ramBanks
+	}
+
 	return nil
 }

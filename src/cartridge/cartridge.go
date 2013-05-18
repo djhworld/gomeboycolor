@@ -104,7 +104,7 @@ func (c *Cartridge) Init(rom []byte) error {
 	case MBC_1_RAM_BATT:
 		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize, true)
 	case MBC_3_RAM_BATT:
-		c.MBC = NewMBC3(rom, c.ROMSize, c.RAMSize)
+		c.MBC = NewMBC3(rom, c.ROMSize, c.RAMSize, true)
 	default:
 		return errors.New("Error: Cartridge type " + utils.ByteToString(c.Type.ID) + " is currently unsupported")
 	}
