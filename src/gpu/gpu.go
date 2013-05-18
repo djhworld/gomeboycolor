@@ -435,14 +435,13 @@ func (g *GPU) DrawSpriteTile(s Sprite, tileId int, screenXOffset int, screenYOff
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
 				if tile[y][x] != 0 {
-					tilecolor := g.objectPalettes[s.SpriteAttributes().PaletteSelected][tile[y][x]]
 					adjX, adjY := sx+x+screenXOffset, sy+y+screenYOffset
 					if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
-						if s.SpriteAttributes().SpriteHasPriority == false {
-							g.screenData[adjY][adjX] = tilecolor
-						} else if g.screenData[adjY][adjX] == (types.RGB{Red: 235, Green: 235, Blue: 235}) {
-							g.screenData[adjY][adjX] = tilecolor
+						if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
+							continue
 						}
+
+						g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().PaletteSelected][tile[y][x]]
 					}
 				}
 			}

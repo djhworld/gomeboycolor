@@ -26,7 +26,7 @@ func NewSprite8x8() *Sprite8x8 {
 }
 
 func (s *Sprite8x8) String() string {
-	return fmt.Sprintf("Size: 8x8\nTile ID: %d\nAttributes: %s", s.TileID, s.SpriteAttrs)
+	return fmt.Sprintf("%s | Size: 8x8 | Tile ID: %v", s.SpriteAttrs, s.TileID)
 }
 
 func (s *Sprite8x8) SpriteAttributes() *SpriteAttributes {
@@ -62,7 +62,7 @@ func NewSprite8x16() *Sprite8x16 {
 }
 
 func (s *Sprite8x16) String() string {
-	return fmt.Sprintf("Size: 8x16\nTile IDs: %v\nAttributes: %s", s.TileIDs, s.SpriteAttrs)
+	return fmt.Sprintf("%s | Size: 8x16 | Tile IDs: %v", s.SpriteAttrs, s.TileIDs)
 }
 
 func (s *Sprite8x16) UpdateSprite(addr types.Word, value byte) {
@@ -130,5 +130,5 @@ func (sa *SpriteAttributes) Update(attributeId int, fromValue byte) {
 }
 
 func (s *SpriteAttributes) String() string {
-	return fmt.Sprintf("[X: %d | Y: %d | Sprite has priority? %v | Flip sprite vertically? %v | Flip sprite horizontally? %v | Palette no: %d]", s.X, s.Y, s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
+	return fmt.Sprintf("X: %d | Y: %d | Priority? %v | Vertical flip? %v | Horizontal flip? %v | Palette: %d", s.X, s.Y, s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
 }
