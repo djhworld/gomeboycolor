@@ -1,0 +1,7 @@
+{
+	"Title":"gomeboycolor",
+	"ScreenSize":2,
+	"SkipBoot":true,
+	"SavesDir":"./saves",
+	"DisplayFPS":false
+}

@@ -113,13 +113,11 @@ func (c *Cartridge) Init(rom []byte) error {
 }
 
 func (c *Cartridge) SaveRam(savesDir string) error {
-	base := filepath.Base(c.Filename) + ".ramsave"
-	return c.MBC.SaveRam(filepath.Join(savesDir, base))
+	return c.MBC.SaveRam(savesDir, filepath.Base(c.Filename))
 }
 
 func (c *Cartridge) LoadRam(savesDir string) error {
-	base := filepath.Base(c.Filename) + ".ramsave"
-	return c.MBC.LoadRam(filepath.Join(savesDir, base))
+	return c.MBC.LoadRam(savesDir, filepath.Base(c.Filename))
 }
 
 func (c *Cartridge) String() string {

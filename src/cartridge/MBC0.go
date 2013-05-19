@@ -49,10 +49,10 @@ func (m *MBC0) switchRAMBank(bank int) {
 	// not needed for MBC0
 }
 
-func (m *MBC0) SaveRam(filename string) error {
+func (m *MBC0) SaveRam(savesDir string, game string) error {
 	return nil
 }
 
-func (m *MBC0) LoadRam(filename string) error {
+func (m *MBC0) LoadRam(savesDir string, game string) error {
 	return nil
 }

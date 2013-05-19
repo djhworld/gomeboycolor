@@ -115,28 +115,25 @@ func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
 
-func (m *MBC3) SaveRam(filename string) error {
+func (m *MBC3) SaveRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
-		log.Println(m.Name+":", "Saving RAM to", filename)
-		err := WriteRAMToDisk(filename, m.ramBanks)
-		if err != nil {
-			return err
-		}
+		s := NewSaveFile(savesDir, game)
+		err := s.Save(m.ramBanks)
+		s = nil
+		return err
 	}
-
 	return nil
 }
 
-func (m *MBC3) LoadRam(filename string) error {
+func (m *MBC3) LoadRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
-		log.Println(m.Name+":", "Loading RAM from", filename)
-		ramBanks, err := ReadRAMFromDisk(filename, 0x2000, 0x8000)
+		s := NewSaveFile(savesDir, game)
+		banks, err := s.Load(4)
 		if err != nil {
 			return err
 		}
-
-		m.ramBanks = ramBanks
+		m.ramBanks = banks
+		s = nil
 	}
-
 	return nil
 }
