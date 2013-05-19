@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"types"
+	"utils"
+	"strings"
 )
 
 //Represents ROM only MBC (MBC0)
@@ -21,12 +23,13 @@ func NewMBC0(rom []byte) *MBC0 {
 	//ensure only first 32768 bytes are taken
 	m.romBank = rom[0x0000:0x8000]
 
-	log.Println(m)
 	return m
 }
 
 func (m *MBC0) String() string {
-	return fmt.Sprint(m.Name+": ROM size: ", len(m.romBank), " bytes")
+	return fmt.Sprintln("\nMemory Bank Controller") +
+			fmt.Sprintln(strings.Repeat("-", 50)) +
+			fmt.Sprintln(utils.PadRight("ROM Banks:", 18, " "), 1, fmt.Sprintf("(%d bytes)", len(m.romBank)))
 }
 
 func (m *MBC0) Write(addr types.Word, value byte) {
