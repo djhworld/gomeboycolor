@@ -52,6 +52,27 @@ func WriteRAMToDisk(path string, ramBanks [][]byte) error {
 	writer := bufio.NewWriter(file)
 	for i := 0; i < len(ramBanks); i++ {
 		writer.Write(ramBanks[i])
+		/*
+			var b bytes.Buffer
+			w := zlib.NewWriter(&b)
+			w.Write(ramBanks[i])
+			w.Close()
+			before := base64.StdEncoding.EncodeToString(b.Bytes())
+			fmt.Println("Before = ", len(b.Bytes()))
+
+			after,_ := base64.StdEncoding.DecodeString(before)
+			b = *bytes.NewBuffer(after)
+			r, err := zlib.NewReader(&b)
+			if err != nil {
+				panic(fmt.Sprintln("Error" , err))
+			}
+			out := bytes.NewBuffer(make([]byte,0))
+			io.Copy(out, r)
+			fmt.Println("After = ", len(out.Bytes()))
+			fmt.Println(bytes.Compare(ramBanks[i], out.Bytes()))
+			r.Close()
+		*/
+
 	}
 	writer.Flush()
 	return nil

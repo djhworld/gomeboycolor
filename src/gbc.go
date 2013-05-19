@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"cartridge"
 	"cpu"
-	"errors"
 	"flag"
 	"fmt"
 	"gpu"
@@ -21,19 +20,10 @@ import (
 	"utils"
 )
 
-var printState *bool = flag.Bool("dump", false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
-var screenSizeMultiplier *int = flag.Int("size", 1, "Screen size multiplier")
-var skipBoot *bool = flag.Bool("noboot", false, "Skip boot sequence")
-var debug *bool = flag.Bool("d", false, "Enable debugger")
-var breakOn *string = flag.String("b", "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
-var savesDir *string = flag.String("savedir", "", "Location where game saves are stored")
-var fps *bool = flag.Bool("fps", false, "Calculate and display frames per second")
-
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
 const VERSION float32 = 0.1
 
-//A type
 type GomeboyColor struct {
 	gpu                    *gpu.GPU
 	cpu                    *cpu.GbcCPU
@@ -42,6 +32,7 @@ type GomeboyColor struct {
 	apu                    *apu.APU
 	timer                  *timer.Timer
 	debugOptions           *DebugOptions
+	config                 Config
 	cpuClockAcc            int
 	frameCount             int
 	stepCount              int
@@ -85,7 +76,7 @@ func (gbc *GomeboyColor) DoFrame() {
 			gbc.Pause()
 		}
 
-		if *printState {
+		if gbc.config.DumpState {
 			fmt.Println(gbc.cpu)
 		}
 		gbc.Step()
@@ -110,13 +101,12 @@ func (gbc *GomeboyColor) Step() {
 }
 
 func (gbc *GomeboyColor) Run() {
-	log.Println("Starting emulator")
 	currentTime := time.Now()
 	for {
 		gbc.DoFrame()
 		gbc.cpuClockAcc = 0
 		gbc.frameCount++
-		if *fps {
+		if gbc.config.DisplayFPS {
 			if time.Since(currentTime) >= (1 * time.Second) {
 				gbc.StoreFPSSample(gbc.frameCount / 1.0)
 				log.Println("Average frames per second:", gbc.averageFramesPerSecond)
@@ -140,14 +130,30 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 }
 
 func main() {
-	flag.Parse()
 	log.Println(TITLE, VERSION)
-	log.Println(strings.Repeat("*", 80))
+	log.Println(strings.Repeat("*", 120))
 
+	flag.Parse()
 	if flag.NArg() != 1 {
 		log.Fatalf("Please specify the location of a ROM to boot")
 		return
 	}
+
+	//Parse and validate settings file (if found)
+	conf, conferr := NewConfigFromFile(*settingsFile)
+	if conferr != nil {
+		if os.IsNotExist(conferr) {
+			log.Println("Could not find settings file", *settingsFile, "using default values...")
+			conf = DefaultConfig()
+		} else {
+			log.Fatalf("%v", conferr)
+		}
+	} else {
+		//command line flags take precedence
+		conf.OverrideConfigWithAnySetFlags()
+	}
+
+	fmt.Println(conf)
 
 	romFilename := flag.Arg(0)
 	cart, err := cartridge.NewCartridge(romFilename)
@@ -157,6 +163,7 @@ func main() {
 	}
 
 	var gbc *GomeboyColor = NewGBC()
+	gbc.config = *conf
 	b, er := gbc.mmu.LoadBIOS(BOOTROM)
 	if !b {
 		log.Println("Error loading bootrom:", er)
@@ -165,32 +172,26 @@ func main() {
 
 	gbc.mmu.LoadCartridge(cart)
 	gbc.debugOptions = new(DebugOptions)
-	gbc.debugOptions.Init(*printState)
+	gbc.debugOptions.Init(gbc.config.DumpState)
 
-	if *debug {
+	if gbc.config.Debug {
 		log.Println("Emulator will start in debug mode")
 		gbc.debugOptions.debuggerOn = true
 
 		//set breakpoint if defined
-		if b, err := utils.StringToWord(*breakOn); err != nil {
-			log.Fatalln("Cannot parse breakpoint:", *breakOn, "\n\t", err)
+		if b, err := utils.StringToWord(gbc.config.BreakOn); err != nil {
+			log.Fatalln("Cannot parse breakpoint:", gbc.config.BreakOn, "\n\t", err)
 		} else {
 			gbc.debugOptions.breakWhen = types.Word(b)
 			log.Println("Emulator will break into debugger when PC = ", gbc.debugOptions.breakWhen)
 		}
 	}
 
-	ioConfig, err := GetIoConfig()
-	if err != nil {
-		log.Fatalln("Error setting up IO:", err)
-	}
-
 	//append cartridge name and filename to title
-	ioConfig.Title += fmt.Sprintf(" - %s - %s", filepath.Base(cart.Filename), cart.Title)
-	//this will be called when the window closes
-	ioConfig.OnCloseHandler = gbc.onClose
+	gbc.config.Title += fmt.Sprintf(" - %s - %s", filepath.Base(cart.Filename), cart.Title)
+	gbc.config.OnCloseHandler = gbc.onClose
 
-	ioInitializeErr := gbc.io.Init(*ioConfig)
+	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.onClose)
 
 	if ioInitializeErr != nil {
 		log.Fatalf("%v", ioInitializeErr)
@@ -198,16 +199,18 @@ func main() {
 
 	gbc.setupBoot()
 
-	log.Println("Completed setup")
-	log.Println(strings.Repeat("*", 80))
-
 	//load RAM into MBC (if supported)
-	gbc.mmu.LoadCartridgeRam(*savesDir)
+	gbc.mmu.LoadCartridgeRam(gbc.config.SavesDir)
+
+	log.Println("Completed setup")
+	log.Println(strings.Repeat("*", 120))
+
+	log.Println("Starting emulator")
 	gbc.Run()
 }
 
 func (gbc *GomeboyColor) setupBoot() {
-	if *skipBoot {
+	if gbc.config.SkipBoot {
 		log.Println("Boot sequence disabled")
 		gbc.setupWithoutBoot()
 	} else {
@@ -269,13 +272,12 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 }
 
 func (gbc *GomeboyColor) onClose() {
-	gbc.mmu.SaveCartridgeRam(*savesDir)
+	gbc.mmu.SaveCartridgeRam(gbc.config.SavesDir)
 	log.Println("Goodbye!")
 	os.Exit(0)
 }
 
 func (gbc *GomeboyColor) Pause() {
-
 	log.Println("DEBUGGER: Breaking because PC ==", gbc.debugOptions.breakWhen)
 	b := bufio.NewWriter(os.Stdout)
 	r := bufio.NewReader(os.Stdin)
@@ -316,19 +318,6 @@ func (gbc *GomeboyColor) Reset() {
 	gbc.io.KeyHandler.Reset()
 	gbc.io.Display.DrawFrame(&([144][160]types.RGB{}))
 	gbc.setupBoot()
-}
-
-func GetIoConfig() (*inputoutput.IOConfig, error) {
-	ioConfig := new(inputoutput.IOConfig)
-	ioConfig.Title = TITLE
-	ioConfig.ControlScheme = inputoutput.DefaultControlScheme
-
-	if *screenSizeMultiplier > 6 {
-		return nil, errors.New("Cannot scale screen size to greater than 6x, please provide a size of 6 or below")
-	}
-
-	ioConfig.ScreenSizeMultiplier = *screenSizeMultiplier
-	return ioConfig, nil
 }
 
 var BOOTROM []byte = []byte{

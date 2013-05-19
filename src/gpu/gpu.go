@@ -114,7 +114,7 @@ func (g *GPU) Name() string {
 }
 
 func (g *GPU) Reset() {
-	log.Println("Resetting", g.Name())
+	log.Println(PREFIX, "Resetting", g.Name())
 	g.Write(LCDC, 0x00)
 	g.screenData = *new([144][160]types.RGB)
 	g.mode = 0

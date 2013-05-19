@@ -37,5 +37,5 @@ func (apu *APU) LinkIRQHandler(m components.IRQHandler) {
 }
 
 func (apu *APU) Reset() {
-	log.Println("Resetting", apu.Name())
+	log.Println(apu.Name()+": Resetting", apu.Name())
 }

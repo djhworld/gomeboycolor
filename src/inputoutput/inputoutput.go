@@ -124,13 +124,6 @@ type Screen interface {
 	DrawFrame(screenData *[144][160]types.RGB)
 }
 
-type IOConfig struct {
-	Title                string
-	ScreenSizeMultiplier int
-	OnCloseHandler       func()
-	ControlScheme        ControlScheme
-}
-
 type IO struct {
 	KeyHandler *KeyHandler
 	Display    *Display
@@ -143,7 +136,7 @@ func NewIO() *IO {
 	return i
 }
 
-func (i *IO) Init(config IOConfig) error {
+func (i *IO) Init(title string, screenSize int, onCloseHandler func()) error {
 	var err error
 
 	err = glfw.Init()
@@ -151,12 +144,12 @@ func (i *IO) Init(config IOConfig) error {
 		return err
 	}
 
-	err = i.Display.init(config.Title, config.ScreenSizeMultiplier)
+	err = i.Display.init(title, screenSize)
 	if err != nil {
 		return err
 	}
 
-	i.KeyHandler.Init(config.ControlScheme)
+	i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
 	glfw.SetKeyCallback(func(key, state int) {
 		if state == glfw.KeyPress {
 			i.KeyHandler.KeyDown(key)
@@ -168,7 +161,7 @@ func (i *IO) Init(config IOConfig) error {
 	glfw.SetWindowCloseCallback(func() int {
 		glfw.CloseWindow()
 		glfw.Terminate()
-		config.OnCloseHandler()
+		onCloseHandler()
 		return 0
 	})
 

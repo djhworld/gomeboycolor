@@ -22,7 +22,6 @@ const (
 	Z
 )
 
-
 type CPUFrame struct {
 	PC                      types.Word // Program Counter
 	SP                      types.Word // Stack Pointer
@@ -120,7 +119,7 @@ func (cpu *GbcCPU) Validate() error {
 }
 
 func (cpu *GbcCPU) Reset() {
-	log.Println("Resetting", NAME)
+	log.Println(PREFIX, "Resetting", NAME)
 	cpu.PC = 0
 	cpu.SP = 0
 	cpu.R.A = 0

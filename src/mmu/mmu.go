@@ -50,7 +50,7 @@ func NewGbcMMU() *GbcMMU {
 }
 
 func (mmu *GbcMMU) Reset() {
-	log.Println("Resetting", PREFIX)
+	log.Println(PREFIX+": Resetting", PREFIX)
 	mmu.inBootMode = true
 	mmu.interruptsFlag = 0x00
 }
