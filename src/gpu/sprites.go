@@ -11,12 +11,18 @@ type Sprite interface {
 	UpdateSprite(addr types.Word, value byte)
 	GetTileID(no int) int
 	SpriteAttributes() *SpriteAttributes
+	PushScanlines(fromScanline, amount int)
+	PopScanline() (int, int)
+	IsScanlineDrawQueueEmpty() bool
+	ResetScanlineDrawQueue()
 }
 
 //8x8 Sprites!
 type Sprite8x8 struct {
-	SpriteAttrs *SpriteAttributes
-	TileID      int
+	SpriteAttrs       *SpriteAttributes
+	TileID            int
+	ScanlineDrawQueue []int
+	CurrentTileLine   int
 }
 
 func NewSprite8x8() *Sprite8x8 {
@@ -42,6 +48,38 @@ func (s *Sprite8x8) UpdateSprite(addr types.Word, value byte) {
 	}
 }
 
+func (s *Sprite8x8) PushScanlines(fromScanline, amount int) {
+	for i := 0; i < amount; i++ {
+		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
+		if len(s.ScanlineDrawQueue) == 8 {
+			break
+		}
+	}
+}
+
+func (s *Sprite8x8) IsScanlineDrawQueueEmpty() bool {
+	return len(s.ScanlineDrawQueue) == 0
+}
+
+func (s *Sprite8x8) PopScanline() (int, int) {
+	if len(s.ScanlineDrawQueue) == 0 {
+		panic("Scanline queue is empty!")
+	}
+
+	value := s.ScanlineDrawQueue[0]
+	oldCurrentTileLine := s.CurrentTileLine
+	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
+	s.CurrentTileLine++
+	return value, oldCurrentTileLine
+}
+
+func (s *Sprite8x8) ResetScanlineDrawQueue() {
+	if len(s.ScanlineDrawQueue) > 0 {
+		s.ScanlineDrawQueue = make([]int, 0)
+	}
+	s.CurrentTileLine = 0
+}
+
 func (s *Sprite8x8) GetTileID(no int) int {
 	if no > 0 {
 		panic("8x8 sprites only consist of one tile")
@@ -51,8 +89,10 @@ func (s *Sprite8x8) GetTileID(no int) int {
 
 // 8x16 SPRITES!
 type Sprite8x16 struct {
-	SpriteAttrs *SpriteAttributes
-	TileIDs     [2]int
+	SpriteAttrs       *SpriteAttributes
+	TileIDs           [2]int
+	ScanlineDrawQueue []int
+	CurrentTileLine   int
 }
 
 func NewSprite8x16() *Sprite8x16 {
@@ -84,6 +124,38 @@ func (s *Sprite8x16) GetTileID(no int) int {
 
 func (s *Sprite8x16) SpriteAttributes() *SpriteAttributes {
 	return s.SpriteAttrs
+}
+
+func (s *Sprite8x16) PushScanlines(fromScanline, amount int) {
+	for i := 0; i < amount; i++ {
+		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
+		if len(s.ScanlineDrawQueue) == 16 {
+			break
+		}
+	}
+}
+
+func (s *Sprite8x16) IsScanlineDrawQueueEmpty() bool {
+	return len(s.ScanlineDrawQueue) == 0
+}
+
+func (s *Sprite8x16) PopScanline() (int, int) {
+	if len(s.ScanlineDrawQueue) == 0 {
+		panic("Scanline queue is empty!")
+	}
+
+	value := s.ScanlineDrawQueue[0]
+	oldCurrentTileLine := s.CurrentTileLine
+	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
+	s.CurrentTileLine++
+	return value, oldCurrentTileLine
+}
+
+func (s *Sprite8x16) ResetScanlineDrawQueue() {
+	if len(s.ScanlineDrawQueue) > 0 {
+		s.ScanlineDrawQueue = make([]int, 0)
+	}
+	s.CurrentTileLine = 0
 }
 
 //Sprite attributes

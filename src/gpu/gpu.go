@@ -162,10 +162,19 @@ func (g *GPU) Step(t int) {
 				if g.windowOn {
 					g.RenderWindowScanline()
 				}
+
+				if g.spritesOn {
+					g.RenderSpritesOnScanline()
+				}
 			}
 		} else if g.ly == 144 {
-			if g.spritesOn {
-				g.RenderSprites()
+			//reset sprite draw queues after frame has been rendered
+			for _, s := range g.sprites8x8 {
+				s.ResetScanlineDrawQueue()
+			}
+
+			for _, s := range g.sprites8x16 {
+				s.ResetScanlineDrawQueue()
 			}
 
 			//throw vblank interrupt
@@ -409,39 +418,40 @@ func (g *GPU) calculateTileNo(tilemapOffset types.Word, lineOffset types.Word) i
 	return tileId
 }
 
-func (g *GPU) RenderSprites() {
+func (g *GPU) RenderSpritesOnScanline() {
 	if g.spriteSizeMode == Sprite8x8Mode {
 		for _, sprite := range g.sprites8x8 {
 			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
-				g.DrawSpriteTile(sprite, sprite.GetTileID(0), 0, 0)
+				//if sprite is on current scanline, then it needs to be drawn over the next
+				//8 lines, so these are added to a queue
+				if sprite.SpriteAttributes().Y-16 == g.ly {
+					sprite.PushScanlines(g.ly, 8)
+				}
+
+				if sprite.IsScanlineDrawQueueEmpty() == false {
+					//if next scanline == LY, then draw the line
+					if scanline, tileLine := sprite.PopScanline(); scanline == g.ly {
+						g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 0, tileLine)
+					}
+				}
 			}
 		}
 	} else {
 		for _, sprite := range g.sprites8x16 {
 			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
-				g.DrawSpriteTile(sprite, sprite.GetTileID(0), 0, 0)
-				g.DrawSpriteTile(sprite, sprite.GetTileID(1), 0, 8) //8 pixels down for second tile
-			}
-		}
-	}
-}
-
-//TODO: Sprite precedence rules
-// Draws a tile for the given sprite. Only draws one tile
-func (g *GPU) DrawSpriteTile(s Sprite, tileId int, screenXOffset int, screenYOffset int) {
-	tile := g.FormatTileForSprite(s, tileId)
-	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
-		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				if tile[y][x] != 0 {
-					adjX, adjY := sx+x+screenXOffset, sy+y+screenYOffset
-					if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
-						if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
-							continue
+				//if sprite is on current scanline, then it needs to be drawn over the next
+				//16 lines, so these are added to a queue
+				if sprite.SpriteAttributes().Y-16 == g.ly {
+					sprite.PushScanlines(g.ly, 16)
+				}
+				if sprite.IsScanlineDrawQueueEmpty() == false {
+					//if next scanline == LY, then draw the line
+					if scanline, tileLine := sprite.PopScanline(); scanline == g.ly {
+						if tileLine < 8 {
+							g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 0, tileLine)
+						} else {
+							g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 8, tileLine-8) //draw second portion of sprite using next tile 8 pixels down
 						}
-
-						g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().PaletteSelected][tile[y][x]]
 					}
 				}
 			}
@@ -449,34 +459,45 @@ func (g *GPU) DrawSpriteTile(s Sprite, tileId int, screenXOffset int, screenYOff
 	}
 }
 
-func (g *GPU) FormatTileForSprite(s Sprite, tileId int) *Tile {
-	t := &g.tiledata[tileId]
+//TODO: Sprite precedence rules
+// Draws a tile for the given sprite. Only draws one tile
+func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
+	tileLine := g.FormatTileLineForSprite(s, tileId, tileY)
+	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
+		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
+		for tileX := 0; tileX < 8; tileX++ {
+			if tileLine[tileX] != 0 {
+				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
+				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
+					if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
+						continue
+					}
 
-	if s.SpriteAttributes().ShouldFlipHorizontally {
-		var t2 *Tile = new(Tile)
-
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				t2[y][x] = t[y][7-x]
+					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().PaletteSelected][tileLine[tileX]]
+				}
 			}
 		}
+	}
+}
 
-		return t2
+func (g *GPU) FormatTileLineForSprite(s Sprite, tileId, tileY int) [8]int {
+	t := &g.tiledata[tileId]
+
+	var tileLine [8]int = t[tileY]
+
+	if s.SpriteAttributes().ShouldFlipHorizontally {
+		for x := 0; x < 8; x++ {
+			tileLine[x] = t[tileY][7-x]
+		}
 	}
 
 	if s.SpriteAttributes().ShouldFlipVertically {
-		var t2 *Tile = new(Tile)
-
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				t2[y][x] = t[7-y][x]
-			}
+		for x := 0; x < 8; x++ {
+			tileLine[x] = t[7-tileY][x]
 		}
-
-		return t2
 	}
 
-	return t
+	return tileLine
 }
 
 //debug helpers

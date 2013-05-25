@@ -3,9 +3,9 @@ package cartridge
 import (
 	"fmt"
 	"log"
+	"strings"
 	"types"
 	"utils"
-	"strings"
 )
 
 //Represents ROM only MBC (MBC0)
@@ -28,8 +28,8 @@ func NewMBC0(rom []byte) *MBC0 {
 
 func (m *MBC0) String() string {
 	return fmt.Sprintln("\nMemory Bank Controller") +
-			fmt.Sprintln(strings.Repeat("-", 50)) +
-			fmt.Sprintln(utils.PadRight("ROM Banks:", 18, " "), 1, fmt.Sprintf("(%d bytes)", len(m.romBank)))
+		fmt.Sprintln(strings.Repeat("-", 50)) +
+		fmt.Sprintln(utils.PadRight("ROM Banks:", 18, " "), 1, fmt.Sprintf("(%d bytes)", len(m.romBank)))
 }
 
 func (m *MBC0) Write(addr types.Word, value byte) {
