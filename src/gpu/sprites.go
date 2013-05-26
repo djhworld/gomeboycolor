@@ -69,7 +69,10 @@ func (s *Sprite8x8) PopScanline() (int, int) {
 	value := s.ScanlineDrawQueue[0]
 	oldCurrentTileLine := s.CurrentTileLine
 	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
-	s.CurrentTileLine++
+
+	if s.CurrentTileLine < 7 {
+		s.CurrentTileLine++
+	}
 	return value, oldCurrentTileLine
 }
 
@@ -147,7 +150,9 @@ func (s *Sprite8x16) PopScanline() (int, int) {
 	value := s.ScanlineDrawQueue[0]
 	oldCurrentTileLine := s.CurrentTileLine
 	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
-	s.CurrentTileLine++
+	if s.CurrentTileLine < 15 {
+		s.CurrentTileLine++
+	}
 	return value, oldCurrentTileLine
 }
 
