@@ -50,10 +50,10 @@ func (s *Sprite8x8) UpdateSprite(addr types.Word, value byte) {
 
 func (s *Sprite8x8) PushScanlines(fromScanline, amount int) {
 	for i := 0; i < amount; i++ {
-		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
 		if len(s.ScanlineDrawQueue) == 8 {
 			break
 		}
+		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
 	}
 }
 
@@ -128,10 +128,10 @@ func (s *Sprite8x16) SpriteAttributes() *SpriteAttributes {
 
 func (s *Sprite8x16) PushScanlines(fromScanline, amount int) {
 	for i := 0; i < amount; i++ {
-		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
 		if len(s.ScanlineDrawQueue) == 16 {
 			break
 		}
+		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
 	}
 }
 

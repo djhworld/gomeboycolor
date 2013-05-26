@@ -2,7 +2,6 @@ package cartridge
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"types"
 	"utils"
@@ -65,10 +64,8 @@ func (m *MBC3) Write(addr types.Word, value byte) {
 	case addr >= 0x0000 && addr <= 0x1FFF:
 		if m.hasRAM {
 			if r := value & 0x0F; r == 0x0A {
-				log.Println(m.Name + ": Enabling RAM")
 				m.ramEnabled = true
 			} else {
-				log.Println(m.Name + ": Disabling RAM")
 				m.ramEnabled = false
 			}
 		}

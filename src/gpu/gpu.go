@@ -424,7 +424,9 @@ func (g *GPU) RenderSpritesOnScanline() {
 			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
 				//if sprite is on current scanline, then it needs to be drawn over the next
 				//8 lines, so these are added to a queue
-				if sprite.SpriteAttributes().Y-16 == g.ly {
+				if sprite.SpriteAttributes().Y-16 <= 0 {
+					sprite.PushScanlines(g.ly, 8)
+				} else if sprite.SpriteAttributes().Y-16 == g.ly {
 					sprite.PushScanlines(g.ly, 8)
 				}
 
@@ -441,16 +443,19 @@ func (g *GPU) RenderSpritesOnScanline() {
 			if sprite.SpriteAttributes().X != 0x00 && sprite.SpriteAttributes().Y != 0x00 {
 				//if sprite is on current scanline, then it needs to be drawn over the next
 				//16 lines, so these are added to a queue
-				if sprite.SpriteAttributes().Y-16 == g.ly {
+				if sprite.SpriteAttributes().Y-16 <= 0 {
+					sprite.PushScanlines(g.ly, 16)
+				} else if sprite.SpriteAttributes().Y-16 == g.ly {
 					sprite.PushScanlines(g.ly, 16)
 				}
+
 				if sprite.IsScanlineDrawQueueEmpty() == false {
 					//if next scanline == LY, then draw the line
 					if scanline, tileLine := sprite.PopScanline(); scanline == g.ly {
 						if tileLine < 8 {
 							g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 0, tileLine)
 						} else {
-							g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 8, tileLine-8) //draw second portion of sprite using next tile 8 pixels down
+							g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 8, tileLine-8) //draw second portion of sprite using next tile 8 lines down
 						}
 					}
 				}
@@ -462,8 +467,8 @@ func (g *GPU) RenderSpritesOnScanline() {
 //TODO: Sprite precedence rules
 // Draws a tile for the given sprite. Only draws one tile
 func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
-	tileLine := g.FormatTileLineForSprite(s, tileId, tileY)
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
+		tileLine := g.FormatTileLineForSprite(s, tileId, tileY)
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
 			if tileLine[tileX] != 0 {
@@ -483,21 +488,33 @@ func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
 func (g *GPU) FormatTileLineForSprite(s Sprite, tileId, tileY int) [8]int {
 	t := &g.tiledata[tileId]
 
-	var tileLine [8]int = t[tileY]
+	//flip both
+	if s.SpriteAttributes().ShouldFlipVertically && s.SpriteAttributes().ShouldFlipHorizontally {
+		var tileLine [8]int
 
-	if s.SpriteAttributes().ShouldFlipHorizontally {
 		for x := 0; x < 8; x++ {
-			tileLine[x] = t[tileY][7-x]
+			tileLine[x] = t[7-tileY][7-x]
 		}
+
+		return tileLine
 	}
 
 	if s.SpriteAttributes().ShouldFlipVertically {
-		for x := 0; x < 8; x++ {
-			tileLine[x] = t[7-tileY][x]
-		}
+		return t[7-tileY]
 	}
 
-	return tileLine
+	if s.SpriteAttributes().ShouldFlipHorizontally {
+		var tileLine [8]int
+
+		for x := 0; x < 8; x++ {
+			tileLine[x] = t[tileY][7-x]
+		}
+
+		return tileLine
+	}
+
+	//do nothing
+	return t[tileY]
 }
 
 //debug helpers
