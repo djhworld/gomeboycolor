@@ -22,17 +22,29 @@ const (
 	TILEDATA1            = 0x8000
 )
 
-const LCDC types.Word = 0xFF40
-const STAT types.Word = 0xFF41
-const SCROLLY types.Word = 0xFF42
-const SCROLLX types.Word = 0xFF43
-const LY types.Word = 0xFF44
-const LYC types.Word = 0xFF45
-const BGP types.Word = 0xFF47
-const OBJECTPALETTE_0 types.Word = 0xFF48
-const OBJECTPALETTE_1 types.Word = 0xFF49
-const WX types.Word = 0xFF4B
-const WY types.Word = 0xFF4A
+//Standard graphics register addresses
+const (
+	LCDC            types.Word = 0xFF40
+	STAT                       = 0xFF41
+	SCROLLY                    = 0xFF42
+	SCROLLX                    = 0xFF43
+	LY                         = 0xFF44
+	LYC                        = 0xFF45
+	BGP                        = 0xFF47
+	OBJECTPALETTE_0            = 0xFF48
+	OBJECTPALETTE_1            = 0xFF49
+	WX                         = 0xFF4B
+	WY                         = 0xFF4A
+)
+
+//Colour GB graphics register addresses
+const (
+	CGB_VRAM_BANK_SELECT types.Word = 0xFF4F
+	CGB_BGPINDEX                    = 0xFF68
+	CGB_BGPDATA                     = 0xFF69
+	CGB_OBJPINDEX                   = 0xFF6A
+	CGB_OBJPDATA                    = 0xFF6B
+)
 
 const HBLANK byte = 0x00
 const VBLANK byte = 0x01
@@ -56,24 +68,26 @@ type GPU struct {
 	screenData            [144][160]types.RGB
 	screen                inputoutput.Screen
 	irqHandler            components.IRQHandler
-	vram                  [8192]byte
+	vram                  [2][8192]byte
 	oamRam                [160]byte
 	vBlankInterruptThrown bool
 	lcdInterruptThrown    bool
 
-	mode    byte
-	clock   int
-	ly      int
-	lcdc    byte
-	lyc     byte
-	stat    byte
-	scrollY byte
-	scrollX byte
-	windowX byte
-	windowY byte
-	bgp     byte
-	obp0    byte
-	obp1    byte
+	mode                         byte
+	clock                        int
+	ly                           int
+	lcdc                         byte
+	lyc                          byte
+	stat                         byte
+	scrollY                      byte
+	scrollX                      byte
+	windowX                      byte
+	windowY                      byte
+	bgp                          byte
+	obp0                         byte
+	obp1                         byte
+	cgbVramBankSelectionRegister byte
+	IsInColorGBMode              bool
 
 	bgrdOn         bool
 	spritesOn      bool
@@ -122,6 +136,7 @@ func (g *GPU) Reset() {
 	g.clock = 0
 	g.vBlankInterruptThrown = false
 	g.lcdInterruptThrown = false
+	g.IsInColorGBMode = false
 
 	for i := 0; i < 40; i++ {
 		g.sprites8x8[i] = NewSprite8x8()
@@ -218,7 +233,7 @@ func (g *GPU) CheckForLCDCSTATInterrupt() {
 func (g *GPU) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x8000 && addr <= 0x9FFF:
-		g.vram[addr&0x1FFF] = value
+		g.WriteToVideoRAM(addr, value)
 		g.UpdateTile(addr, value)
 	case addr >= 0xFE00 && addr <= 0xFE9F:
 		g.oamRam[addr&0x009F] = value
@@ -281,6 +296,15 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		case OBJECTPALETTE_1:
 			g.obp1 = value
 			g.objectPalettes[1] = g.byteToPalette(value)
+		case CGB_BGPDATA:
+		case CGB_BGPINDEX:
+		case CGB_OBJPDATA:
+		case CGB_OBJPINDEX:
+			log.Printf("Attempting to write 0x%X to color GB register: %s!", value, addr)
+		case CGB_VRAM_BANK_SELECT:
+			g.cgbVramBankSelectionRegister = value
+		default:
+			log.Printf(PREFIX+" WARNING: cannot write to register address %s as it is unknown", addr)
 		}
 	}
 }
@@ -289,7 +313,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 func (g *GPU) Read(addr types.Word) byte {
 	switch {
 	case addr >= 0x8000 && addr <= 0x9FFF:
-		return g.vram[addr&0x1FFF]
+		return g.ReadFromVideoRAM(addr)
 	case addr >= 0xFE00 && addr <= 0xFE9F:
 		return g.oamRam[addr&0x009F]
 	default:
@@ -316,10 +340,40 @@ func (g *GPU) Read(addr types.Word) byte {
 			return g.windowX
 		case WY:
 			return g.windowY
+		case CGB_BGPDATA:
+		case CGB_BGPINDEX:
+		case CGB_OBJPDATA:
+		case CGB_OBJPINDEX:
+			log.Printf("Attempting to read from color GB register: %s!", addr)
+		case CGB_VRAM_BANK_SELECT:
+			return g.cgbVramBankSelectionRegister
 		default:
 			log.Printf(PREFIX+" WARNING: register address %s unknown", addr)
-			return 0x00
 		}
+	}
+
+	return 0x00
+}
+
+func (g *GPU) WriteToVideoRAM(addr types.Word, value byte) {
+	var bankAddr types.Word = addr & 0x1FFF
+	if g.IsInColorGBMode {
+		//CGB has two banks of 8KB VRAM
+		bankSelection := g.cgbVramBankSelectionRegister & 0x01
+		g.vram[bankSelection][bankAddr] = value
+	} else {
+		g.vram[0][bankAddr] = value
+	}
+}
+
+func (g *GPU) ReadFromVideoRAM(addr types.Word) byte {
+	var bankAddr types.Word = addr & 0x1FFF
+	if g.IsInColorGBMode {
+		//CGB has two banks of 8KB VRAM
+		bankSelection := g.cgbVramBankSelectionRegister & 0x01
+		return g.vram[bankSelection][bankAddr]
+	} else {
+		return g.vram[0][bankAddr]
 	}
 }
 

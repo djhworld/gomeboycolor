@@ -14,6 +14,10 @@ import (
 
 const PREFIX = "MMU"
 
+const (
+	CGB_WRAM_BANK_SELECT types.Word = 0xFF70
+)
+
 var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
 
 type MemoryMappedUnit interface {
@@ -30,16 +34,19 @@ type MemoryMappedUnit interface {
 type GbcMMU struct {
 	bios              [256]byte //0x0000 -> 0x00FF
 	cartridge         *cartridge.Cartridge
-	internalRAM       [8192]byte //0xC000 -> 0xDFFF
-	internalRAMShadow [7680]byte //0xE000 -> 0xFDFF
-	emptySpace        [52]byte   //0xFF4C -> 0xFF7F
-	zeroPageRAM       [128]byte  //0xFF80 - 0xFFFE
+	internalRAM       [8][4096]byte //0xC000 -> 0xDFFF (CGB Working RAM) (8x banks of 4KB)
+	internalRAMShadow [7680]byte    //0xE000 -> 0xFDFF
+	emptySpace        [52]byte      //0xFF4C -> 0xFF7F
+	zeroPageRAM       [128]byte     //0xFF80 - 0xFFFE
 	inBootMode        bool
 	dmgStatusRegister byte
 	DMARegister       byte
 	interruptsEnabled byte
 	interruptsFlag    byte
 	peripheralIOMap   map[types.Word]components.Peripheral
+
+	//CGB features
+	cgbWramBankSelectedRegister byte
 }
 
 func NewGbcMMU() *GbcMMU {
@@ -53,6 +60,7 @@ func (mmu *GbcMMU) Reset() {
 	log.Println(PREFIX+": Resetting", PREFIX)
 	mmu.inBootMode = true
 	mmu.interruptsFlag = 0x00
+	mmu.cgbWramBankSelectedRegister = 0x00
 }
 
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
@@ -70,10 +78,10 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		mmu.cartridge.MBC.Write(addr, value)
 	//GB Internal RAM
 	case addr >= 0xC000 && addr <= 0xDFFF:
-		mmu.internalRAM[addr&(0xDFFF-0xC000)] = value
+		mmu.WriteToWorkingRAM(addr, value)
 		//copy value to shadow if within shadow range
 		if addr >= 0xC000 && addr <= 0xDDFF {
-			mmu.internalRAMShadow[addr&(0xDDFF-0xC000)] = value
+			mmu.internalRAMShadow[addr&(0xDDFF-0xC000)] = mmu.ReadByte(addr)
 		}
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
@@ -89,10 +97,24 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		}
 	//Empty but "unusable for I/O"
 	case addr > 0xFF4C && addr <= 0xFF7F: //TODO: hmmmm
-		//DMG flag
-		if addr == 0xFF50 {
+		switch addr {
+		case 0xFF4D:
+			log.Println("CGB Double Speed Preparation Register (0xFF4D) - Is cartridge CGB?", mmu.cartridge.IsColourGB)
+		case 0xFF50:
 			mmu.dmgStatusRegister = value
-		} else {
+		case 0xFF51:
+		case 0xFF52:
+		case 0xFF53:
+		case 0xFF54:
+		case 0xFF55:
+			log.Printf("writing 0x%X to CGB HDMA transfer register %s!", value, addr)
+		//Color GB Working RAM Bank Selection
+		case CGB_WRAM_BANK_SELECT:
+			if mmu.cartridge.IsColourGB == false {
+				log.Fatalf("Cannot write to %s in non-CGB mode!", CGB_WRAM_BANK_SELECT)
+			}
+			mmu.cgbWramBankSelectedRegister = value
+		default:
 			mmu.emptySpace[addr-0xFF4D] = value
 		}
 	//Zero page RAM
@@ -129,7 +151,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.cartridge.MBC.Read(addr)
 	//GB Internal RAM
 	case addr >= 0xC000 && addr <= 0xDFFF:
-		return mmu.internalRAM[addr&(0xDFFF-0xC000)]
+		return mmu.ReadFromWorkingRAM(addr)
 	//GB Internal RAM shadow
 	case addr >= 0xE000 && addr <= 0xFDFF:
 		return mmu.internalRAMShadow[addr&(0xFDFF-0xE000)]
@@ -141,10 +163,12 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.interruptsFlag
 	//Empty but "unusable for I/O"
 	case addr >= 0xFF4C && addr <= 0xFF7F:
-		//DMG flag
-		if addr == 0xFF50 {
+		switch addr {
+		case 0xFF50:
 			return mmu.dmgStatusRegister
-		} else {
+		case CGB_WRAM_BANK_SELECT:
+			return mmu.cgbWramBankSelectedRegister
+		default:
 			return mmu.emptySpace[addr-0xFF4C]
 		}
 	//Zero page RAM
@@ -248,6 +272,60 @@ func (mmu *GbcMMU) LoadCartridgeRam(savesDir string) {
 	if err != nil {
 		log.Println("Error occured attempting to load RAM from disk: ", err)
 	}
+}
+
+func (mmu *GbcMMU) WriteToWorkingRAM(addr types.Word, value byte) {
+	bankAddr := addr & 0x0FFF
+
+	//First area of working RAM is always bank 0 for CGB and Non CGB
+	if addr >= 0xC000 && addr <= 0xCFFF {
+		mmu.internalRAM[0][bankAddr] = value
+	} else if addr >= 0xD000 && addr <= 0xDFFF {
+		// In color GB mode the internal RAM is 8x4KB banks (switchable by register 0xFF70)
+		if mmu.cartridge.IsColourGB {
+			bankSelected := int(mmu.cgbWramBankSelectedRegister & 0x07)
+			switch {
+			//0 and 1 will select bank 1
+			case bankSelected <= 1:
+				mmu.internalRAM[1][bankAddr] = value
+			case bankSelected > 1:
+				mmu.internalRAM[bankSelected][bankAddr] = value
+			}
+		} else {
+			//Non-CGB mode is just 8KB of RAM
+			mmu.internalRAM[1][bankAddr] = value
+		}
+	} else {
+		log.Fatalf("Address %s is invalid for CGB working RAM!", addr)
+	}
+}
+
+func (mmu *GbcMMU) ReadFromWorkingRAM(addr types.Word) byte {
+	bankAddr := addr & 0x0FFF
+
+	//First area of working RAM is always bank 0 for CGB and Non CGB
+	if addr >= 0xC000 && addr <= 0xCFFF {
+		return mmu.internalRAM[0][bankAddr]
+	} else if addr >= 0xD000 && addr <= 0xDFFF {
+		// In color GB mode the internal RAM is 8x4KB banks (switchable by register 0xFF70)
+		if mmu.cartridge.IsColourGB {
+			bankSelected := int(mmu.cgbWramBankSelectedRegister & 0x07)
+			switch {
+			//0 and 1 will select bank 1
+			case bankSelected <= 1:
+				return mmu.internalRAM[1][bankAddr]
+			case bankSelected > 1:
+				return mmu.internalRAM[bankSelected][bankAddr]
+			}
+		} else {
+			//Non-CGB mode is just 8KB of RAM
+			return mmu.internalRAM[1][bankAddr]
+		}
+	} else {
+		log.Fatalf("Address %s is invalid for CGB working RAM!", addr)
+	}
+
+	return 0x00
 }
 
 //USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU
