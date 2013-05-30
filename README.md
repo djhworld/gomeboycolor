@@ -4,6 +4,18 @@ gomeboycolor
 
 Nintendo Gameboy Color emulator, this is my first emulator so I'm learning as I go along...
 
+FAQ
+============================
+
+#### Why is everything so grey? This is a Gameboy Color emulator right?
+
+Yes, *I know*
+This is the first emulator I've ever written so I've been working on getting the monochrome stuff working first. From looking at the docs it shouldn't be too hard to retrofit the color stuff in. 
+
+#### How do I build it?
+
+You will need libglfw installed for this to work. I've only tested this on an OSX machine so far and I'm pretty certain it's going to be a real pain in the butt to get it working on Windows. 
+
 Progress
 ---------------------------
 ![Emulator boots to boot screen](https://github.com/djhworld/gomeboycolor/raw/master/images/boot_sequence.png)&nbsp;
