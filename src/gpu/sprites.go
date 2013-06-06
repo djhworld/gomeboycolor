@@ -170,7 +170,9 @@ type SpriteAttributes struct {
 	SpriteHasPriority      bool
 	ShouldFlipVertically   bool
 	ShouldFlipHorizontally bool
-	PaletteSelected        int
+	NonCGBPaletteSelected  int
+	CGBBankNo              int
+	CGBPaletteNo           int
 }
 
 func (sa *SpriteAttributes) Update(attributeId int, fromValue byte) {
@@ -199,13 +201,17 @@ func (sa *SpriteAttributes) Update(attributeId int, fromValue byte) {
 		}
 
 		if (fromValue & 0x10) == 0x10 {
-			sa.PaletteSelected = 1
+			sa.NonCGBPaletteSelected = 1
 		} else {
-			sa.PaletteSelected = 0
+			sa.NonCGBPaletteSelected = 0
 		}
+
+		//CGB attributes
+		sa.CGBBankNo = int(fromValue&0x08) >> 3
+		sa.CGBPaletteNo = int(fromValue & 0x07)
 	}
 }
 
 func (s *SpriteAttributes) String() string {
-	return fmt.Sprintf("X: %d | Y: %d | Priority? %v | Vertical flip? %v | Horizontal flip? %v | Palette: %d", s.X, s.Y, s.SpriteHasPriority, s.ShouldFlipVertically, s.ShouldFlipHorizontally, s.PaletteSelected)
+	return fmt.Sprintf("%#v", s)
 }

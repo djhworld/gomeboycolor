@@ -260,6 +260,10 @@ func (mmu *GbcMMU) LoadCartridge(cart *cartridge.Cartridge) {
 	log.Printf("%s: Loaded cartridge into MMU: -\n%s\n", PREFIX, cart)
 }
 
+func (mmu *GbcMMU) IsCartridgeColor() bool {
+	return mmu.cartridge.IsColourGB
+}
+
 func (mmu *GbcMMU) SaveCartridgeRam(savesDir string) {
 	err := mmu.cartridge.SaveRam(savesDir)
 	if err != nil {

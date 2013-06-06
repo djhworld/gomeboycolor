@@ -92,9 +92,13 @@ func (gbc *GomeboyColor) Step() {
 	//value in FF50 means gameboy has finished booting
 	if gbc.inBootMode {
 		if gbc.mmu.ReadByte(0xFF50) != 0x00 {
+			gbc.cpu.PC = 0x0100
 			gbc.mmu.SetInBootMode(false)
 			gbc.inBootMode = false
-			gbc.cpu.PC = 0x0100
+
+			//put the GPU in color mode if cartridge is ColorGB
+			gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
+
 			log.Println("Finished GB boot program, launching game...")
 		}
 	}
@@ -170,8 +174,6 @@ func main() {
 		return
 	}
 
-	//put the GPU in color mode if cartridge is ColorGB
-	gbc.gpu.IsInColorGBMode = cart.IsColourGB
 	gbc.mmu.LoadCartridge(cart)
 	gbc.debugOptions = new(DebugOptions)
 	gbc.debugOptions.Init(gbc.config.DumpState)
@@ -271,6 +273,8 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFF4B, 0x00)
 	gbc.mmu.WriteByte(0xFF50, 0x00)
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
+	//put the GPU in color mode if cartridge is ColorGB
+	gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
 }
 
 func (gbc *GomeboyColor) onClose() {

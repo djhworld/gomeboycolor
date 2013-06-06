@@ -37,15 +37,6 @@ const (
 	WY                         = 0xFF4A
 )
 
-//Colour GB graphics register addresses
-const (
-	CGB_VRAM_BANK_SELECT types.Word = 0xFF4F
-	CGB_BGPINDEX                    = 0xFF68
-	CGB_BGPDATA                     = 0xFF69
-	CGB_OBJPINDEX                   = 0xFF6A
-	CGB_OBJPDATA                    = 0xFF6B
-)
-
 const HBLANK byte = 0x00
 const VBLANK byte = 0x01
 const OAMREAD byte = 0x02
@@ -98,13 +89,20 @@ type GPU struct {
 
 	bgTilemap     types.Word
 	windowTilemap types.Word
-	rawTiledata   [512]RawTile
-	tiledata      [512]Tile
+	rawTiledata   [2][512]RawTile
+	tiledata      [2][512]Tile
 	sprites8x8    [40]Sprite
 	sprites8x16   [40]Sprite
 
 	bgPalette      Palette
 	objectPalettes [2]Palette
+
+	cgbBackgroundPalettes    [8]CGBPalette
+	cgbObjectPalettes        [8]CGBPalette
+	cgbBGPWriteSpecReg       CGBPaletteSpecRegister
+	cgbBGPWriteDataRegister  byte
+	cgbOBJPWriteSpecReg      CGBPaletteSpecRegister
+	cgbOBJPWriteDataRegister byte
 }
 
 func NewGPU() *GPU {
@@ -142,6 +140,11 @@ func (g *GPU) Reset() {
 		g.sprites8x8[i] = NewSprite8x8()
 		g.sprites8x16[i] = NewSprite8x16()
 	}
+
+	g.cgbBGPWriteSpecReg = *new(CGBPaletteSpecRegister)
+	g.cgbOBJPWriteSpecReg = *new(CGBPaletteSpecRegister)
+	g.cgbBackgroundPalettes = *new([8]CGBPalette)
+	g.cgbObjectPalettes = *new([8]CGBPalette)
 }
 
 func (g *GPU) Step(t int) {
@@ -234,7 +237,6 @@ func (g *GPU) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x8000 && addr <= 0x9FFF:
 		g.WriteToVideoRAM(addr, value)
-		g.UpdateTile(addr, value)
 	case addr >= 0xFE00 && addr <= 0xFE9F:
 		g.oamRam[addr&0x009F] = value
 		g.UpdateSprite(addr, value)
@@ -296,11 +298,32 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		case OBJECTPALETTE_1:
 			g.obp1 = value
 			g.objectPalettes[1] = g.byteToPalette(value)
-		case CGB_BGPDATA:
-		case CGB_BGPINDEX:
-		case CGB_OBJPDATA:
-		case CGB_OBJPINDEX:
-			log.Printf("Attempting to write 0x%X to color GB register: %s!", value, addr)
+		case CGB_BGP_WRITESPEC_REGISTER:
+			g.cgbBGPWriteSpecReg.Update(value)
+		case CGB_BGP_WRITEDATA_REGISTER:
+			g.cgbBGPWriteDataRegister = value
+			if g.cgbBGPWriteSpecReg.High {
+				g.cgbBackgroundPalettes[g.cgbBGPWriteSpecReg.PalleteNo].UpdateHigh(g.cgbBGPWriteSpecReg.PalleteDataNo, value)
+			} else {
+				g.cgbBackgroundPalettes[g.cgbBGPWriteSpecReg.PalleteNo].UpdateLow(g.cgbBGPWriteSpecReg.PalleteDataNo, value)
+			}
+
+			if g.cgbBGPWriteSpecReg.IncrementOnNext {
+				g.cgbBGPWriteSpecReg.Increment()
+			}
+		case CGB_OBJP_WRITESPEC_REGISTER:
+			g.cgbOBJPWriteSpecReg.Update(value)
+		case CGB_OBJP_WRITEDATA_REGISTER:
+			g.cgbOBJPWriteDataRegister = value
+			if g.cgbOBJPWriteSpecReg.High {
+				g.cgbObjectPalettes[g.cgbOBJPWriteSpecReg.PalleteNo].UpdateHigh(g.cgbOBJPWriteSpecReg.PalleteDataNo, value)
+			} else {
+				g.cgbObjectPalettes[g.cgbOBJPWriteSpecReg.PalleteNo].UpdateLow(g.cgbOBJPWriteSpecReg.PalleteDataNo, value)
+			}
+
+			if g.cgbOBJPWriteSpecReg.IncrementOnNext {
+				g.cgbOBJPWriteSpecReg.Increment()
+			}
 		case CGB_VRAM_BANK_SELECT:
 			g.cgbVramBankSelectionRegister = value
 		default:
@@ -340,11 +363,14 @@ func (g *GPU) Read(addr types.Word) byte {
 			return g.windowX
 		case WY:
 			return g.windowY
-		case CGB_BGPDATA:
-		case CGB_BGPINDEX:
-		case CGB_OBJPDATA:
-		case CGB_OBJPINDEX:
-			log.Printf("Attempting to read from color GB register: %s!", addr)
+		case CGB_BGP_WRITESPEC_REGISTER:
+			return g.cgbBGPWriteSpecReg.Value
+		case CGB_BGP_WRITEDATA_REGISTER:
+			return g.cgbBGPWriteDataRegister
+		case CGB_OBJP_WRITESPEC_REGISTER:
+			return g.cgbOBJPWriteSpecReg.Value
+		case CGB_OBJP_WRITEDATA_REGISTER:
+			return g.cgbOBJPWriteDataRegister
 		case CGB_VRAM_BANK_SELECT:
 			return g.cgbVramBankSelectionRegister
 		default:
@@ -361,8 +387,10 @@ func (g *GPU) WriteToVideoRAM(addr types.Word, value byte) {
 		//CGB has two banks of 8KB VRAM
 		bankSelection := g.cgbVramBankSelectionRegister & 0x01
 		g.vram[bankSelection][bankAddr] = value
+		g.UpdateTile(addr, value, bankSelection)
 	} else {
 		g.vram[0][bankAddr] = value
+		g.UpdateTile(addr, value, 0)
 	}
 }
 
@@ -387,10 +415,10 @@ func (g *GPU) UpdateSprite(addr types.Word, value byte) {
 }
 
 //Update the tile at address with value
-func (g *GPU) UpdateTile(addr types.Word, value byte) {
+func (g *GPU) UpdateTile(addr types.Word, value byte, bank byte) {
 	//get the ID of the tile being updated (between 0 and 383)
 	var tileId types.Word = ((addr & 0x1FFF) >> 4) & 511
-	g.rawTiledata[tileId][addr%16] = value
+	g.rawTiledata[bank][tileId][addr%16] = value
 
 	recalcTile := func(rawtile RawTile) Tile {
 		var tile Tile
@@ -405,7 +433,7 @@ func (g *GPU) UpdateTile(addr types.Word, value byte) {
 		return tile
 	}
 
-	g.tiledata[tileId] = recalcTile(g.rawTiledata[tileId])
+	g.tiledata[bank][tileId] = recalcTile(g.rawTiledata[bank][tileId])
 }
 
 func (g *GPU) RenderBackgroundScanline() {
@@ -439,12 +467,44 @@ func (g *GPU) RenderWindowScanline() {
 }
 
 func (g *GPU) DrawScanline(tilemapOffset, lineOffset types.Word, screenX, tileX, tileY int) {
+	if g.IsInColorGBMode {
+		g.drawCGBScanline(tilemapOffset, lineOffset, screenX, tileX, tileY)
+	} else {
+		g.drawNonCGBScanline(tilemapOffset, lineOffset, screenX, tileX, tileY)
+	}
+}
+
+func (g *GPU) drawCGBScanline(tilemapOffset, lineOffset types.Word, screenX, tileX, tileY int) {
+	//get tile attributes to start from
+	tileNumber, tileInfo := g.getCGBBackgroundTileAttrs(tilemapOffset, lineOffset)
+
+	for ; screenX < DISPLAY_WIDTH; screenX++ {
+		var t *Tile = &g.tiledata[tileInfo.BankNo][tileNumber]
+		tileLine := g.formatTileLine(t, tileY, tileInfo.FlipHorizontally, tileInfo.FlipVertically)
+
+		//draw the pixel to the screenData data buffer (running through the color palette)
+		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][tileLine[tileX]].ToRGB()
+
+		//move along line in tile until you reach the end
+		tileX++
+		if tileX == 8 {
+			tileX = 0
+			lineOffset = (lineOffset + 1) % 32
+
+			//get next tile in line
+			tileInfo = nil
+			tileNumber, tileInfo = g.getCGBBackgroundTileAttrs(tilemapOffset, lineOffset)
+		}
+	}
+}
+
+func (g *GPU) drawNonCGBScanline(tilemapOffset, lineOffset types.Word, screenX, tileX, tileY int) {
 	//get tile to start from
 	tileId := g.calculateTileNo(tilemapOffset, lineOffset)
 
 	for ; screenX < DISPLAY_WIDTH; screenX++ {
 		//draw the pixel to the screenData data buffer (running through the bgPalette)
-		color := g.bgPalette[g.tiledata[tileId][tileY][tileX]]
+		color := g.bgPalette[g.tiledata[0][tileId][tileY][tileX]]
 		g.screenData[g.ly][screenX] = color
 
 		//move along line in tile until you reach the end
@@ -470,6 +530,30 @@ func (g *GPU) calculateTileNo(tilemapOffset types.Word, lineOffset types.Word) i
 		}
 	}
 	return tileId
+}
+
+//CGB has additional attributes in bank 1 for each background tile
+func (g *GPU) getCGBBackgroundTileAttrs(tilemapOffset types.Word, lineOffset types.Word) (int, *CGBBackgroundTileAttrs) {
+	if g.IsInColorGBMode {
+		var currentSelectedBankTmp byte = g.cgbVramBankSelectionRegister
+
+		//tile number data always comes from bank 0
+		g.cgbVramBankSelectionRegister = 0
+		var tileNo int = g.calculateTileNo(tilemapOffset, lineOffset)
+
+		//tile attribute data always comes from bank 1
+		g.cgbVramBankSelectionRegister = 1
+		var attributeData byte = g.Read(types.Word(tilemapOffset + lineOffset))
+
+		//revert bank selection register to what it was set to previously
+		g.cgbVramBankSelectionRegister = currentSelectedBankTmp
+
+		return tileNo, NewCGBBackgroundTileAttrs(attributeData)
+	} else {
+		panic("Cannot call this function, not in color gb mode!")
+	}
+
+	return -1, nil
 }
 
 func (g *GPU) RenderSpritesOnScanline() {
@@ -521,8 +605,42 @@ func (g *GPU) RenderSpritesOnScanline() {
 //TODO: Sprite precedence rules
 // Draws a tile for the given sprite. Only draws one tile
 func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
+	if g.IsInColorGBMode {
+		g.drawCGBSpriteTileLine(s, tileId, screenYOffset, tileY)
+	} else {
+		g.drawNonCGBSpriteTileLine(s, tileId, screenYOffset, tileY)
+	}
+}
+
+func (g *GPU) drawCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
-		tileLine := g.FormatTileLineForSprite(s, tileId, tileY)
+		//tile data can come from one of two banks in CGB mode
+		var t *Tile = &g.tiledata[s.SpriteAttributes().CGBBankNo][tileId]
+		tileLine := g.formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically)
+
+		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
+		for tileX := 0; tileX < 8; tileX++ {
+			if tileLine[tileX] != 0 {
+				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
+				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
+					//TODO: Priority stuff needs to be changed for CGB as we're not using the BG palette
+					if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
+						continue
+					}
+
+					g.screenData[adjY][adjX] = g.cgbObjectPalettes[s.SpriteAttributes().CGBPaletteNo][tileLine[tileX]].ToRGB()
+				}
+			}
+		}
+	}
+}
+
+func (g *GPU) drawNonCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
+	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
+		//tile data in non CGB mode only comes from bank 0
+		var t *Tile = &g.tiledata[0][tileId]
+		tileLine := g.formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically)
+
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
 			if tileLine[tileX] != 0 {
@@ -532,18 +650,17 @@ func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
 						continue
 					}
 
-					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().PaletteSelected][tileLine[tileX]]
+					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().NonCGBPaletteSelected][tileLine[tileX]]
 				}
 			}
 		}
 	}
 }
 
-func (g *GPU) FormatTileLineForSprite(s Sprite, tileId, tileY int) [8]int {
-	t := &g.tiledata[tileId]
-
+//Format a tile according to the vertical/horizontal flipping instructions
+func (g *GPU) formatTileLine(t *Tile, tileY int, flipHorizontal, flipVertical bool) [8]int {
 	//flip both
-	if s.SpriteAttributes().ShouldFlipVertically && s.SpriteAttributes().ShouldFlipHorizontally {
+	if flipVertical && flipHorizontal {
 		var tileLine [8]int
 
 		for x := 0; x < 8; x++ {
@@ -553,11 +670,11 @@ func (g *GPU) FormatTileLineForSprite(s Sprite, tileId, tileY int) [8]int {
 		return tileLine
 	}
 
-	if s.SpriteAttributes().ShouldFlipVertically {
+	if flipVertical {
 		return t[7-tileY]
 	}
 
-	if s.SpriteAttributes().ShouldFlipHorizontally {
+	if flipHorizontal {
 		var tileLine [8]int
 
 		for x := 0; x < 8; x++ {
@@ -571,11 +688,20 @@ func (g *GPU) FormatTileLineForSprite(s Sprite, tileId, tileY int) [8]int {
 	return t[tileY]
 }
 
+func (g *GPU) byteToPalette(b byte) Palette {
+	var palette Palette
+	palette[0] = GBColours[int(b&0x03)]
+	palette[1] = GBColours[int((b>>2)&0x03)]
+	palette[2] = GBColours[int((b>>4)&0x03)]
+	palette[3] = GBColours[(int(b>>6) & 0x03)]
+	return palette
+}
+
 //debug helpers
 func (g *GPU) DumpTiles() [512][8][8]types.RGB {
-	fmt.Println("Dumping", len(g.tiledata), "tiles")
+	fmt.Println("Dumping", len(g.tiledata[0]), "tiles")
 	var out [512][8][8]types.RGB
-	for i, tile := range g.tiledata {
+	for i, tile := range g.tiledata[0] {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
 				cr := GBColours[tile[y][x]]
@@ -594,7 +720,7 @@ func (g *GPU) Dump8x8Sprites() [40][8][8]types.RGB {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
 				tileId := spr.GetTileID(0)
-				tile := g.tiledata[tileId]
+				tile := g.tiledata[0][tileId]
 				cr := GBColours[tile[y][x]]
 				out[i][y][x] = cr
 			}
@@ -625,7 +751,7 @@ func (g *GPU) DumpTilemap(tileMapAddr types.Word, tileDataSigned bool) [256][256
 						tileId += 256
 					}
 				}
-				tile := g.tiledata[tileId]
+				tile := g.tiledata[0][tileId]
 				for tileX := 0; tileX < 8; tileX++ {
 					cr := GBColours[tile[tileY][tileX]]
 					result[rx][ry] = cr
@@ -638,13 +764,4 @@ func (g *GPU) DumpTilemap(tileMapAddr types.Word, tileDataSigned bool) [256][256
 		tileMapAddrOffset += types.Word(32)
 	}
 	return result
-}
-
-func (g *GPU) byteToPalette(b byte) Palette {
-	var palette Palette
-	palette[0] = GBColours[int(b&0x03)]
-	palette[1] = GBColours[int((b>>2)&0x03)]
-	palette[2] = GBColours[int((b>>4)&0x03)]
-	palette[3] = GBColours[(int(b>>6) & 0x03)]
-	return palette
 }
