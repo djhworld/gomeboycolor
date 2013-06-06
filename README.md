@@ -7,11 +7,6 @@ Nintendo Gameboy Color emulator, this is my first emulator so I'm learning as I 
 FAQ
 ============================
 
-#### Why is everything so grey? This is a Gameboy Color emulator right?
-
-Yes, *I know*
-This is the first emulator I've ever written so I've been working on getting the monochrome stuff working first. From looking at the docs it shouldn't be too hard to retrofit the color stuff in. 
-
 #### How do I build it?
 
 You will need libglfw installed for this to work. I've only tested this on an OSX machine so far and I'm pretty certain it's going to be a real pain in the butt to get it working on Windows. 
@@ -19,6 +14,9 @@ You will need libglfw installed for this to work. I've only tested this on an OS
 Progress
 ---------------------------
 ![Emulator boots to boot screen](https://github.com/djhworld/gomeboycolor/raw/master/images/boot_sequence.png)&nbsp;
+![Tetris DX](https://f.cloud.github.com/assets/529730/619306/8d6f4d6a-ceca-11e2-9789-f11a0545e643.png)
+![Tetris DX](https://f.cloud.github.com/assets/529730/619308/96ecdae2-ceca-11e2-8941-c5e6ba79c5c8.png)
+![TetrisDX](https://f.cloud.github.com/assets/529730/619303/86a964c0-ceca-11e2-8c04-ace874c45957.png)
 ![Pokemon Red](https://github.com/djhworld/gomeboycolor/raw/master/images/pokemonred1.png)&nbsp;
 ![Pokemon Red](https://github.com/djhworld/gomeboycolor/raw/master/images/pokemonred2.png)&nbsp;
 ![Zelda](https://github.com/djhworld/gomeboycolor/raw/master/images/zelda.gb.png)&nbsp;
