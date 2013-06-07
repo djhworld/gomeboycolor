@@ -77,7 +77,7 @@ func (c *Cartridge) Init(rom []byte) error {
 	}
 
 	c.Title = strings.TrimSpace(string(rom[0x0134:0x0142]))
-	c.IsColourGB = (rom[0x0143] == 0x80)
+	c.IsColourGB = (rom[0x0143] == 0x80) || (rom[0x0143] == 0xC0)
 
 	ctype := rom[0x0147]
 	//validate

@@ -26,8 +26,8 @@ type CGBBackgroundTileAttrs struct {
 func NewCGBBackgroundTileAttrs(attributeData byte) *CGBBackgroundTileAttrs {
 	var cbc *CGBBackgroundTileAttrs = new(CGBBackgroundTileAttrs)
 	cbc.HasPriority = (attributeData & 0x80) == 0x80
-	cbc.FlipHorizontally = (attributeData & 0x40) == 0x40
-	cbc.FlipVertically = (attributeData & 0x20) == 0x20
+	cbc.FlipVertically = (attributeData & 0x40) == 0x40
+	cbc.FlipHorizontally = (attributeData & 0x20) == 0x20
 	cbc.BankNo = int((attributeData & 0x08) >> 3)
 	cbc.PaletteNo = int(attributeData & 0x07)
 	return cbc
