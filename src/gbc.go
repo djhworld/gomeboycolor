@@ -96,9 +96,8 @@ func (gbc *GomeboyColor) Step() {
 			gbc.mmu.SetInBootMode(false)
 			gbc.inBootMode = false
 
-			//put the GPU in color mode if cartridge is ColorGB
-			gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
-
+			//put the GPU in color mode if cartridge is ColorGB and user has specified color GB mode
+			gbc.SetHardwareMode(gbc.config.ColorMode)
 			log.Println("Finished GB boot program, launching game...")
 		}
 	}
@@ -228,11 +227,22 @@ func (gbc *GomeboyColor) setupWithBoot() {
 	gbc.mmu.WriteByte(0xFF50, 0x00)
 }
 
+func (gbc *GomeboyColor) SetHardwareMode(isColor bool) {
+	if isColor {
+		//put the GPU in color mode if cartridge is ColorGB
+		gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
+		gbc.cpu.R.A = 0x11
+	} else {
+		gbc.gpu.IsInColorGBMode = false
+		gbc.cpu.R.A = 0x01
+	}
+}
+
 func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.inBootMode = false
 	gbc.mmu.SetInBootMode(false)
 	gbc.cpu.PC = 0x100
-	gbc.cpu.R.A = 0x11
+	gbc.SetHardwareMode(gbc.config.ColorMode)
 	gbc.cpu.R.F = 0xB0
 	gbc.cpu.R.B = 0x00
 	gbc.cpu.R.C = 0x13
@@ -273,8 +283,6 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFF4B, 0x00)
 	gbc.mmu.WriteByte(0xFF50, 0x00)
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
-	//put the GPU in color mode if cartridge is ColorGB
-	gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
 }
 
 func (gbc *GomeboyColor) onClose() {

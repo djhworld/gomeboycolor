@@ -39,6 +39,7 @@ func (cattr *CGBBackgroundTileAttrs) String() string {
 
 //Represents a color
 type CGBColor types.Word
+
 func (c CGBColor) ToRGB() types.RGB {
 	return types.RGB{
 		Red:   byte(c&0x001F) * 8,
@@ -48,6 +49,7 @@ func (c CGBColor) ToRGB() types.RGB {
 
 //Represents a color palette (4 colors)
 type CGBPalette [4]CGBColor
+
 func (cp *CGBPalette) UpdateHigh(colorNo int, value byte) {
 	cp[colorNo] = (cp[colorNo] & 0x00FF) | CGBColor(value)<<8
 }

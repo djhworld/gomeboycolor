@@ -21,6 +21,7 @@ const (
 	DUMP_FLAG                 = "dump"
 	DEBUGGER_ON_FLAG          = "debug"
 	BREAK_WHEN_FLAG           = "b"
+	COLOR_MODE_FLAG           = "color"
 )
 
 var settingsFile *string = flag.String(SETTINGS_FILE_FLAG, "settings.json", "Location of settings file")
@@ -29,6 +30,7 @@ var fps *bool = flag.Bool(SHOW_FPS_FLAG, false, "Calculate and display frames pe
 var screenSizeMultiplier *int = flag.Int(SCREEN_SIZE_FLAG, 1, "Screen size multiplier")
 var skipBoot *bool = flag.Bool(SKIP_BOOT_FLAG, false, "Skip boot sequence")
 var savesDir *string = flag.String(SAVE_DIR_FLAG, "saves", "Location where game saves are stored")
+var colorMode *bool = flag.Bool(COLOR_MODE_FLAG, true, "Emulates Gameboy Color Hardware")
 
 //debug stuff...
 var dumpState *bool = flag.Bool(DUMP_FLAG, false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
@@ -42,6 +44,7 @@ type Config struct {
 	SkipBoot   bool
 	SavesDir   string
 	DisplayFPS bool
+	ColorMode  bool
 
 	//optional
 	Debug          bool
@@ -69,7 +72,7 @@ func NewConfigFromFile(settingsFile string) (*Config, error) {
 		return nil, ConfigSettingsParseError(fmt.Sprintf("%v", err))
 	}
 
-	for _, v := range []string{"Title", "ScreenSize", "SkipBoot", "SavesDir", "DisplayFPS"} {
+	for _, v := range []string{"Title", "ScreenSize", "ColorMode", "SkipBoot", "SavesDir", "DisplayFPS"} {
 		if _, ok := initialMap[v]; !ok {
 			return nil, ConfigValidationError("Could not find settings key: \"" + v + "\" in settings file")
 		}
@@ -106,6 +109,7 @@ func DefaultConfig() *Config {
 	c.Debug = *debug
 	c.BreakOn = *breakOn
 	c.DumpState = *dumpState
+	c.ColorMode = *colorMode
 	return c
 }
 
@@ -114,6 +118,7 @@ func (c *Config) String() string {
 		fmt.Sprintln(strings.Repeat("-", 50)) +
 		fmt.Sprintln(utils.PadRight("Title: ", 19, " "), c.Title) +
 		fmt.Sprintln(utils.PadRight("Skip Boot: ", 19, " "), c.SkipBoot) +
+		fmt.Sprintln(utils.PadRight("GB Color Mode: ", 19, " "), c.ColorMode) +
 		fmt.Sprintln(utils.PadRight("Saves Directory: ", 19, " "), c.SavesDir) +
 		fmt.Sprintln(utils.PadRight("Display FPS: ", 19, " "), c.DisplayFPS) +
 		fmt.Sprintln(utils.PadRight("Screen Size: ", 19, " "), c.ScreenSize) +
@@ -153,6 +158,8 @@ func (currentConfig *Config) OverrideConfigWithAnySetFlags() {
 			currentConfig.SavesDir = *savesDir
 		case TITLE_FLAG:
 			currentConfig.Title = *title
+		case COLOR_MODE_FLAG:
+			currentConfig.ColorMode = *colorMode
 		}
 	}
 	flag.Visit(overrideFn)
