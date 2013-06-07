@@ -11,11 +11,17 @@ import (
 )
 
 const (
-	MBC_0          = 0x00
-	MBC_1          = 0x01
-	MBC_1_RAM      = 0x02
-	MBC_1_RAM_BATT = 0x03
-	MBC_3_RAM_BATT = 0x13
+	MBC_0                 = 0x00
+	MBC_1                 = 0x01
+	MBC_1_RAM             = 0x02
+	MBC_1_RAM_BATT        = 0x03
+	MBC_3_RAM_BATT        = 0x13
+	MBC_5                 = 0x19
+	MBC_5_RAM             = 0x1A
+	MBC_5_RAM_BATT        = 0x1B
+	MBC_5_RUMBLE          = 0x1C
+	MBC_5_RAM_RUMBLE      = 0x1D
+	MBC_5_RAM_BATT_RUMBLE = 0x1E
 )
 
 type CartridgeType struct {
@@ -24,11 +30,17 @@ type CartridgeType struct {
 }
 
 var CartridgeTypes map[byte]CartridgeType = map[byte]CartridgeType{
-	MBC_0:          CartridgeType{MBC_0, "ROM ONLY"},
-	MBC_1:          CartridgeType{MBC_1, "ROM+MBC1"},
-	MBC_1_RAM:      CartridgeType{MBC_1_RAM, "ROM+MBC1+RAM"},
-	MBC_1_RAM_BATT: CartridgeType{MBC_1_RAM_BATT, "ROM+MBC1+RAM+BATT"},
-	MBC_3_RAM_BATT: CartridgeType{MBC_3_RAM_BATT, "ROM+MBC3+RAM+BATT"},
+	MBC_0:                 CartridgeType{MBC_0, "ROM ONLY"},
+	MBC_1:                 CartridgeType{MBC_1, "ROM+MBC1"},
+	MBC_1_RAM:             CartridgeType{MBC_1_RAM, "ROM+MBC1+RAM"},
+	MBC_1_RAM_BATT:        CartridgeType{MBC_1_RAM_BATT, "ROM+MBC1+RAM+BATT"},
+	MBC_3_RAM_BATT:        CartridgeType{MBC_3_RAM_BATT, "ROM+MBC3+RAM+BATT"},
+	MBC_5:                 CartridgeType{MBC_5, "ROM+MBC5"},
+	MBC_5_RAM:             CartridgeType{MBC_5_RAM, "ROM+MBC5+RAM"},
+	MBC_5_RAM_BATT:        CartridgeType{MBC_5_RAM_BATT, "ROM+MBC5+RAM+BATT"},
+	MBC_5_RUMBLE:          CartridgeType{MBC_5_RUMBLE, "ROM+MBC5+RUMBLE"},
+	MBC_5_RAM_RUMBLE:      CartridgeType{MBC_5_RAM_RUMBLE, "ROM+MBC5+RAM+RUMBLE"},
+	MBC_5_RAM_BATT_RUMBLE: CartridgeType{MBC_5_RAM_BATT_RUMBLE, "ROM+MBC5+RAM+BATT+RUMBLE"},
 }
 
 type Cartridge struct {
@@ -105,6 +117,10 @@ func (c *Cartridge) Init(rom []byte) error {
 		c.MBC = NewMBC1(rom, c.ROMSize, c.RAMSize, true)
 	case MBC_3_RAM_BATT:
 		c.MBC = NewMBC3(rom, c.ROMSize, c.RAMSize, true)
+	case MBC_5, MBC_5_RAM, MBC_5_RUMBLE, MBC_5_RAM_RUMBLE:
+		c.MBC = NewMBC5(rom, c.ROMSize, c.RAMSize, false)
+	case MBC_5_RAM_BATT, MBC_5_RAM_BATT_RUMBLE:
+		c.MBC = NewMBC5(rom, c.ROMSize, c.RAMSize, true)
 	default:
 		return errors.New("Error: Cartridge type " + utils.ByteToString(c.Type.ID) + " is currently unsupported")
 	}
