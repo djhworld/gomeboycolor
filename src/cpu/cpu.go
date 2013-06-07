@@ -98,6 +98,7 @@ type GbcCPU struct {
 	PCJumped                bool
 	Halted                  bool
 	InterruptFlagBeforeHalt byte
+	Speed                   int
 }
 
 func NewCPU() *GbcCPU {
@@ -130,6 +131,7 @@ func (cpu *GbcCPU) Reset() {
 	cpu.R.F = 0
 	cpu.R.H = 0
 	cpu.R.L = 0
+	cpu.Speed = 1
 	cpu.CurrentInstruction, _ = cpu.Decode(0x00)
 	cpu.InterruptsEnabled = true
 	cpu.LastInstrCycle.Reset()
@@ -1331,6 +1333,24 @@ func (cpu *GbcCPU) CheckForInterrupts() bool {
 	return false
 }
 
+//Checks to see if the CPU speed should change to double (CGB only)
+func (cpu *GbcCPU) SetCPUSpeed() {
+	var speedPrepRegister byte = cpu.mmu.ReadByte(mmu.CGB_DOUBLE_SPEED_PREP_REG)
+	if speedPrepRegister&0x01 == 0x01 {
+		switch cpu.Speed {
+		case 2:
+			cpu.Speed = 1
+			cpu.mmu.WriteByte(mmu.CGB_DOUBLE_SPEED_PREP_REG, 0x00)
+		case 1:
+			cpu.Speed = 2
+			cpu.mmu.WriteByte(mmu.CGB_DOUBLE_SPEED_PREP_REG, 0x80)
+		default:
+			panic(fmt.Sprint("Unsupported CPU speed ", cpu.Speed, " this should not happen!"))
+		}
+		log.Printf("CPU: Setting CPU speed to %dx speed", cpu.Speed)
+	}
+}
+
 func (cpu *GbcCPU) Compile(instruction Instruction) Instruction {
 	switch instruction.OperandsSize {
 	case 1:
@@ -1632,8 +1652,9 @@ func (cpu *GbcCPU) HALT() {
 
 //STOP
 func (cpu *GbcCPU) Stop() {
-	//TODO: Unimplemented
-	log.Println(cpu.PC, cpu.CurrentInstruction, "Stopping..")
+	log.Println("CPU: Stopping...")
+	//After a stop instruction is executed, CGB hardware should check to see if the CPU speed should change
+	cpu.SetCPUSpeed()
 }
 
 //DI

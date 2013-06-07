@@ -96,6 +96,9 @@ func (m *MBC5) Read(addr types.Word) byte {
 
 	//Switchable ROM BANK
 	if addr >= 0x4000 && addr < 0x8000 {
+		if m.selectedROMBank == 0 {
+			return m.romBank0[addr]
+		}
 		return m.romBanks[m.selectedROMBank][addr-0x4000]
 	}
 

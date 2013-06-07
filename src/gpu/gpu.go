@@ -78,7 +78,7 @@ type GPU struct {
 	obp0                         byte
 	obp1                         byte
 	cgbVramBankSelectionRegister byte
-	IsInColorGBMode              bool
+	RunningColorGBHardware       bool
 
 	bgrdOn         bool
 	spritesOn      bool
@@ -134,7 +134,7 @@ func (g *GPU) Reset() {
 	g.clock = 0
 	g.vBlankInterruptThrown = false
 	g.lcdInterruptThrown = false
-	g.IsInColorGBMode = false
+	g.RunningColorGBHardware = false
 
 	for i := 0; i < 40; i++ {
 		g.sprites8x8[i] = NewSprite8x8()
@@ -383,7 +383,7 @@ func (g *GPU) Read(addr types.Word) byte {
 
 func (g *GPU) WriteToVideoRAM(addr types.Word, value byte) {
 	var bankAddr types.Word = addr & 0x1FFF
-	if g.IsInColorGBMode {
+	if g.RunningColorGBHardware {
 		//CGB has two banks of 8KB VRAM
 		bankSelection := g.cgbVramBankSelectionRegister & 0x01
 		g.vram[bankSelection][bankAddr] = value
@@ -396,7 +396,7 @@ func (g *GPU) WriteToVideoRAM(addr types.Word, value byte) {
 
 func (g *GPU) ReadFromVideoRAM(addr types.Word) byte {
 	var bankAddr types.Word = addr & 0x1FFF
-	if g.IsInColorGBMode {
+	if g.RunningColorGBHardware {
 		//CGB has two banks of 8KB VRAM
 		bankSelection := g.cgbVramBankSelectionRegister & 0x01
 		return g.vram[bankSelection][bankAddr]
@@ -467,7 +467,7 @@ func (g *GPU) RenderWindowScanline() {
 }
 
 func (g *GPU) DrawScanline(tilemapOffset, lineOffset types.Word, screenX, tileX, tileY int) {
-	if g.IsInColorGBMode {
+	if g.RunningColorGBHardware {
 		g.drawCGBScanline(tilemapOffset, lineOffset, screenX, tileX, tileY)
 	} else {
 		g.drawNonCGBScanline(tilemapOffset, lineOffset, screenX, tileX, tileY)
@@ -534,7 +534,7 @@ func (g *GPU) calculateTileNo(tilemapOffset types.Word, lineOffset types.Word) i
 
 //CGB has additional attributes in bank 1 for each background tile
 func (g *GPU) getCGBBackgroundTileAttrs(tilemapOffset types.Word, lineOffset types.Word) (int, *CGBBackgroundTileAttrs) {
-	if g.IsInColorGBMode {
+	if g.RunningColorGBHardware {
 		var currentSelectedBankTmp byte = g.cgbVramBankSelectionRegister
 
 		//tile number data always comes from bank 0
@@ -605,7 +605,7 @@ func (g *GPU) RenderSpritesOnScanline() {
 //TODO: Sprite precedence rules
 // Draws a tile for the given sprite. Only draws one tile
 func (g *GPU) DrawSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) {
-	if g.IsInColorGBMode {
+	if g.RunningColorGBHardware {
 		g.drawCGBSpriteTileLine(s, tileId, screenYOffset, tileY)
 	} else {
 		g.drawNonCGBSpriteTileLine(s, tileId, screenYOffset, tileY)

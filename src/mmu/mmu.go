@@ -15,7 +15,8 @@ import (
 const PREFIX = "MMU"
 
 const (
-	CGB_WRAM_BANK_SELECT types.Word = 0xFF70
+	CGB_WRAM_BANK_SELECT      types.Word = 0xFF70
+	CGB_DOUBLE_SPEED_PREP_REG types.Word = 0xFF4D
 )
 
 var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
@@ -46,7 +47,9 @@ type GbcMMU struct {
 	peripheralIOMap   map[types.Word]components.Peripheral
 
 	//CGB features
-	cgbWramBankSelectedRegister byte
+	cgbWramBankSelectedRegister       byte
+	cgbDoubleSpeedPreparationRegister byte
+	RunningColorGBHardware            bool
 }
 
 func NewGbcMMU() *GbcMMU {
@@ -61,6 +64,8 @@ func (mmu *GbcMMU) Reset() {
 	mmu.inBootMode = true
 	mmu.interruptsFlag = 0x00
 	mmu.cgbWramBankSelectedRegister = 0x00
+	mmu.cgbDoubleSpeedPreparationRegister = 0x00
+	mmu.RunningColorGBHardware = false
 }
 
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
@@ -98,8 +103,11 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//Empty but "unusable for I/O"
 	case addr > 0xFF4C && addr <= 0xFF7F: //TODO: hmmmm
 		switch addr {
-		case 0xFF4D:
-			log.Println("CGB Double Speed Preparation Register (0xFF4D) - Is cartridge CGB?", mmu.cartridge.IsColourGB)
+		case CGB_DOUBLE_SPEED_PREP_REG:
+			if mmu.RunningColorGBHardware == false {
+				log.Fatalf("GB is not running in Color GB mode, cannot switch to double speed!")
+			}
+			mmu.cgbDoubleSpeedPreparationRegister = value
 		case 0xFF50:
 			mmu.dmgStatusRegister = value
 		case 0xFF51:
@@ -110,7 +118,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 			log.Printf("writing 0x%X to CGB HDMA transfer register %s!", value, addr)
 		//Color GB Working RAM Bank Selection
 		case CGB_WRAM_BANK_SELECT:
-			if mmu.cartridge.IsColourGB == false {
+			if mmu.RunningColorGBHardware == false {
 				log.Fatalf("Cannot write to %s in non-CGB mode!", CGB_WRAM_BANK_SELECT)
 			}
 			mmu.cgbWramBankSelectedRegister = value
@@ -166,6 +174,8 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		switch addr {
 		case 0xFF50:
 			return mmu.dmgStatusRegister
+		case CGB_DOUBLE_SPEED_PREP_REG:
+			return mmu.cgbDoubleSpeedPreparationRegister
 		case CGB_WRAM_BANK_SELECT:
 			return mmu.cgbWramBankSelectedRegister
 		default:
@@ -286,7 +296,7 @@ func (mmu *GbcMMU) WriteToWorkingRAM(addr types.Word, value byte) {
 		mmu.internalRAM[0][bankAddr] = value
 	} else if addr >= 0xD000 && addr <= 0xDFFF {
 		// In color GB mode the internal RAM is 8x4KB banks (switchable by register 0xFF70)
-		if mmu.cartridge.IsColourGB {
+		if mmu.RunningColorGBHardware {
 			bankSelected := int(mmu.cgbWramBankSelectedRegister & 0x07)
 			switch {
 			//0 and 1 will select bank 1
@@ -312,7 +322,7 @@ func (mmu *GbcMMU) ReadFromWorkingRAM(addr types.Word) byte {
 		return mmu.internalRAM[0][bankAddr]
 	} else if addr >= 0xD000 && addr <= 0xDFFF {
 		// In color GB mode the internal RAM is 8x4KB banks (switchable by register 0xFF70)
-		if mmu.cartridge.IsColourGB {
+		if mmu.RunningColorGBHardware {
 			bankSelected := int(mmu.cgbWramBankSelectedRegister & 0x07)
 			switch {
 			//0 and 1 will select bank 1

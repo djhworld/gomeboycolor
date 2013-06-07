@@ -85,9 +85,13 @@ func (gbc *GomeboyColor) DoFrame() {
 
 func (gbc *GomeboyColor) Step() {
 	cycles := gbc.cpu.Step()
+	//GPU is unaffected by CPU speed changes
 	gbc.gpu.Step(cycles)
-	gbc.timer.Step(cycles)
-	gbc.cpuClockAcc += cycles
+
+	//these are affected by CPU speed changes
+	gbc.timer.Step(cycles / gbc.cpu.Speed)
+	gbc.cpuClockAcc += cycles / gbc.cpu.Speed
+
 	gbc.stepCount++
 	//value in FF50 means gameboy has finished booting
 	if gbc.inBootMode {
@@ -227,14 +231,16 @@ func (gbc *GomeboyColor) setupWithBoot() {
 	gbc.mmu.WriteByte(0xFF50, 0x00)
 }
 
+//Determine if ColorGB hardware should be enabled
 func (gbc *GomeboyColor) SetHardwareMode(isColor bool) {
 	if isColor {
-		//put the GPU in color mode if cartridge is ColorGB
-		gbc.gpu.IsInColorGBMode = gbc.mmu.IsCartridgeColor()
 		gbc.cpu.R.A = 0x11
+		gbc.gpu.RunningColorGBHardware = gbc.mmu.IsCartridgeColor()
+		gbc.mmu.RunningColorGBHardware = true
 	} else {
-		gbc.gpu.IsInColorGBMode = false
 		gbc.cpu.R.A = 0x01
+		gbc.gpu.RunningColorGBHardware = false
+		gbc.mmu.RunningColorGBHardware = false
 	}
 }
 
