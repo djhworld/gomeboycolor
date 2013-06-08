@@ -61,7 +61,7 @@ func NewGBC() *GomeboyColor {
 	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF56, 0xFF6F)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF57, 0xFF6F)
 	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
 	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
 	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)

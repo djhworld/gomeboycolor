@@ -15,6 +15,8 @@ import (
 const PREFIX = "MMU"
 
 const (
+	DMG_STATUS_REG            types.Word = 0xFF50
+	CGB_INFRARED_PORT_REG     types.Word = 0xFF56
 	CGB_WRAM_BANK_SELECT      types.Word = 0xFF70
 	CGB_DOUBLE_SPEED_PREP_REG types.Word = 0xFF4D
 )
@@ -101,30 +103,8 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 			mmu.WriteByte(oamAddr, oamData)
 		}
 	//Empty but "unusable for I/O"
-	case addr > 0xFF4C && addr <= 0xFF7F: //TODO: hmmmm
-		switch addr {
-		case CGB_DOUBLE_SPEED_PREP_REG:
-			if mmu.RunningColorGBHardware == false {
-				log.Fatalf("GB is not running in Color GB mode, cannot switch to double speed!")
-			}
-			mmu.cgbDoubleSpeedPreparationRegister = value
-		case 0xFF50:
-			mmu.dmgStatusRegister = value
-		case 0xFF51:
-		case 0xFF52:
-		case 0xFF53:
-		case 0xFF54:
-		case 0xFF55:
-			log.Printf("writing 0x%X to CGB HDMA transfer register %s!", value, addr)
-		//Color GB Working RAM Bank Selection
-		case CGB_WRAM_BANK_SELECT:
-			if mmu.RunningColorGBHardware == false {
-				log.Fatalf("Cannot write to %s in non-CGB mode!", CGB_WRAM_BANK_SELECT)
-			}
-			mmu.cgbWramBankSelectedRegister = value
-		default:
-			mmu.emptySpace[addr-0xFF4D] = value
-		}
+	case addr > 0xFF4C && addr <= 0xFF7F:
+		mmu.WriteByteToRegister(addr, value)
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		if addr == 0xFFFF {
@@ -171,16 +151,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 		return mmu.interruptsFlag
 	//Empty but "unusable for I/O"
 	case addr >= 0xFF4C && addr <= 0xFF7F:
-		switch addr {
-		case 0xFF50:
-			return mmu.dmgStatusRegister
-		case CGB_DOUBLE_SPEED_PREP_REG:
-			return mmu.cgbDoubleSpeedPreparationRegister
-		case CGB_WRAM_BANK_SELECT:
-			return mmu.cgbWramBankSelectedRegister
-		default:
-			return mmu.emptySpace[addr-0xFF4C]
-		}
+		return mmu.ReadByteFromRegister(addr)
 	//Zero page RAM
 	case addr >= 0xFF80 && addr <= 0xFFFF:
 		if addr == 0xFFFF {
@@ -285,6 +256,62 @@ func (mmu *GbcMMU) LoadCartridgeRam(savesDir string) {
 	err := mmu.cartridge.LoadRam(savesDir)
 	if err != nil {
 		log.Println("Error occured attempting to load RAM from disk: ", err)
+	}
+}
+
+//This area deals with registers (some only applicable to CGB hardware)
+func (mmu *GbcMMU) WriteByteToRegister(addr types.Word, value byte) {
+	switch addr {
+	case DMG_STATUS_REG:
+		mmu.dmgStatusRegister = value
+	case CGB_DOUBLE_SPEED_PREP_REG:
+		if mmu.RunningColorGBHardware == false {
+			log.Printf("%s: WARNING -> Cannot write to %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, CGB_WRAM_BANK_SELECT)
+		} else {
+			mmu.cgbDoubleSpeedPreparationRegister = value
+		}
+	case CGB_INFRARED_PORT_REG:
+		log.Printf("%s: Attempting to write 0x%X to infrared port register (%s), this is currently unsupported", PREFIX, value, addr)
+	//Color GB Working RAM Bank Selection
+	case CGB_WRAM_BANK_SELECT:
+		if mmu.RunningColorGBHardware == false {
+			log.Printf("%s: WARNING -> Cannot write to %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, CGB_WRAM_BANK_SELECT)
+		} else {
+			mmu.cgbWramBankSelectedRegister = value
+		}
+	case 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55:
+		if mmu.RunningColorGBHardware == false {
+			log.Printf("%s: WARNING -> Cannot write to %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, CGB_WRAM_BANK_SELECT)
+		} else {
+			log.Printf("writing 0x%X to CGB HDMA transfer register %s!", value, addr)
+		}
+	default:
+		//unknown register, who cares?
+		mmu.emptySpace[addr-0xFF4D] = value
+	}
+}
+
+//This area deals with registers (some only applicable to CGB hardware)
+func (mmu *GbcMMU) ReadByteFromRegister(addr types.Word) byte {
+	switch addr {
+	case DMG_STATUS_REG:
+		return mmu.dmgStatusRegister
+	case CGB_DOUBLE_SPEED_PREP_REG:
+		if mmu.RunningColorGBHardware == false {
+			log.Fatalf("%s: WARNING -> Attempting to read from %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, addr)
+		}
+		return mmu.cgbDoubleSpeedPreparationRegister
+	case CGB_INFRARED_PORT_REG:
+		log.Fatalf("%s: Attempting to read from infrared port register (%s), this is currently unsupported", PREFIX, addr)
+		return 0x00
+	case CGB_WRAM_BANK_SELECT:
+		if mmu.RunningColorGBHardware == false {
+			log.Fatalf("%s: WARNING -> Attempting to read from %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, addr)
+			return 0x00
+		}
+		return mmu.cgbWramBankSelectedRegister
+	default:
+		return mmu.emptySpace[addr-0xFF4C]
 	}
 }
 
