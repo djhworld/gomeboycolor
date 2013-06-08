@@ -58,7 +58,7 @@ func NewGBC() *GomeboyColor {
 	gbc.timer.LinkIRQHandler(gbc.mmu)
 	gbc.io.KeyHandler.LinkIRQHandler(gbc.mmu)
 
-	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF30)
+	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF3F)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF57, 0xFF6F)

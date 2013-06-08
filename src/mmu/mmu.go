@@ -13,12 +13,18 @@ import (
 )
 
 const PREFIX = "MMU"
+const ZERO byte = 0
 
 const (
 	DMG_STATUS_REG            types.Word = 0xFF50
 	CGB_INFRARED_PORT_REG     types.Word = 0xFF56
 	CGB_WRAM_BANK_SELECT      types.Word = 0xFF70
 	CGB_DOUBLE_SPEED_PREP_REG types.Word = 0xFF4D
+	CGB_HDMA_SOURCE_HIGH_REG  types.Word = 0xFF51
+	CGB_HDMA_SOURCE_LOW_REG   types.Word = 0xFF52
+	CGB_HDMA_DEST_HIGH_REG    types.Word = 0xFF53
+	CGB_HDMA_DEST_LOW_REG     types.Word = 0xFF54
+	CGB_HDMA_REG              types.Word = 0xFF55
 )
 
 var ROMIsBiggerThanRegion error = errors.New("ROM is bigger than addressable region")
@@ -32,6 +38,14 @@ type MemoryMappedUnit interface {
 	LoadBIOS(data []byte) (bool, error)
 	LoadCartridge(cart *cartridge.Cartridge)
 	Reset()
+}
+
+type HDMATransfer struct {
+	Source      types.Word
+	Destination types.Word
+	Length      int
+	HblankMode  bool
+	Running     bool
 }
 
 type GbcMMU struct {
@@ -52,6 +66,8 @@ type GbcMMU struct {
 	cgbWramBankSelectedRegister       byte
 	cgbDoubleSpeedPreparationRegister byte
 	RunningColorGBHardware            bool
+	hdmaTransferInfo                  *HDMATransfer
+	serialTmp                         byte
 }
 
 func NewGbcMMU() *GbcMMU {
@@ -68,6 +84,7 @@ func (mmu *GbcMMU) Reset() {
 	mmu.cgbWramBankSelectedRegister = 0x00
 	mmu.cgbDoubleSpeedPreparationRegister = 0x00
 	mmu.RunningColorGBHardware = false
+	mmu.hdmaTransferInfo = new(HDMATransfer)
 }
 
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
@@ -90,18 +107,18 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 		if addr >= 0xC000 && addr <= 0xDDFF {
 			mmu.internalRAMShadow[addr&(0xDDFF-0xC000)] = mmu.ReadByte(addr)
 		}
+	case addr == 0xFF01 || addr == 0xFF02:
+		//serial cable communication
+		mmu.serialTmp = ZERO
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		mmu.interruptsFlag = value
 	//DMA transfer
 	case addr == 0xFF46:
-		dmaStartAddr := types.Word(value) << 8
-		var i types.Word
-		for i = 0; i < 0xA0; i++ {
-			oamAddr := 0xFE00 + i
-			oamData := mmu.ReadByte(dmaStartAddr + i)
-			mmu.WriteByte(oamAddr, oamData)
-		}
+		var startAddr types.Word = types.Word(value) << 8
+		var oamAddr types.Word = 0xFE00
+		//transfer 10 blocks to OAM
+		mmu.doInstantDMATransfer(startAddr, oamAddr, 10, 16)
 	//Empty but "unusable for I/O"
 	case addr > 0xFF4C && addr <= 0xFF7F:
 		mmu.WriteByteToRegister(addr, value)
@@ -146,6 +163,9 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	//DMA register
 	case addr == 0xFF46:
 		return mmu.DMARegister
+	case addr == 0xFF01 || addr == 0xFF02:
+		//serial cable communication
+		return mmu.serialTmp
 	//INTERRUPT FLAG
 	case addr == 0xFF0F:
 		return mmu.interruptsFlag
@@ -160,7 +180,7 @@ func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 			return mmu.zeroPageRAM[addr&(0xFFFF-0xFF80)]
 		}
 	default:
-		log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
+		//log.Printf("%s: WARNING - Attempting to read from address %s, this is invalid/unimplemented", PREFIX, addr)
 	}
 
 	return 0x00
@@ -279,11 +299,25 @@ func (mmu *GbcMMU) WriteByteToRegister(addr types.Word, value byte) {
 		} else {
 			mmu.cgbWramBankSelectedRegister = value
 		}
-	case 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55:
+	case CGB_HDMA_SOURCE_HIGH_REG:
+		mmu.hdmaTransferInfo.Source = (mmu.hdmaTransferInfo.Source & 0x00FF) | types.Word(value)<<8
+	case CGB_HDMA_SOURCE_LOW_REG:
+		mmu.hdmaTransferInfo.Source = (mmu.hdmaTransferInfo.Source & 0xFF00) | types.Word(value)
+	case CGB_HDMA_DEST_HIGH_REG:
+		mmu.hdmaTransferInfo.Destination = (mmu.hdmaTransferInfo.Destination & 0x00FF) | types.Word(value)<<8
+	case CGB_HDMA_DEST_LOW_REG:
+		mmu.hdmaTransferInfo.Destination = (mmu.hdmaTransferInfo.Destination & 0xFF00) | types.Word(value)
+	case CGB_HDMA_REG:
 		if mmu.RunningColorGBHardware == false {
 			log.Printf("%s: WARNING -> Cannot write to %s in non-CGB mode! ROM may have unexpected behaviour (ROM is probably unsupported in non-CGB mode)", PREFIX, CGB_WRAM_BANK_SELECT)
 		} else {
-			log.Printf("writing 0x%X to CGB HDMA transfer register %s!", value, addr)
+			if value&0x80 == 0x00 {
+				mmu.hdmaTransferInfo.Length = int(value&0x7F) + 1
+				mmu.hdmaTransferInfo.Running = true
+				mmu.doInstantDMATransfer(mmu.hdmaTransferInfo.Source, mmu.hdmaTransferInfo.Destination, mmu.hdmaTransferInfo.Length, 16)
+			} else {
+				log.Println("HDMA horizontal HBlank is unsupported at the moment ")
+			}
 		}
 	default:
 		//unknown register, who cares?
@@ -311,6 +345,7 @@ func (mmu *GbcMMU) ReadByteFromRegister(addr types.Word) byte {
 		}
 		return mmu.cgbWramBankSelectedRegister
 	default:
+		log.Printf("Reading register: %s", addr)
 		return mmu.emptySpace[addr-0xFF4C]
 	}
 }
@@ -367,6 +402,15 @@ func (mmu *GbcMMU) ReadFromWorkingRAM(addr types.Word) byte {
 	}
 
 	return 0x00
+}
+
+func (mmu *GbcMMU) doInstantDMATransfer(startAddress, destinationAddr types.Word, blocks, blockSize int) {
+	length := types.Word(blockSize * blocks)
+	var i types.Word = 0x0000
+	for ; i < length; i++ {
+		data := mmu.ReadByte(startAddress + i)
+		mmu.WriteByte(destinationAddr+i, data)
+	}
 }
 
 //USE SHARED CONSTANTS FOR FLAGS AND STUFF TOO - for reuse in the CPU
