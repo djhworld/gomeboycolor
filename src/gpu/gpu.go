@@ -222,13 +222,17 @@ func (g *GPU) Step(t int) {
 func (g *GPU) CheckForLCDCSTATInterrupt() {
 	switch {
 	case byte(g.ly) == g.lyc && (g.Read(STAT)&0x40) == 0x40:
+		//log.Println("Doing LCD 1")
 		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 	case g.mode == OAMREAD && (g.Read(STAT)&0x20) == 0x20:
-		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		//log.Println("Doing LCD 2")
+		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 	case g.mode == VBLANK && (g.Read(STAT)&0x10) == 0x10:
-		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		//log.Println("Doing LCD 3")
+		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 	case g.mode == HBLANK && (g.Read(STAT)&0x08) == 0x08:
-		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		//log.Println("Doing LCD 4")
+		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
 	}
 }
 
