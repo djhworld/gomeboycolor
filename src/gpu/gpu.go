@@ -366,11 +366,25 @@ func (g *GPU) Read(addr types.Word) byte {
 		case CGB_BGP_WRITESPEC_REGISTER:
 			return g.cgbBGPWriteSpecReg.Value
 		case CGB_BGP_WRITEDATA_REGISTER:
-			return g.cgbBGPWriteDataRegister
+			//When the write data register is read, the data at the address specified by the write-specification register is returned
+			//so we have to convert the color back to high/low values and return the values
+			var paletteColor CGBColor = g.cgbBackgroundPalettes[g.cgbBGPWriteSpecReg.PalleteNo][g.cgbBGPWriteSpecReg.PalleteDataNo]
+			if g.cgbBGPWriteSpecReg.High {
+				return paletteColor.High()
+			} else {
+				return paletteColor.Low()
+			}
 		case CGB_OBJP_WRITESPEC_REGISTER:
 			return g.cgbOBJPWriteSpecReg.Value
 		case CGB_OBJP_WRITEDATA_REGISTER:
-			return g.cgbOBJPWriteDataRegister
+			//When the write data register is read, the data at the address specified by the write-specification register is returned
+			//so we have to convert the color back to high/low values and return the values
+			var paletteColor CGBColor = g.cgbObjectPalettes[g.cgbOBJPWriteSpecReg.PalleteNo][g.cgbOBJPWriteSpecReg.PalleteDataNo]
+			if g.cgbOBJPWriteSpecReg.High {
+				return paletteColor.High()
+			} else {
+				return paletteColor.Low()
+			}
 		case CGB_VRAM_BANK_SELECT:
 			return g.cgbVramBankSelectionRegister
 		default:
@@ -492,7 +506,6 @@ func (g *GPU) drawCGBScanline(tilemapOffset, lineOffset types.Word, screenX, til
 			lineOffset = (lineOffset + 1) % 32
 
 			//get next tile in line
-			tileInfo = nil
 			tileNumber, tileInfo = g.getCGBBackgroundTileAttrs(tilemapOffset, lineOffset)
 		}
 	}

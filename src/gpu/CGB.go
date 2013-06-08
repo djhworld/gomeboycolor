@@ -47,6 +47,14 @@ func (c CGBColor) ToRGB() types.RGB {
 		Blue:  byte(c&0x7C00>>10) * 8}
 }
 
+func (c CGBColor) High() byte {
+	return byte((c & 0xFF00) >> 8)
+}
+
+func (c CGBColor) Low() byte {
+	return byte(c & 0x00FF)
+}
+
 //Represents a color palette (4 colors)
 type CGBPalette [4]CGBColor
 
