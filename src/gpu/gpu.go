@@ -171,6 +171,8 @@ func (g *GPU) Step(t int) {
 	g.clock -= t
 
 	if g.clock <= 0 {
+		g.CheckForLCDCSTATInterrupt()
+
 		if g.ly < 144 {
 			if g.displayOn {
 				if g.bgrdOn {
@@ -213,8 +215,6 @@ func (g *GPU) Step(t int) {
 		if byte(g.ly) == g.lyc {
 			g.stat |= 0x04
 		}
-
-		g.CheckForLCDCSTATInterrupt()
 	}
 
 }
