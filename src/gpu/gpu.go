@@ -172,22 +172,7 @@ func (g *GPU) Step(t int) {
 
 	if g.clock <= 0 {
 		g.CheckForLCDCSTATInterrupt()
-
-		if g.ly < 144 {
-			if g.displayOn {
-				if g.bgrdOn {
-					g.RenderBackgroundScanline()
-				}
-
-				if g.windowOn {
-					g.RenderWindowScanline()
-				}
-
-				if g.spritesOn {
-					g.RenderSpritesOnScanline()
-				}
-			}
-		} else if g.ly == 144 {
+		if g.ly == 144 {
 			//reset sprite draw queues after frame has been rendered
 			for _, s := range g.sprites8x8 {
 				s.ResetScanlineDrawQueue()
@@ -207,6 +192,22 @@ func (g *GPU) Step(t int) {
 		} else if g.ly > 153 {
 			g.vBlankInterruptThrown = false
 			g.ly = 0
+		}
+
+		if g.ly < 144 {
+			if g.displayOn {
+				if g.bgrdOn {
+					g.RenderBackgroundScanline()
+				}
+
+				if g.windowOn {
+					g.RenderWindowScanline()
+				}
+
+				if g.spritesOn {
+					g.RenderSpritesOnScanline()
+				}
+			}
 		}
 
 		g.clock += 456
