@@ -155,12 +155,20 @@ func (g *GPU) Step(t int) {
 	} else {
 		if g.ly >= 144 {
 			g.mode = VBLANK
+			g.lcdInterruptThrown = false
 		} else if g.clock >= 456-80 {
 			g.mode = OAMREAD
+			g.lcdInterruptThrown = false
 		} else if g.clock >= 456-80-172 {
 			g.mode = VRAMREAD
+			g.lcdInterruptThrown = false
 		} else {
 			g.mode = HBLANK
+			//throw HBlank LCD interrupt (if enabled)
+			if g.HblankLCDInterruptEnabled() && g.lcdInterruptThrown == false {
+				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+				g.lcdInterruptThrown = true
+			}
 		}
 	}
 
@@ -173,7 +181,7 @@ func (g *GPU) Step(t int) {
 	if g.clock <= 0 {
 		g.clock += 456
 		g.ly += 1
-		g.CheckForLCDCSTATInterrupt()
+
 		if g.ly == 144 {
 			//reset sprite draw queues after frame has been rendered
 			for _, s := range g.sprites8x8 {
@@ -187,6 +195,11 @@ func (g *GPU) Step(t int) {
 			//throw vblank interrupt
 			if g.vBlankInterruptThrown == false {
 				g.irqHandler.RequestInterrupt(constants.V_BLANK_IRQ)
+
+				//throw VBLANK LCD interrupt (if enabled)
+				if g.VBlankLCDInterruptEnabled() {
+					g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+				}
 				g.vBlankInterruptThrown = true
 			}
 			g.screen.DrawFrame(&g.screenData)
@@ -196,6 +209,13 @@ func (g *GPU) Step(t int) {
 			g.ly = 0
 		}
 
+		//throw coincidence LCD interrupt (if enabled)
+		if g.CoincidenceLCDInterruptEnabled() && byte(g.ly) == g.lyc {
+			g.stat |= 0x04
+			g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
+		}
+
+		//Render scanline
 		if g.ly < 144 {
 			if g.displayOn {
 				if g.bgrdOn {
@@ -211,30 +231,19 @@ func (g *GPU) Step(t int) {
 				}
 			}
 		}
-
-
-		if byte(g.ly) == g.lyc {
-			g.stat |= 0x04
-		}
 	}
-
 }
 
-func (g *GPU) CheckForLCDCSTATInterrupt() {
-	switch {
-	case byte(g.ly) == g.lyc && (g.Read(STAT)&0x40) == 0x40:
-		//log.Println("Doing LCD 1")
-		g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-	case g.mode == OAMREAD && (g.Read(STAT)&0x20) == 0x20:
-		//log.Println("Doing LCD 2")
-		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-	case g.mode == VBLANK && (g.Read(STAT)&0x10) == 0x10:
-		//log.Println("Doing LCD 3")
-		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-	case g.mode == HBLANK && (g.Read(STAT)&0x08) == 0x08:
-		//log.Println("Doing LCD 4")
-		//g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
-	}
+func (g *GPU) CoincidenceLCDInterruptEnabled() bool {
+	return (g.Read(STAT) & 0x40) == 0x40
+}
+
+func (g *GPU) VBlankLCDInterruptEnabled() bool {
+	return (g.Read(STAT) & 0x10) == 0x10
+}
+
+func (g *GPU) HblankLCDInterruptEnabled() bool {
+	return (g.Read(STAT) & 0x08) == 0x08
 }
 
 //Called from mmu
@@ -281,7 +290,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.spritesOn = value&0x02 == 0x02 //bit 1
 			g.bgrdOn = value&0x01 == 0x01    //bit 0
 		case STAT:
-			g.stat = (g.stat & 0x0F) |  value
+			g.stat = (g.stat & 0x0F) | value
 		case SCROLLY:
 			g.scrollY = value
 		case SCROLLX:

@@ -87,10 +87,10 @@ func (gbc *GomeboyColor) Step() {
 	cycles := gbc.cpu.Step()
 	//GPU is unaffected by CPU speed changes
 	gbc.gpu.Step(cycles)
+	gbc.cpuClockAcc += cycles
 
 	//these are affected by CPU speed changes
 	gbc.timer.Step(cycles / gbc.cpu.Speed)
-	gbc.cpuClockAcc += cycles / gbc.cpu.Speed
 
 	gbc.stepCount++
 	//value in FF50 means gameboy has finished booting

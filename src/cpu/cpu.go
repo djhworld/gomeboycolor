@@ -1298,34 +1298,36 @@ func (cpu *GbcCPU) CheckForInterrupts() bool {
 	if cpu.InterruptsEnabled {
 		var ie byte = cpu.mmu.ReadByte(constants.INTERRUPT_ENABLED_FLAG_ADDR)
 		var iflag byte = cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
-		if iflag != 0x00 {
-			var interrupt byte = iflag & ie
-			switch interrupt {
-			case constants.V_BLANK_IRQ:
+		var interrupt byte = iflag & ie
+		if interrupt != 0x00 {
+			switch {
+			case interrupt&constants.V_BLANK_IRQ == constants.V_BLANK_IRQ:
 				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFE)
 				cpu.pushWordToStack(cpu.PC)
 				cpu.PC = types.Word(constants.V_BLANK_IR_ADDR)
 				cpu.InterruptsEnabled = false
 				return true
-			case constants.LCD_IRQ:
+			case interrupt&constants.LCD_IRQ == constants.LCD_IRQ:
 				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFD)
 				cpu.pushWordToStack(cpu.PC)
 				cpu.PC = types.Word(constants.LCD_IR_ADDR)
 				cpu.InterruptsEnabled = false
 				return true
-			case constants.TIMER_OVERFLOW_IRQ:
+			case interrupt&constants.TIMER_OVERFLOW_IRQ == constants.TIMER_OVERFLOW_IRQ:
 				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xFB)
 				cpu.pushWordToStack(cpu.PC)
 				cpu.PC = types.Word(constants.TIMER_OVERFLOW_IR_ADDR)
 				cpu.InterruptsEnabled = false
 				return true
-			case constants.JOYP_HILO_IRQ:
+			case interrupt&constants.JOYP_HILO_IRQ == constants.JOYP_HILO_IRQ:
 				log.Println("JOYP!")
 				cpu.mmu.WriteByte(constants.INTERRUPT_FLAG_ADDR, iflag&0xEF)
 				cpu.pushWordToStack(cpu.PC)
 				cpu.PC = types.Word(constants.JOYP_HILO_IR_ADDR)
 				cpu.InterruptsEnabled = false
 				return true
+			default:
+				log.Fatalf("Unknown interrupt = %d", interrupt)
 			}
 		}
 	}
