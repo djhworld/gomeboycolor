@@ -171,6 +171,8 @@ func (g *GPU) Step(t int) {
 	g.clock -= t
 
 	if g.clock <= 0 {
+		g.clock += 456
+		g.ly += 1
 		g.CheckForLCDCSTATInterrupt()
 		if g.ly == 144 {
 			//reset sprite draw queues after frame has been rendered
@@ -210,8 +212,6 @@ func (g *GPU) Step(t int) {
 			}
 		}
 
-		g.clock += 456
-		g.ly += 1
 
 		if byte(g.ly) == g.lyc {
 			g.stat |= 0x04
@@ -281,7 +281,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 			g.spritesOn = value&0x02 == 0x02 //bit 1
 			g.bgrdOn = value&0x01 == 0x01    //bit 0
 		case STAT:
-			g.stat = value
+			g.stat = (g.stat & 0x0F) |  value
 		case SCROLLY:
 			g.scrollY = value
 		case SCROLLX:
