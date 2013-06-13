@@ -617,10 +617,18 @@ func (g *GPU) RenderSpritesOnScanline() {
 				if sprite.IsScanlineDrawQueueEmpty() == false {
 					//if next scanline == LY, then draw the line
 					if scanline, tileLine := sprite.PopScanline(); scanline == g.ly {
-						if tileLine < 8 {
-							g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 0, tileLine)
+						if sprite.SpriteAttributes().ShouldFlipVertically {
+							if tileLine < 8 {
+								g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 0, tileLine) //draw second portion of sprite using next tile 8 lines down
+							} else {
+								g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 8, tileLine-8)
+							}
 						} else {
-							g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 8, tileLine-8) //draw second portion of sprite using next tile 8 lines down
+							if tileLine < 8 {
+								g.DrawSpriteTileLine(sprite, sprite.GetTileID(0), 0, tileLine)
+							} else {
+								g.DrawSpriteTileLine(sprite, sprite.GetTileID(1), 8, tileLine-8) //draw second portion of sprite using next tile 8 lines down
+							}
 						}
 					}
 				}
