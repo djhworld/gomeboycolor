@@ -79,6 +79,7 @@ type GPU struct {
 	obp1                         byte
 	cgbVramBankSelectionRegister byte
 	RunningColorGBHardware       bool
+	currentTileLine              *[8]int
 
 	bgrdOn         bool
 	spritesOn      bool
@@ -145,6 +146,7 @@ func (g *GPU) Reset() {
 	g.cgbOBJPWriteSpecReg = *new(CGBPaletteSpecRegister)
 	g.cgbBackgroundPalettes = *new([8]CGBPalette)
 	g.cgbObjectPalettes = *new([8]CGBPalette)
+	g.currentTileLine = new([8]int)
 }
 
 func (g *GPU) Step(t int) {
@@ -508,10 +510,10 @@ func (g *GPU) drawCGBScanline(tilemapOffset, lineOffset types.Word, screenX, til
 
 	for ; screenX < DISPLAY_WIDTH; screenX++ {
 		var t *Tile = &g.tiledata[tileInfo.BankNo][tileNumber]
-		tileLine := g.formatTileLine(t, tileY, tileInfo.FlipHorizontally, tileInfo.FlipVertically)
+		formatTileLine(t, tileY, tileInfo.FlipHorizontally, tileInfo.FlipVertically, g.currentTileLine)
 
 		//draw the pixel to the screenData data buffer (running through the color palette)
-		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][tileLine[tileX]].ToRGB()
+		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][g.currentTileLine[tileX]].ToRGB()
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -651,11 +653,11 @@ func (g *GPU) drawCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) 
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
 		//tile data can come from one of two banks in CGB mode
 		var t *Tile = &g.tiledata[s.SpriteAttributes().CGBBankNo][tileId]
-		tileLine := g.formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically)
+		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLine)
 
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
-			if tileLine[tileX] != 0 {
+			if g.currentTileLine[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
 					//TODO: Priority stuff needs to be changed for CGB as we're not using the BG palette
@@ -663,7 +665,7 @@ func (g *GPU) drawCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) 
 						continue
 					}
 
-					g.screenData[adjY][adjX] = g.cgbObjectPalettes[s.SpriteAttributes().CGBPaletteNo][tileLine[tileX]].ToRGB()
+					g.screenData[adjY][adjX] = g.cgbObjectPalettes[s.SpriteAttributes().CGBPaletteNo][g.currentTileLine[tileX]].ToRGB()
 				}
 			}
 		}
@@ -674,53 +676,22 @@ func (g *GPU) drawNonCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY in
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
 		//tile data in non CGB mode only comes from bank 0
 		var t *Tile = &g.tiledata[0][tileId]
-		tileLine := g.formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically)
+		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLine)
 
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
-			if tileLine[tileX] != 0 {
+			if g.currentTileLine[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
 					if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
 						continue
 					}
 
-					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().NonCGBPaletteSelected][tileLine[tileX]]
+					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().NonCGBPaletteSelected][g.currentTileLine[tileX]]
 				}
 			}
 		}
 	}
-}
-
-//Format a tile according to the vertical/horizontal flipping instructions
-func (g *GPU) formatTileLine(t *Tile, tileY int, flipHorizontal, flipVertical bool) [8]int {
-	//flip both
-	if flipVertical && flipHorizontal {
-		var tileLine [8]int
-
-		for x := 0; x < 8; x++ {
-			tileLine[x] = t[7-tileY][7-x]
-		}
-
-		return tileLine
-	}
-
-	if flipVertical {
-		return t[7-tileY]
-	}
-
-	if flipHorizontal {
-		var tileLine [8]int
-
-		for x := 0; x < 8; x++ {
-			tileLine[x] = t[tileY][7-x]
-		}
-
-		return tileLine
-	}
-
-	//do nothing
-	return t[tileY]
 }
 
 func (g *GPU) byteToPalette(b byte) Palette {
@@ -799,4 +770,33 @@ func (g *GPU) DumpTilemap(tileMapAddr types.Word, tileDataSigned bool) [256][256
 		tileMapAddrOffset += types.Word(32)
 	}
 	return result
+}
+
+// (Static method) Format a tile according to the vertical/horizontal flipping instructions
+func formatTileLine(t *Tile, tileY int, flipHorizontal, flipVertical bool, tileLineStorageArea *[8]int) {
+	//flip both
+	if flipVertical && flipHorizontal {
+		for x := 0; x < 8; x++ {
+			tileLineStorageArea[x] = t[7-tileY][7-x]
+		}
+		return
+	}
+
+	if flipVertical {
+		for i, v := range t[7-tileY] {
+			tileLineStorageArea[i] = v
+		}
+		return
+	}
+
+	if flipHorizontal {
+		for x := 0; x < 8; x++ {
+			tileLineStorageArea[x] = t[tileY][7-x]
+		}
+		return
+	}
+
+	for i, v := range t[tileY] {
+		tileLineStorageArea[i] = v
+	}
 }
