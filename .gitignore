@@ -1,10 +1,10 @@
 .idea/*
 *.iml
 out/*
-bin/*
+target/*
 .DS_Store
 pkg/*
 src/code.google.com/*
 src/github.com/*
-LINUX/*
+dist/*
 saves/*

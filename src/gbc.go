@@ -22,7 +22,7 @@ import (
 
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
-const VERSION float32 = 0.1
+var VERSION string
 
 type GomeboyColor struct {
 	gpu                    *gpu.GPU
@@ -76,7 +76,7 @@ func (gbc *GomeboyColor) DoFrame() {
 			gbc.Pause()
 		}
 
-		if gbc.config.DumpState {
+		if gbc.config.DumpState && !gbc.cpu.Halted {
 			fmt.Println(gbc.cpu)
 		}
 		gbc.Step()
@@ -137,7 +137,7 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 }
 
 func main() {
-	log.Println(TITLE, VERSION)
+	log.Printf("%s. v%s", TITLE, VERSION)
 	log.Println(strings.Repeat("*", 120))
 
 	flag.Parse()
