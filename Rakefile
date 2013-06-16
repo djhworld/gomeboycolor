@@ -1,6 +1,11 @@
 task :default => :build
 platforms=[:linux_amd64, :darwin_amd64]
 
+PKG_DIST_DIR = ENV["PKG_DIST_DIR"]
+if PKG_DIST_DIR.nil? then
+	PKG_DIST_DIR="dist"
+end
+
 #main build task, pass a platform and version string
 task :build, [:platform, :version] => [:clean] do |t, args|
 	if args[:platform].nil? then
@@ -18,7 +23,7 @@ task :build, [:platform, :version] => [:clean] do |t, args|
 		abort("Unknown/unsupported platform #{platform}")
 	end
 
-	puts "Building gomeboycolor v#{version} for #{platform}..."
+	puts "Building gomeboycolor (version = #{version}) for #{platform}..."
 	sh %{ go build -o target/#{platform}/bin/executable/gomeboycolor -ldflags="-X main.VERSION #{version}" src/gbc.go src/debugger.go src/config.go  }
 
 	case platform
@@ -34,7 +39,7 @@ end
 
 task :pkg_linux do
 	puts "Packaging linux"
-	sh "cp -a dist/linux_amd64/* target/linux_amd64/"
+	sh "cp -a #{PKG_DIST_DIR}/linux_amd64/* target/linux_amd64/"
 end
 
 task :clean do
