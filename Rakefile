@@ -38,8 +38,7 @@ end
 
 task :build_linux, [:platform, :version]  do |t, args|
 	puts "Packaging linux"
-	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lglfw -lGLEW -Wl,-Bdynamic" #{construct_build_command(args[:platform], args[:version])}}
-	sh result
+	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic" #{construct_build_command(args[:platform], args[:version])}}
 end
 
 task :build_darwin, [:platform, :version]  do |t, args|
@@ -56,7 +55,6 @@ task :clean do
 	sh "rm -rf ./target/*"
 end
 
-
 def construct_build_command(platform, version) 
-	return "go build -o target/#{platform}/bin/gomeboycolor -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
+	return "go build -a -o target/#{platform}/bin/gomeboycolor -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
 end
