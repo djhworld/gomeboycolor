@@ -1,5 +1,15 @@
+require 'sys/uname'
 task :default => :build
-platforms=[:linux_amd64, :darwin_amd64]
+
+def detect_platform 
+	os=Sys::Uname.sysname
+	machine=Sys::Uname.machine
+	return "#{os}_#{machine}".downcase
+end
+
+
+@build_platform=detect_platform
+@version="localbuild"
 
 PKG_DIST_DIR = ENV["PKG_DIST_DIR"]
 if PKG_DIST_DIR.nil? then
@@ -7,53 +17,43 @@ if PKG_DIST_DIR.nil? then
 end
 
 #main build task, pass a platform and version string
-task :build, [:platform, :version] => [:clean] do |t, args|
-	if args[:platform].nil? then
-		abort("No platform defined, aborting!")
-	end
-
+task :build, [:version] => [:clean] do |t, args|
 	if args[:version].nil? then
-		abort("No version defined, aborting!")
-	end
-
-	platform = args[:platform].intern
-	version = args[:version].intern
-
-	if platforms.include?(platform) == false then
-		abort("Unknown/unsupported platform #{platform}")
-	end
-
-
-	puts "Building gomeboycolor (version = #{version}) for #{platform}..."
-	case platform
-	when :linux_amd64
-		Rake::Task["build_linux"].invoke(platform, version)
-	when :darwin_amd64
-#		Rake::Task["build_darwin"].invoke
+		@version="localbuild_" + @build_platform
 	else
-		abort("Something bad happened")
+		@version = args[:version] + "_" + @build_platform
+	end
+
+	puts "Building gomeboycolor (version = #{@version}) for #{@build_platform}..."
+
+	case @build_platform.intern
+	when :linux_x86_64
+	when :linux_i386
+		Rake::Task["build_linux"].invoke
+	when :darwin_x86_64
+		Rake::Task["build_darwin"].invoke
+	else
+		abort("Unsupported platform #{@build_platform}")
 	end
 end
 
-
-task :build_linux, [:platform, :version]  do |t, args|
-	puts "Packaging linux"
-	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic" #{construct_build_command(args[:platform], args[:version])}}
+task :build_linux do
+	puts "Packaging for #{@build_platform} (static linked binary)"
+	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic" #{construct_build_command(@build_platform, @version)}}
 end
 
-task :build_darwin, [:platform, :version]  do |t, args|
-	puts "Packaging darwin"
-	buildcommand = construct_build_command(args[:platform], args[:version])
-	sh build_command
-	sh "mkdir target/#{args[:platform]}/bin/executable && mv target/#{args[:platform]}/bin/gomeboycolor target/#{args[:platform]}/bin/executable/"
-	sh "cp -a #{PKG_DIST_DIR}/darwin_amd64/* target/darwin_amd64/"
+task :build_darwin, [:version]  do |t, args|
+	puts "Packaging for #{@build_platform} (dymanic linked binary)"
+	sh construct_build_command(@build_platform, @version)
+	sh "mkdir target/#{@build_platform}/bin/executable && mv target/#{@build_platform}/bin/gomeboycolor target/#{@build_platform}/bin/executable/"
+	sh "cp -a #{PKG_DIST_DIR}/#{@build_platform}/* target/#{@build_platform}/"
 end
-
 
 task :clean do
 	puts "Cleaning target dir"
 	sh "rm -rf ./target/*"
 end
+
 
 def construct_build_command(platform, version) 
 	return "go build -a -o target/#{platform}/bin/gomeboycolor -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
