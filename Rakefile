@@ -39,6 +39,7 @@ end
 
 task :build_linux do
 	puts "Packaging for #{@build_platform} (static linked binary)"
+	sh "mkdir target/#{@build_platform}/bin"
 	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic" #{construct_build_command(@build_platform, @version)}}
 end
 
