@@ -28,6 +28,7 @@ task :build, [:version] => [:clean] do |t, args|
 
 	case @build_platform.intern
 	when :linux_x86_64
+		Rake::Task["build_linux"].invoke
 	when :linux_i386
 		Rake::Task["build_linux"].invoke
 	when :darwin_x86_64
@@ -39,7 +40,7 @@ end
 
 task :build_linux do
 	puts "Packaging for #{@build_platform} (static linked binary)"
-	sh "mkdir target/#{@build_platform}/bin"
+#	sh "mkdir target/#{@build_platform}/bin"
 	sh %{CGO_LDFLAGS="-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic" #{construct_build_command(@build_platform, @version)}}
 end
 
