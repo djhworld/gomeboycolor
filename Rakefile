@@ -1,4 +1,3 @@
-require 'sys/uname'
 require 'rbconfig'
 task :default => :build
 
@@ -6,6 +5,7 @@ def detect_platform
 	if RbConfig::CONFIG['host_os'] == "mswin32"
 		return "windows_#{RbConfig::CONFIG['host_arch']}".downcase
 	else
+		require 'sys/uname'
 		os=Sys::Uname.sysname
 		machine=Sys::Uname.machine
 		return "#{os}_#{machine}".downcase
