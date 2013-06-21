@@ -1,10 +1,15 @@
 require 'sys/uname'
+require 'rbconfig'
 task :default => :build
 
 def detect_platform 
-	os=Sys::Uname.sysname
-	machine=Sys::Uname.machine
-	return "#{os}_#{machine}".downcase
+	if RbConfig::CONFIG['host_os'] == "mswin32"
+		return "windows_#{RbConfig::CONFIG['host_arch']}".downcase
+	else
+		os=Sys::Uname.sysname
+		machine=Sys::Uname.machine
+		return "#{os}_#{machine}".downcase
+	end
 end
 
 
@@ -27,9 +32,13 @@ task :build, [:version] => [:clean] do |t, args|
 	puts "Building gomeboycolor (version = #{@version}) for #{@build_platform}..."
 
 	case @build_platform.intern
+	when :windows_x86_64
+		Rake::Task["build_windows"].invoke
 	when :linux_x86_64
 		Rake::Task["build_linux"].invoke
 	when :linux_i386
+		Rake::Task["build_linux"].invoke
+	when :linux_i686
 		Rake::Task["build_linux"].invoke
 	when :darwin_x86_64
 		Rake::Task["build_darwin"].invoke
@@ -51,11 +60,17 @@ task :build_darwin, [:version]  do |t, args|
 	sh "cp -a #{PKG_DIST_DIR}/#{@build_platform}/* target/#{@build_platform}/"
 end
 
+task :build_windows, [:version]  do |t, args|
+	puts "Packaging for #{@build_platform} (dymanic linked binary)"
+	sh construct_build_command(@build_platform, @version)
+	sh "cp -a #{PKG_DIST_DIR}/#{@build_platform}/* target/#{@build_platform}/bin/"
+end
+
+
 task :clean do
 	puts "Cleaning target dir"
 	sh "rm -rf ./target/*"
 end
-
 
 def construct_build_command(platform, version) 
 	return "go build -a -o target/#{platform}/bin/gomeboycolor -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
