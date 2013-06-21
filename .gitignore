@@ -6,5 +6,4 @@ target/*
 pkg/*
 src/code.google.com/*
 src/github.com/*
-dist/*
 saves/*
