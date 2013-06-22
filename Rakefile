@@ -58,23 +58,26 @@ end
 
 #can't get the standard CGO_LDFLAGS to work for linux
 task :build_linux => [:setgopath, :get_go_deps] do
-	puts "Packaging for #{@build_platform} (static linked binary)"
+	puts "Building for #{@build_platform} (static linked binary)"
 	ENV["CGO_LDFLAGS"] = "-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
 	puts "Set CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
 	sh %{#{construct_build_command(@build_platform, @version, EXE_NAME)}}
+	package(EXE_NAME, @version, "target/#{@build_platform}")
 end
 
 task :build_darwin => [:setgopath, :set_cgo_flags, :get_go_deps] do
-	puts "Packaging for #{@build_platform} (dymanic linked binary)"
+	puts "Building for #{@build_platform} (dymanic linked binary)"
 	sh construct_build_command(@build_platform, @version, EXE_NAME)
 	sh "mkdir target/#{@build_platform}/bin && mv target/#{@build_platform}/#{EXE_NAME} target/#{@build_platform}/bin/"
 	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{@build_platform}/"
+	package(EXE_NAME, @version, "target/#{@build_platform}")
 end
 
 task :build_windows => [:setgopath, :set_cgo_flags, :get_go_deps] do |t, args|
-	puts "Packaging for #{@build_platform} (dymanic linked binary)"
+	puts "Building for #{@build_platform} (dymanic linked binary)"
 	sh construct_build_command(@build_platform, @version, EXE_NAME+".exe")
 	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{@build_platform}/"
+	package(EXE_NAME, @version, "target/#{@build_platform}")
 end
 
 task :run_darwin, [:prog_args] => [:setgopath, :set_cgo_flags, :get_go_deps_no_download] do |t, args|
@@ -106,6 +109,16 @@ end
 
 task :get_go_deps_no_download do
 	get_deps(false)
+end
+
+def package(name, version, artifacts_dir)
+	filename="#{name}_#{version}.zip"
+	puts 
+	puts "Packaging up to #{filename}"
+	sh "rm -rf artifacts"
+	sh "mkdir artifacts"
+	cd artifacts_dir
+	sh "zip -r ../../artifacts/#{filename} ./*"
 end
 
 def get_deps(download)
