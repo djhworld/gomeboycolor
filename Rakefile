@@ -57,9 +57,9 @@ task :build, [:version] => [:clean] do |t, args|
 	end
 end
 
-task :build_linux => [:setgopath, :set_cgo_cflags, :get_go_deps] do
+task :build_linux => [:setgopath, :set_cgo_flags, :get_go_deps] do
 	puts "Packaging for #{@build_platform} (static linked binary)"
-	ENV["CGO_LDFLAGS"] += "-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
+	ENV["CGO_LDFLAGS"] += " -Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
 	puts "Reset CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
 	sh "#{construct_build_command(@build_platform, @version, EXE_NAME)}"
 end
