@@ -17,8 +17,9 @@ end
 
 
 @build_platform=detect_platform
-@version="localbuild"
 
+currentTag=`git describe --tags`.chomp
+@version = currentTag + "_" + @build_platform
 
 task :run, [:ars] do |t, args|
 	puts "Running gomeboycolor for #{@build_platform}..."
@@ -32,11 +33,9 @@ task :run, [:ars] do |t, args|
 end
 
 #main build task, pass a platform and version string
-task :build, [:version] => [:clean] do |t, args|
-	if args[:version].nil? then
-		@version="localbuild_" + @build_platform
-	else
-		@version = args[:version] + "_" + @build_platform
+task :build, [:build_type] => [:clean] do |t, args|
+	if args[:build_type] != "ci" then
+		@version += ".localbuild"
 	end
 
 	puts "Building gomeboycolor (version = #{@version}) for #{@build_platform}..."
@@ -126,5 +125,5 @@ def construct_build_command(platform, version, exename)
 end
 
 def construct_run_command
-	return "go run -ldflags=\"-X main.VERSION Run.local\" src/gbc.go src/debugger.go src/config.go"  
+	return "go run -ldflags=\"-X main.VERSION #{@version}.runlocal\" src/gbc.go src/debugger.go src/config.go"  
 end
