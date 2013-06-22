@@ -137,7 +137,7 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 }
 
 func main() {
-	log.Printf("%s. v%s", TITLE, VERSION)
+	log.Printf("%s. %s", TITLE, VERSION)
 	log.Println(strings.Repeat("*", 120))
 
 	flag.Parse()
