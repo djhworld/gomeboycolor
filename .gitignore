@@ -1,0 +1,14 @@
+.idea/*
+*.iml
+out/*
+target/*
+artifacts/*
+.DS_Store
+pkg/*
+src/code.google.com/*
+src/github.com/*
+saves/*
+_src/_cache
+_src/_site
+_src/site
+_src/intermediate
