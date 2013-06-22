@@ -57,11 +57,12 @@ task :build, [:version] => [:clean] do |t, args|
 	end
 end
 
-task :build_linux => [:setgopath, :set_cgo_flags, :get_go_deps] do
+#can't get the standard CGO_LDFLAGS to work for linux
+task :build_linux => [:setgopath, :get_go_deps] do
 	puts "Packaging for #{@build_platform} (static linked binary)"
-	ENV["CGO_LDFLAGS"] += " -Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
-	puts "Reset CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
-	sh "#{construct_build_command(@build_platform, @version, EXE_NAME)}"
+	ENV["CGO_LDFLAGS"] = "-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
+	puts "Set CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
+	sh %{#{construct_build_command(@build_platform, @version, EXE_NAME)}}
 end
 
 task :build_darwin => [:setgopath, :set_cgo_flags, :get_go_deps] do
@@ -107,7 +108,6 @@ end
 task :get_go_deps_no_download do
 	get_deps(false)
 end
-
 
 def get_deps(download)
 	flag = " "
