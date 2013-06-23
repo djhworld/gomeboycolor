@@ -32,7 +32,10 @@ body {
 }
 ol, ul {
 	list-style: none;
+	margin-top:20px;
+	width:85%;
 }
+
 blockquote, q {
 	quotes: none;
 }
@@ -69,9 +72,9 @@ header {
 }
 
 header h1 {
-  font-family: 'Chivo', 'Helvetica Neue', Helvetica, Arial, serif; font-weight: 900;
+  font-family: 'Roboto Condensed', Helvetica, Arial, serif; font-weight: 700;
   letter-spacing: -1px;
-  font-size: 48px;
+  font-size: 65px;
   color: #303030;
   line-height: 1.2;
 }
@@ -90,7 +93,7 @@ header h2 {
 }
 
 .inner {
-  width: 620px;
+  width: 900px;
   margin: 0 auto;
 }
 
@@ -99,7 +102,16 @@ header h2 {
 }
 
 #downloads {
-  margin-bottom: 40px;
+	width:100%;
+	margin-bottom:30px;
+}
+
+div#downloadbuttons {
+  margin-left:auto;
+  margin-right:auto;
+  display:block;
+  height:26px;
+  width:70%;
 }
 
 a.button {
@@ -116,9 +128,10 @@ a.button {
   font-size: 15px;
   padding: 12px 8px 12px 8px;
   display: block;
-  float: left;
+  float: right;
   width: 179px;
-  margin-right: 14px;  
+  margin-top:20px;
+  margin-right:6px;
   background: #fdfdfd; /* Old browsers */
   background: -moz-linear-gradient(top,  #fdfdfd 0%, #f2f2f2 100%); /* FF3.6+ */
   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fdfdfd), color-stop(100%,#f2f2f2)); /* Chrome,Safari4+ */
@@ -147,22 +160,16 @@ a.button:hover {
 }
 
 a.button span {
-  padding-left: 50px;
+  padding-left: 55px;
   display: block;
   height: 23px;
 }
 
-#download-zip span {
+#downloads-button span {
   background: transparent url(../images/zip-icon.png) 12px 50% no-repeat;
-}
-#download-tar-gz span {
-  background: transparent url(../images/tar-gz-icon.png) 12px 50% no-repeat;
 }
 #view-on-github span {
   background: transparent url(../images/octocat-icon.png) 12px 50% no-repeat;
-}
-#view-on-github {
-  margin-right: 0;
 }
 
 code, pre {
@@ -296,7 +303,10 @@ blockquote {
 
 ul li {
   list-style: disc inside;
-  padding-left: 20px;
+  padding-left: 40px;
+  padding-top:5px;
+  padding-bottom:5px;
+  text-indent:-1em;
 }
 
 ol li {
@@ -309,12 +319,11 @@ dl dt {
 }
 
 footer {
-  background: transparent url('../images/hr.png') 0 0 no-repeat;
-  margin-top: 40px;
   padding-top: 20px;
   padding-bottom: 30px;
   font-size: 13px;
   color: #aaa;
+  text-align:center;
 }
 
 footer a {
