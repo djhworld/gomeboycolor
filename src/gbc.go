@@ -138,6 +138,8 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 
 func main() {
 	log.Printf("%s. %s", TITLE, VERSION)
+	log.Println("Copyright (c) 2013. Daniel James Harper.")
+	log.Println("http://djhworld.github.io/gomeboycolor")
 	log.Println(strings.Repeat("*", 120))
 
 	flag.Parse()

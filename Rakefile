@@ -62,22 +62,22 @@ task :build_linux => [:setgopath, :get_go_deps] do
 	ENV["CGO_LDFLAGS"] = "-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
 	puts "Set CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
 	sh %{#{construct_build_command(@build_platform, @version, EXE_NAME)}}
-	package(EXE_NAME, @version, "target/#{@build_platform}")
+	package(EXE_NAME, @version, "target")
 end
 
 task :build_darwin => [:setgopath, :set_cgo_flags, :get_go_deps] do
 	puts "Building for #{@build_platform} (dymanic linked binary)"
 	sh construct_build_command(@build_platform, @version, EXE_NAME)
-	sh "mkdir target/#{@build_platform}/bin && mv target/#{@build_platform}/#{EXE_NAME} target/#{@build_platform}/bin/"
-	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{@build_platform}/"
-	package(EXE_NAME, @version, "target/#{@build_platform}")
+	sh "mkdir target/#{EXE_NAME}-#{@version}/bin && mv target/#{EXE_NAME}-#{@version}/#{EXE_NAME} target/#{EXE_NAME}-#{@version}/bin/"
+	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{EXE_NAME}-#{@version}/"
+	package(EXE_NAME, @version, "target")
 end
 
 task :build_windows => [:setgopath, :set_cgo_flags, :get_go_deps] do |t, args|
 	puts "Building for #{@build_platform} (dymanic linked binary)"
 	sh construct_build_command(@build_platform, @version, EXE_NAME+".exe")
-	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{@build_platform}/"
-	package(EXE_NAME, @version, "target/#{@build_platform}")
+	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{EXE_NAME}-#{@version}/"
+	package(EXE_NAME, @version, "target")
 end
 
 task :run_darwin, [:prog_args] => [:setgopath, :set_cgo_flags, :get_go_deps_no_download] do |t, args|
@@ -118,7 +118,7 @@ def package(name, version, artifacts_dir)
 	sh "rm -rf artifacts"
 	sh "mkdir artifacts"
 	cd artifacts_dir
-	sh "zip -r ../../artifacts/#{filename} ./*"
+	sh "zip -r ../artifacts/#{filename} ./*"
 end
 
 def get_deps(download)
@@ -134,7 +134,7 @@ def get_deps(download)
 end
 
 def construct_build_command(platform, version, exename) 
-	return "go build -a -o target/#{platform}/#{exename} -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
+	return "go build -a -o target/#{exename}-#{version}/#{exename} -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
 end
 
 def construct_run_command
