@@ -30,6 +30,12 @@ footer, header, hgroup, menu, nav, section {
 body {
 	line-height: 1;
 }
+
+sup {
+	font-size:10px;
+	vertical-align:super;
+}
+
 ol, ul {
 	list-style: none;
 	margin-top:20px;
@@ -249,6 +255,7 @@ form {
 
 h1 {
   font-size: 32px;
+  margin-bottom:8px;
 } 
 
 h2 {
@@ -318,6 +325,12 @@ dl dt {
   color: #303030;
 }
 
+span.small {
+	font-size:11px;
+	padding-left:40px;
+
+}
+
 footer {
   padding-top: 20px;
   padding-bottom: 30px;
@@ -345,6 +358,31 @@ footer a:hover {
 .clearfix {display: inline-block;}
 * html .clearfix {height: 1%;}
 .clearfix {display: block;}
+
+
+div#screenshots  {
+	margin:0 auto;
+	margin-bottom:20px;
+	width:1000px;
+	overflow:auto;
+}
+	
+div#screenshots ul {
+	list-style-type:none;
+	width:100%;
+}
+
+div#screenshots ul li {
+	list-style:none;
+	text-indent:0;
+	padding:0px;
+	margin:0px;
+}
+
+div#screenshots ul li img {
+	float:left;
+	margin:0px;
+}
 
 /* #Media Queries
 ================================================== */
