@@ -14,7 +14,7 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 * Passes all blargg CPU instruction and instruction timing tests
 * Delightful emulation of the scrolling Nintendo "boot screen" when you load the emulator up (can be disabled)
 
-<span class="small"><sup>&#8224;</sup> *This project is still under active development so there will inevitably be ROMs out there that don't work (yet) or have bugs. For a full list of tested games, [click here](http://www.google.com)*</span>
+<span class="small"><sup>&#8224;</sup> *This project is still under active development so there will inevitably be ROMs out there that don't work (yet) or have bugs. For a full list of tested games, [click here](tested-games.html)*</span>
 <br/>
 <span class="small"><sup>&#8225;</sup> *Gameboy Color features are mostly done but there are a few [outstanding tasks remaining]()*</span>
 

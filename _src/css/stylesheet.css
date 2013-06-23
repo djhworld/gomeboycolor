@@ -99,7 +99,7 @@ header h2 {
 }
 
 .inner {
-  width: 900px;
+  width: 1200px;
   margin: 0 auto;
 }
 
@@ -361,15 +361,18 @@ footer a:hover {
 
 
 div#screenshots  {
-	margin:0 auto;
-	margin-bottom:20px;
+	margin:0px auto;
+	padding:0px; 
 	width:1000px;
+	margin-bottom:20px;
 	overflow:auto;
+	display:block;
 }
 	
 div#screenshots ul {
 	list-style-type:none;
 	width:100%;
+	padding:0px;
 }
 
 div#screenshots ul li {
@@ -382,6 +385,7 @@ div#screenshots ul li {
 div#screenshots ul li img {
 	float:left;
 	margin:0px;
+	padding:0px;
 }
 
 /* #Media Queries
