@@ -61,13 +61,13 @@ task :build_linux => [:setgopath, :get_go_deps] do
 	puts "Building for #{@build_platform} (static linked binary)"
 	ENV["CGO_LDFLAGS"] = "-Wl,-Bstatic -lGLEW -lglfw -Wl,-Bdynamic"
 	puts "Set CGO_LDFLAGS to #{ENV["CGO_LDFLAGS"]}"
-	sh %{#{construct_build_command(@build_platform, @version, EXE_NAME)}}
+	sh %{#{construct_build_command(@build_platform, @version, EXE_NAME, false)}}
 	package(EXE_NAME, @version, "target")
 end
 
 task :build_darwin => [:setgopath, :set_cgo_flags, :get_go_deps] do
 	puts "Building for #{@build_platform} (dymanic linked binary)"
-	sh construct_build_command(@build_platform, @version, EXE_NAME)
+	sh construct_build_command(@build_platform, @version, EXE_NAME, false)
 	sh "mkdir target/#{EXE_NAME}-#{@version}/bin && mv target/#{EXE_NAME}-#{@version}/#{EXE_NAME} target/#{EXE_NAME}-#{@version}/bin/"
 	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{EXE_NAME}-#{@version}/"
 	package(EXE_NAME, @version, "target")
@@ -75,7 +75,7 @@ end
 
 task :build_windows => [:setgopath, :set_cgo_flags, :get_go_deps] do |t, args|
 	puts "Building for #{@build_platform} (dymanic linked binary)"
-	sh construct_build_command(@build_platform, @version, EXE_NAME+".exe")
+	sh construct_build_command(@build_platform, @version, EXE_NAME, true)
 	sh "cp -a #{Dir.pwd}/dist/#{@build_platform}/pkg/* target/#{EXE_NAME}-#{@version}/"
 	package(EXE_NAME, @version, "target")
 end
@@ -133,8 +133,14 @@ def get_deps(download)
 	sh "go get#{flag} github.com/go-gl/glfw"
 end
 
-def construct_build_command(platform, version, exename) 
-	return "go build -a -o target/#{exename}-#{version}/#{exename} -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
+def construct_build_command(platform, version, exename, windows) 
+	programName = exename
+	executable = exename
+	if windows then
+		executable += ".exe"
+	end
+
+	return "go build -a -o target/#{programName}-#{version}/#{executable} -ldflags=\"-X main.VERSION #{version}\" src/gbc.go src/debugger.go src/config.go"  
 end
 
 def construct_run_command
