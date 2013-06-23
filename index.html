@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <link href="https://fonts.googleapis.com/css?family=Chivo:900" rel="stylesheet" type="text/css">
+	<link href="http://fonts.googleapis.com/css?family=Roboto+Condensed:400italic,400,700" rel="stylesheet" type="text/css">
     <link rel="stylesheet" type="text/css" href="css/stylesheet.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="css/pygment_trac.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="css/print.css" media="print" />
@@ -18,27 +18,68 @@
       <div class="inner">
 
         <header>
+			<a href="https://github.com/djhworld/gomeboycolor/downloads" id="downloads-button" class="button"><span>Downloads</span></a>
+			<a href="https://github.com/djhworld/gomeboycolor" id="view-on-github" class="button"><span>View on GitHub</span></a>
           <h1>gomeboycolor</h1>
-          <h2>Gameboy Color emulator</h2>
+          <h2>Gameboy Color emulator, golang edition</h2>
         </header>
 
-        <section id="downloads" class="clearfix">
-          <a href="https://github.com/djhworld/gomeboycolor/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/djhworld/gomeboycolor/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
-          <a href="https://github.com/djhworld/gomeboycolor" id="view-on-github" class="button"><span>View on GitHub</span></a>
-        </section>
-
-        <hr>
-
         <section id="main_content">
-            <p>whats’up bro</p>
+            <p><em>“Yet another emulator?”</em></p>
+<p>There is no point beating around the bush, people have written Gameboy emulators before with great success, however I’ve always been curious as to how they are done. This project was set up as a learning exercise to help me understand how the basic principles of how computers function at the lowest level and how you can simulate them in software.</p>
+<p>Since then it’s become my side project and I feel I’m at a point where I can share it with the world.</p>
+<h1 id="features">Features</h1>
+<ul>
+<li>Cross platform support for 64-bit Windows, Linux and OSX operating systems</li>
+<li>Supports most<sup>†</sup> of the traditional black and white Gameboy ROMs</li>
+<li>Supports most<sup>†</sup> Gameboy Color ROMs with colour support<sup>‡</sup> (and black and white mode for supported GBC titles if desired)</li>
+<li>Battery saves facility, with compressed save files for lightweight storage</li>
+<li>Six screen resolutions</li>
+<li>Passes all blargg CPU instruction and instruction timing tests</li>
+<li>Delightful emulation of the scrolling Nintendo “boot screen” when you load the emulator up (can be disabled)</li>
+</ul>
+<p><span class="small"><sup>†</sup> <em>This project is still under active development so there will inevitably be ROMs out there that don’t work (yet) or have bugs. For a full list of tested games, <a href="http://www.google.com">click here</a></em></span> <br /> <span class="small"><sup>‡</sup> <em>Gameboy Color features are mostly done but there are a few <a href>outstanding tasks remaining</a></em></span></p>
+<h1 id="screenies">Screenies</h1>
+<div id="screenshots">
+	<ul>
+		<li>
+<img src="images/screenshots/tetrisdx.png" alt="Tetris DX" title="Tetris DX" />
+</li>
+		<li>
+<img src="images/screenshots/lionking1.png" alt="The Lion King" title="The Lion King" />
+</li>
+		<li>
+<img src="images/screenshots/mariotennis1.png" alt="Mario Tennis" title="Mario Tennis" />
+</li>
+		<li>
+<img src="images/screenshots/warioland2-1.png" alt="Warioland 2" title="Warioland 2" />
+</li>
+		<li>
+<img src="images/screenshots/pokemonyellow1.png" alt="Pokemon Yellow" title="Pokemon Yellow" />
+</li>
+		<li>
+<img src="images/screenshots/zelda1.png" alt="Zelda" title="Zelda" />
+</li>
+	</ul>
+</div>
+
+<h1 id="coming-soon">Coming soon</h1>
+<ul>
+<li>Sound. I’ve been putting this off for quite some time but as I get nearer to feature complete status, this is the next priority (see <a href="https://github.com/djhworld/gomeboycolor/issues/10">#10</a>)</li>
+<li>More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types</li>
+<li>GUI based launcher with ROM and RAM saves administration (see <a href="https://github.com/djhworld/gomeboycolor/issues/35">#35</a>)</li>
+</ul>
+<h1 id="project">Project</h1>
+<p>The emulator is written entirely in <a href="http://golang.org/">go</a>. Why? It’s fast, it’s fun to write code in, has great tooling and is really simple to pick up. It also has a history of <a href="http://dave.cheney.net/2013/01/09/go-the-language-for-emulators">people writing emulators in</a>, maybe it’s the next “Hello World”?</p>
+<p>I started the project after reading</p>
         </section>
+
+
 
         <footer>
           gomeboycolor is maintained by <a href="https://github.com/djhworld">djhworld</a><br>
-          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+          This page was generated by Hakyll. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
         </footer>
-
         
       </div>
     </div>
