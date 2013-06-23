@@ -9,6 +9,8 @@ FAQ
 
 #### How do I build it?
 
+I've put together a Rakefile that works across all platforms. This works great with a jRuby installation. 
+
 You will need libglfw installed for this to work. I've only tested this on an OSX machine so far and I'm pretty certain it's going to be a real pain in the butt to get it working on Windows. 
 
 Progress
