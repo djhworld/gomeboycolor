@@ -18,19 +18,44 @@
       <div class="inner">
 
         <header>
+
+		<div id="buttons">
 			<a href="https://github.com/djhworld/gomeboycolor/downloads" id="downloads-button" class="button"><span>Downloads</span></a>
 			<a href="https://github.com/djhworld/gomeboycolor" id="view-on-github" class="button"><span>View on GitHub</span></a>
-          <h1>gomeboycolor</h1>
+		</div>
+
+			<a href="./"><h1>gomeboycolor</h1></a>
           <h2>Gameboy Color emulator, golang edition</h2>
+
         </header>
 
         <section id="main_content">
-            <p><em>“Yet another emulator?”</em></p>
+            <div id="nav">
+	<ul>
+		<li>
+<a href="./">Home</a>
+</li>
+		<li>
+<a href="./#features">Features</a>
+</li>
+		<li>
+<a href="./#screenies">Screenshots</a>
+</li>
+		<li>
+<a href="./#about">About</a>
+</li>
+		<li>
+<a href="./#roadmap">Roadmap</a>
+</li>
+	</ul>
+</div>
+
+<p><em>“Yet another emulator?”</em></p>
 <p>There is no point beating around the bush, people have written Gameboy emulators before with great success, however I’ve always been curious as to how they are done. This project was set up as a learning exercise to help me understand how the basic principles of how computers function at the lowest level and how you can simulate them in software.</p>
 <p>Since then it’s become my side project and I feel I’m at a point where I can share it with the world.</p>
 <h1 id="features">Features</h1>
 <ul>
-<li>Cross platform support for 64-bit Windows, Linux and OSX operating systems</li>
+<li>Cross platform support for 64-bit Windows, Linux and OSX operating systems, binaries available <a href>here</a></li>
 <li>Supports most<sup>†</sup> of the traditional black and white Gameboy ROMs</li>
 <li>Supports most<sup>†</sup> Gameboy Color ROMs with colour support<sup>‡</sup> (and black and white mode for supported GBC titles if desired)</li>
 <li>Battery saves facility, with compressed save files for lightweight storage</li>
@@ -38,7 +63,7 @@
 <li>Passes all blargg CPU instruction and instruction timing tests</li>
 <li>Delightful emulation of the scrolling Nintendo “boot screen” when you load the emulator up (can be disabled)</li>
 </ul>
-<p><span class="small"><sup>†</sup> <em>This project is still under active development so there will inevitably be ROMs out there that don’t work (yet) or have bugs. For a full list of tested games, <a href="http://www.google.com">click here</a></em></span> <br /> <span class="small"><sup>‡</sup> <em>Gameboy Color features are mostly done but there are a few <a href>outstanding tasks remaining</a></em></span></p>
+<p><span class="small"><sup>†</sup> <em>This project is still under active development so there will inevitably be ROMs out there that don’t work (yet) or have bugs. For a full list of tested games, <a href="#">click here</a></em></span> <br /> <span class="small"><sup>‡</sup> <em>Gameboy Color features are mostly done but there are a few <a href>outstanding tasks remaining</a></em></span></p>
 <h1 id="screenies">Screenies</h1>
 <div id="screenshots">
 	<ul>
@@ -63,22 +88,22 @@
 	</ul>
 </div>
 
-<h1 id="coming-soon">Coming soon</h1>
+<h1 id="about">About</h1>
+<p>The emulator is written entirely in <a href="http://golang.org/">go</a>. Why? It’s fast, it’s fun to code in, has great tooling and is really simple to pick up. It also has a history of <a href="http://dave.cheney.net/2013/01/09/go-the-language-for-emulators">people writing emulators in</a>, maybe it’s the next “Hello World”?</p>
+<p>I started working on this after reading <a href="http://www.amazon.co.uk/gp/product/0735611319/ref=as_li_tf_tl?ie=UTF8&amp;camp=1634&amp;creative=6738&amp;creativeASIN=0735611319&amp;linkCode=as2&amp;tag=djhworld-21">Code: The Hidden Language of Computer Hardware and Software</a> by Charles Petzold, a delightful read that takes you through the history of how computers came to be and how they function, right from the days of telegraph relays to the modern transistor. This book inspired me to investigate further and what better way to do it than writing your own computer? Well, <em>technically</em> it’s Nintendo’s computer, implemented in software.</p>
+<p>People have often asked me how challenging it is to actually write an emulator that works, and as it turns out, it really isn’t that difficult. However, it’s immensely frustrating, baffling, tedious, anger inducing, soul crushing, boring, exciting, challenging and thankfully <em>hugely rewarding</em>. A journey of highs and lows with sometimes very little to show for it, but as soon as all the pieces start to fall into place and you see your software boot into its own environment all by itself, a small bubble of pride makes it all worthwhile.</p>
+<p>The project is open sourced under the MIT license, details of which you can <a href="https://raw.github.com/djhworld/gomeboycolor/master/LICENSE.txt">view here.</a></p>
+<h1 id="roadmap">Roadmap</h1>
 <ul>
 <li>Sound. I’ve been putting this off for quite some time but as I get nearer to feature complete status, this is the next priority (see <a href="https://github.com/djhworld/gomeboycolor/issues/10">#10</a>)</li>
 <li>More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types</li>
 <li>GUI based launcher with ROM and RAM saves administration (see <a href="https://github.com/djhworld/gomeboycolor/issues/35">#35</a>)</li>
 </ul>
-<h1 id="project">Project</h1>
-<p>The emulator is written entirely in <a href="http://golang.org/">go</a>. Why? It’s fast, it’s fun to write code in, has great tooling and is really simple to pick up. It also has a history of <a href="http://dave.cheney.net/2013/01/09/go-the-language-for-emulators">people writing emulators in</a>, maybe it’s the next “Hello World”?</p>
-<p>I started the project after reading</p>
         </section>
-
-
 
         <footer>
           gomeboycolor is maintained by <a href="https://github.com/djhworld">djhworld</a><br>
-          This page was generated by Hakyll. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+		  This page was generated by <a href="http://jaspervdj.be/hakyll/">Hakyll</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
         </footer>
         
       </div>
