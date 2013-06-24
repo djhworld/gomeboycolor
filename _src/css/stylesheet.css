@@ -38,8 +38,6 @@ sup {
 
 ol, ul {
 	list-style: none;
-	margin-top:20px;
-	width:85%;
 }
 
 blockquote, q {
@@ -99,7 +97,7 @@ header h2 {
 }
 
 .inner {
-  width: 1200px;
+  width: 1000px;
   margin: 0 auto;
 }
 
@@ -134,7 +132,6 @@ a.button {
   font-size: 15px;
   padding: 12px 8px 12px 8px;
   display: block;
-  float: right;
   width: 179px;
   margin-top:20px;
   margin-right:6px;
@@ -149,7 +146,9 @@ a.button {
   -webkit-box-shadow: 10px 10px 5px #888;
   -moz-box-shadow: 10px 10px 5px #888;
   box-shadow: 0px 1px 5px #e8e8e8;
+  float:right;
 }
+
 a.button:hover {
   border-top: solid 1px #b7b7b7;
   border-left: solid 1px #b3b3b3;
@@ -170,6 +169,7 @@ a.button span {
   display: block;
   height: 23px;
 }
+
 
 #downloads-button span {
   background: transparent url(../images/zip-icon.png) 12px 50% no-repeat;
@@ -255,7 +255,7 @@ form {
 
 h1 {
   font-size: 32px;
-  margin-bottom:8px;
+  margin-bottom:4px;
 } 
 
 h2 {
@@ -310,7 +310,7 @@ blockquote {
 
 ul li {
   list-style: disc inside;
-  padding-left: 40px;
+  padding-left: 50px;
   padding-top:5px;
   padding-bottom:5px;
   text-indent:-1em;
@@ -359,7 +359,6 @@ footer a:hover {
 * html .clearfix {height: 1%;}
 .clearfix {display: block;}
 
-
 div#screenshots  {
 	margin:0px auto;
 	padding:0px; 
@@ -371,8 +370,9 @@ div#screenshots  {
 	
 div#screenshots ul {
 	list-style-type:none;
-	width:100%;
 	padding:0px;
+	margin:0px;
+	width:100%;
 }
 
 div#screenshots ul li {
@@ -413,6 +413,33 @@ div#screenshots ul li img {
     width: 94%;
     margin: 0 auto;
   }
+}
+
+table#tested-games {
+	width:50%;
+	margin:0 auto;
+}
+
+div#buttons {
+	float:right;
+	width:50%;
+}
+
+div#nav {
+	margin:0px;
+	padding:0px;
+}
+
+div#nav ul li {
+	display:inline;
+	padding:9px;
+	padding-left:0px;
+	margin:0px;
+}
+
+div#nav ul li a {
+	color:inherit;
+	text-decoration:underline;
 }
 
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
