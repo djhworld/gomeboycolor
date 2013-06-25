@@ -97,7 +97,7 @@ header h2 {
 }
 
 .inner {
-  width: 1000px;
+  width: 800px;
   margin: 0 auto;
 }
 
@@ -325,10 +325,13 @@ dl dt {
   color: #303030;
 }
 
+div.footnotes {
+	text-wrap:none;
+	padding-left:45px;
+}
+
 span.small {
 	font-size:11px;
-	padding-left:40px;
-
 }
 
 footer {
@@ -418,11 +421,6 @@ div#screenshots ul li img {
 table#tested-games {
 	width:50%;
 	margin:0 auto;
-}
-
-div#buttons {
-	float:right;
-	width:50%;
 }
 
 div#nav {
