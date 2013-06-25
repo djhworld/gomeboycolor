@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"utils"
 )
@@ -14,7 +17,6 @@ import (
 const (
 	SKIP_BOOT_FLAG     string = "skipboot"
 	SCREEN_SIZE_FLAG          = "size"
-	SAVE_DIR_FLAG             = "savedir"
 	SHOW_FPS_FLAG             = "showfps"
 	SETTINGS_FILE_FLAG        = "settings"
 	TITLE_FLAG                = "title"
@@ -29,7 +31,6 @@ var title *string = flag.String(TITLE_FLAG, TITLE, "Title to use")
 var fps *bool = flag.Bool(SHOW_FPS_FLAG, false, "Calculate and display frames per second")
 var screenSizeMultiplier *int = flag.Int(SCREEN_SIZE_FLAG, 1, "Screen size multiplier")
 var skipBoot *bool = flag.Bool(SKIP_BOOT_FLAG, false, "Skip boot sequence")
-var savesDir *string = flag.String(SAVE_DIR_FLAG, "saves", "Location where game saves are stored")
 var colorMode *bool = flag.Bool(COLOR_MODE_FLAG, true, "Emulates Gameboy Color Hardware")
 
 //debug stuff...
@@ -42,7 +43,6 @@ type Config struct {
 	Title      string
 	ScreenSize int
 	SkipBoot   bool
-	SavesDir   string
 	DisplayFPS bool
 	ColorMode  bool
 
@@ -51,6 +51,10 @@ type Config struct {
 	BreakOn        string
 	DumpState      bool
 	OnCloseHandler func()
+
+	//internal
+	SettingsDir string
+	SavesDir    string
 }
 
 func NewConfig() *Config {
@@ -72,7 +76,7 @@ func NewConfigFromFile(settingsFile string) (*Config, error) {
 		return nil, ConfigSettingsParseError(fmt.Sprintf("%v", err))
 	}
 
-	for _, v := range []string{"Title", "ScreenSize", "ColorMode", "SkipBoot", "SavesDir", "DisplayFPS"} {
+	for _, v := range []string{"Title", "ScreenSize", "ColorMode", "SkipBoot", "DisplayFPS"} {
 		if _, ok := initialMap[v]; !ok {
 			return nil, ConfigValidationError("Could not find settings key: \"" + v + "\" in settings file")
 		}
@@ -103,7 +107,6 @@ func DefaultConfig() *Config {
 	var c *Config = new(Config)
 	c.ScreenSize = *screenSizeMultiplier
 	c.SkipBoot = *skipBoot
-	c.SavesDir = *savesDir
 	c.DisplayFPS = *fps
 	c.Title = *title
 	c.Debug = *debug
@@ -119,22 +122,19 @@ func (c *Config) String() string {
 		fmt.Sprintln(utils.PadRight("Title: ", 19, " "), c.Title) +
 		fmt.Sprintln(utils.PadRight("Skip Boot: ", 19, " "), c.SkipBoot) +
 		fmt.Sprintln(utils.PadRight("GB Color Mode: ", 19, " "), c.ColorMode) +
-		fmt.Sprintln(utils.PadRight("Saves Directory: ", 19, " "), c.SavesDir) +
 		fmt.Sprintln(utils.PadRight("Display FPS: ", 19, " "), c.DisplayFPS) +
 		fmt.Sprintln(utils.PadRight("Screen Size: ", 19, " "), c.ScreenSize) +
 		fmt.Sprintln(utils.PadRight("Debug mode?: ", 19, " "), c.Debug) +
 		fmt.Sprintln(utils.PadRight("Breakpoint: ", 19, " "), c.BreakOn) +
 		fmt.Sprintln(utils.PadRight("CPU Dump?: ", 19, " "), c.DumpState) +
+		fmt.Sprintln(utils.PadRight("Settings Dir: ", 19, " "), c.SettingsDir) +
+		fmt.Sprintln(utils.PadRight("Saves Dir: ", 19, " "), c.SavesDir) +
 		fmt.Sprint(strings.Repeat("-", 50))
 }
 
 func (c *Config) Validate() error {
 	if c.Title == "" {
 		return ConfigValidationError("\"Title\" attribute cannot be blank")
-	}
-
-	if c.SavesDir == "" {
-		return ConfigValidationError("\"SavesDir\" attribute cannot be blank")
 	}
 
 	if c.ScreenSize <= 0 || c.ScreenSize > 6 {
@@ -154,8 +154,6 @@ func (currentConfig *Config) OverrideConfigWithAnySetFlags() {
 			currentConfig.ScreenSize = *screenSizeMultiplier
 		case SHOW_FPS_FLAG:
 			currentConfig.DisplayFPS = *fps
-		case SAVE_DIR_FLAG:
-			currentConfig.SavesDir = *savesDir
 		case TITLE_FLAG:
 			currentConfig.Title = *title
 		case COLOR_MODE_FLAG:
@@ -171,4 +169,32 @@ func ConfigValidationError(message string) error {
 
 func ConfigSettingsParseError(message string) error {
 	return errors.New(fmt.Sprintf("Config parse error: %s", message))
+}
+
+func (config *Config) ConfigureSettingsDirectory() error {
+	usr, err := user.Current()
+
+	if err != nil {
+		return err
+	}
+
+	config.SettingsDir = filepath.Join(usr.HomeDir, "."+TITLE)
+
+	if ok, _ := utils.Exists(config.SettingsDir); !ok {
+		log.Println("Creating settings directory: ", config.SettingsDir)
+		if err := os.Mkdir(config.SettingsDir, 0755); err != nil {
+			return err
+		}
+	}
+
+	config.SavesDir = filepath.Join(config.SettingsDir, "saves")
+
+	if ok, _ := utils.Exists(config.SavesDir); !ok {
+		log.Println("Creating saves directory: ", config.SavesDir)
+		if err := os.Mkdir(config.SavesDir, 0755); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

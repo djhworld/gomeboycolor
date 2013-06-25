@@ -22,6 +22,7 @@ import (
 
 const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
+
 var VERSION string
 
 type GomeboyColor struct {
@@ -160,6 +161,10 @@ func main() {
 	} else {
 		//command line flags take precedence
 		conf.OverrideConfigWithAnySetFlags()
+	}
+
+	if err := conf.ConfigureSettingsDirectory(); err != nil {
+		log.Fatalf("Error configuring settings directory: %v", err)
 	}
 
 	fmt.Println(conf)

@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -91,4 +92,15 @@ func PadRight(s string, maxLen int, padStr string) string {
 		s = s + strings.Repeat(padStr, padAmount)
 	}
 	return s
+}
+
+func Exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
