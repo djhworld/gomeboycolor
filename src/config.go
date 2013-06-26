@@ -62,49 +62,55 @@ func NewConfig() *Config {
 	return c
 }
 
-func NewConfigFromFile(settingsFile string) (*Config, error) {
-	file, err := ioutil.ReadFile(settingsFile)
-	if err != nil {
-		return nil, err
-	}
+func (c *Config) LoadConfig() error {
+	settingsFilepath := filepath.Join(c.SettingsDir, "config.json")
+	if ok, _ := utils.Exists(settingsFilepath); ok {
+		log.Println("Loading configuration from file:", settingsFilepath)
 
-	//Make sure all settings keys are present
-	var initialMap map[string]interface{}
-	err = json.Unmarshal(file, &initialMap)
-
-	if err != nil {
-		return nil, ConfigSettingsParseError(fmt.Sprintf("%v", err))
-	}
-
-	for _, v := range []string{"Title", "ScreenSize", "ColorMode", "SkipBoot", "DisplayFPS"} {
-		if _, ok := initialMap[v]; !ok {
-			return nil, ConfigValidationError("Could not find settings key: \"" + v + "\" in settings file")
+		file, err := ioutil.ReadFile(settingsFilepath)
+		if err != nil {
+			return err
 		}
+
+		//Make sure all settings keys are present
+		var initialMap map[string]interface{}
+		err = json.Unmarshal(file, &initialMap)
+
+		if err != nil {
+			return ConfigSettingsParseError(fmt.Sprintf("%v", err))
+		}
+
+		for _, v := range []string{"Title", "ScreenSize", "ColorMode", "SkipBoot", "DisplayFPS"} {
+			if _, ok := initialMap[v]; !ok {
+				return ConfigValidationError("Could not find settings key: \"" + v + "\" in settings file")
+			}
+		}
+
+		//Now parse into struct
+		err = json.Unmarshal(file, &c)
+
+		if err != nil {
+			return err
+		}
+
+		//Perform validations
+		err = c.Validate()
+		if err != nil {
+			return err
+		}
+
+		//these are defaults
+		c.Debug = *debug
+		c.BreakOn = *breakOn
+		c.DumpState = *dumpState
+	} else {
+		log.Println("Could not find settings file at", settingsFilepath, "using default values instead...")
+		c.LoadDefaultConfig()
 	}
-
-	//Now parse into struct
-	var config Config
-	err = json.Unmarshal(file, &config)
-
-	if err != nil {
-		return nil, err
-	}
-
-	//Perform validations
-	err = config.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	//these are defaults
-	config.Debug = *debug
-	config.BreakOn = *breakOn
-	config.DumpState = *dumpState
-	return &config, nil
+	return nil
 }
 
-func DefaultConfig() *Config {
-	var c *Config = new(Config)
+func (c *Config) LoadDefaultConfig() {
 	c.ScreenSize = *screenSizeMultiplier
 	c.SkipBoot = *skipBoot
 	c.DisplayFPS = *fps
@@ -113,7 +119,6 @@ func DefaultConfig() *Config {
 	c.BreakOn = *breakOn
 	c.DumpState = *dumpState
 	c.ColorMode = *colorMode
-	return c
 }
 
 func (c *Config) String() string {

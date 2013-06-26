@@ -150,21 +150,18 @@ func main() {
 	}
 
 	//Parse and validate settings file (if found)
-	conf, conferr := NewConfigFromFile(*settingsFile)
-	if conferr != nil {
-		if os.IsNotExist(conferr) {
-			log.Println("Could not find settings file", *settingsFile, "using default values...")
-			conf = DefaultConfig()
-		} else {
-			log.Fatalf("%v", conferr)
-		}
-	} else {
-		//command line flags take precedence
-		conf.OverrideConfigWithAnySetFlags()
-	}
+	conf := NewConfig()
 
 	if err := conf.ConfigureSettingsDirectory(); err != nil {
 		log.Fatalf("Error configuring settings directory: %v", err)
+	}
+
+	conferr := conf.LoadConfig()
+	if conferr != nil {
+		log.Fatalf("Error encountered attempting to load configuration file: %v", conferr)
+	} else {
+		//command line flags take precedence
+		conf.OverrideConfigWithAnySetFlags()
 	}
 
 	fmt.Println(conf)
