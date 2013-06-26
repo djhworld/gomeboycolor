@@ -97,7 +97,7 @@ header h2 {
 }
 
 .inner {
-  width: 800px;
+  width: 850px;
   margin: 0 auto;
 }
 
@@ -108,14 +108,6 @@ header h2 {
 #downloads {
 	width:100%;
 	margin-bottom:30px;
-}
-
-div#downloadbuttons {
-  margin-left:auto;
-  margin-right:auto;
-  display:block;
-  height:26px;
-  width:70%;
 }
 
 a.button {
@@ -134,7 +126,7 @@ a.button {
   display: block;
   width: 179px;
   margin-top:20px;
-  margin-right:6px;
+  margin-right:4px;
   background: #fdfdfd; /* Old browsers */
   background: -moz-linear-gradient(top,  #fdfdfd 0%, #f2f2f2 100%); /* FF3.6+ */
   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fdfdfd), color-stop(100%,#f2f2f2)); /* Chrome,Safari4+ */
@@ -176,6 +168,10 @@ a.button span {
 }
 #view-on-github span {
   background: transparent url(../images/octocat-icon.png) 12px 50% no-repeat;
+}
+
+#downloads-button {
+	margin-right:0px;
 }
 
 code, pre {
@@ -437,6 +433,11 @@ div#nav ul li {
 
 div#nav ul li a {
 	color:inherit;
+	letter-spacing:1px;
+	
+}
+
+div#nav ul li a:hover {
 	text-decoration:underline;
 }
 
