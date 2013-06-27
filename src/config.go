@@ -15,28 +15,44 @@ import (
 )
 
 const (
-	SKIP_BOOT_FLAG     string = "skipboot"
-	SCREEN_SIZE_FLAG          = "size"
-	SHOW_FPS_FLAG             = "showfps"
-	SETTINGS_FILE_FLAG        = "settings"
-	TITLE_FLAG                = "title"
-	DUMP_FLAG                 = "dump"
-	DEBUGGER_ON_FLAG          = "debug"
-	BREAK_WHEN_FLAG           = "b"
-	COLOR_MODE_FLAG           = "color"
+	SKIP_BOOT_FLAG   string = "skipboot"
+	SCREEN_SIZE_FLAG        = "size"
+	SHOW_FPS_FLAG           = "showfps"
+	TITLE_FLAG              = "title"
+	DUMP_FLAG               = "dump"
+	DEBUGGER_ON_FLAG        = "debug"
+	BREAK_WHEN_FLAG         = "b"
+	COLOR_MODE_FLAG         = "color"
+	HELP_FLAG               = "help"
 )
 
-var settingsFile *string = flag.String(SETTINGS_FILE_FLAG, "settings.json", "Location of settings file")
 var title *string = flag.String(TITLE_FLAG, TITLE, "Title to use")
 var fps *bool = flag.Bool(SHOW_FPS_FLAG, false, "Calculate and display frames per second")
 var screenSizeMultiplier *int = flag.Int(SCREEN_SIZE_FLAG, 1, "Screen size multiplier")
 var skipBoot *bool = flag.Bool(SKIP_BOOT_FLAG, false, "Skip boot sequence")
 var colorMode *bool = flag.Bool(COLOR_MODE_FLAG, true, "Emulates Gameboy Color Hardware")
+var help *bool = flag.Bool(HELP_FLAG, false, "Show this help message")
 
 //debug stuff...
 var dumpState *bool = flag.Bool(DUMP_FLAG, false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
 var debug *bool = flag.Bool(DEBUGGER_ON_FLAG, false, "Enable debugger")
 var breakOn *string = flag.String(BREAK_WHEN_FLAG, "0x0000", "Break into debugger when PC equals a given value between 0x0000 and 0xFFFF")
+
+func PrintHelp() {
+	fmt.Println("\nUsage: -\n")
+	fmt.Println("To launch the emulator, simply run and pass it the location of your ROM file, e.g. ")
+	fmt.Println("\n\tgomeboycolor location/of/romfile.gbc\n")
+	fmt.Println("Flags: -\n")
+	fmt.Println("	-help			->	Show this help message")
+	fmt.Println("	-skipboot		->	Disables the boot sequence and will boot you straight into the ROM you have provided. Defaults to false")
+	fmt.Println("	-color			->	Turns color GB features on. Defaults to true")
+	fmt.Println("	-showfps		->	Prints average frames per second to the console. Defaults to false")
+	fmt.Println("	-dump			-> 	Dump CPU state after every cycle. Will be very SLOW and resource intensive. Defaults to false")
+	fmt.Println("	-size=(1-6)		->	Set screen size. Defaults to 1.")
+	fmt.Println("	-title=(title)		->	Change window title. Defaults to 'gomeboycolor'.")
+	fmt.Println("\nYou can pass an option argument to the boolean flags if you want to enable that particular option. e.g. to disable the boot screen you would do the following")
+	fmt.Println("\n\tgomeboycolor -skipboot=false location/of/romfile.gbc\n")
+}
 
 type Config struct {
 	//mandatory settings

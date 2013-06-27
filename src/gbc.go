@@ -138,12 +138,20 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 }
 
 func main() {
-	log.Printf("%s. %s", TITLE, VERSION)
-	log.Println("Copyright (c) 2013. Daniel James Harper.")
-	log.Println("http://djhworld.github.io/gomeboycolor")
-	log.Println(strings.Repeat("*", 120))
+	fmt.Printf("%s. %s\n", TITLE, VERSION)
+	fmt.Println("Copyright (c) 2013. Daniel James Harper.")
+	fmt.Println("http://djhworld.github.io/gomeboycolor")
+	fmt.Println(strings.Repeat("*", 120))
+
+	flag.Usage = PrintHelp
 
 	flag.Parse()
+
+	if *help {
+		PrintHelp()
+		os.Exit(1)
+	}
+
 	if flag.NArg() != 1 {
 		log.Fatalf("Please specify the location of a ROM to boot")
 		return
