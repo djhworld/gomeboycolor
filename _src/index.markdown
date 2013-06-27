@@ -29,7 +29,7 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 	<span class="small"><sup>&#8225;</sup> *Gameboy Color features are mostly done but there are a few [outstanding tasks remaining]()*</span>
 </div>
 
-# Screenies
+# Screenshots 
 
 <div id="screenshots">
 	<ul>
@@ -57,5 +57,24 @@ The project is open sourced under the MIT license, details of which you can [vie
 * Sound. I've been putting this off for quite some time but as I get nearer to feature complete status, this is the next priority (see [#10](https://github.com/djhworld/gomeboycolor/issues/10))
 * More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types
 * GUI based launcher with ROM and RAM saves administration (see [#35](https://github.com/djhworld/gomeboycolor/issues/35))
+
+# Instructions
+
+## Installing
+
+Installation involves simply unzipping the downloaded ZIP file to a location of your choice. \*nix based distributions can add the ````bin```` directory to their PATH if desired
+
+## Running
+
+To launch the emulator, simply invoke the executable with the location of a ROM file on your machine, e.g.
+
+	./gomeboycolor ~/location/to/my/romfile.gbc
+
+## Flags
+
+You can pass some optional flags to the emulator (before the ROM file argument) that change some parameters of how the emulator runs, details of these are as follows 
+
+
+
 
 
