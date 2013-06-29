@@ -2,6 +2,7 @@
 	<ul>
 		<li><a href="/#features">Features</a></li>
 		<li><a href="/#screenies">Screenshots</a></li>
+		<li><a href="/#downloads">Downloads</a></li>
 		<li><a href="/#about">About</a></li>
 		<li><a href="/#roadmap">Roadmap</a></li>
 		<li><a href="/#documentation">Documentation</a></li>
@@ -16,7 +17,7 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 
 # Features
 
-* Cross platform support for 64-bit Windows, Linux and OSX operating systems, binaries available [here]()
+* Cross platform support for 64-bit Windows, Linux and OSX operating systems, binaries available [here](#downloads)
 * Supports most<sup>&#8224;</sup> of the traditional black and white Gameboy ROMs
 * Supports most<sup>&#8224;</sup> Gameboy Color ROMs with colour support<sup>&#8225;</sup> (and black and white mode for supported GBC titles if desired)
 * Battery saves facility, with compressed save files for lightweight storage
@@ -25,7 +26,7 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 * Delightful emulation of the scrolling Nintendo "boot screen" when you load the emulator up (can be disabled)
 
 <div class="footnotes">
-	<span class="small"><sup>&#8224;</sup> *This project is still under active development so there will inevitably be ROMs out there that don't work (yet) or have bugs.</span>
+	<span class="small"><sup>&#8224;</sup>*This project is still under active development so there will inevitably be ROMs out there that don't work (yet) or have bugs.*</span>
 	<br/>
 	<span class="small"><sup>&#8225;</sup> *Gameboy Color features are mostly done but there are a few [outstanding tasks remaining]()*</span>
 </div>
@@ -43,21 +44,63 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 	</ul>
 </div>
 
+# Downloads
+
+<table id="downloads">
+	<thead>
+		<th class="logo"></th>
+		<th>OS</th>
+		<th>Arch</th>
+		<th>Version</th>
+		<th>Download link</th>
+	</thead>
+	<tbody>
+		<tr>
+			<td class="logo"><img src="images/linux.png" /></td>
+			<td>Linux</td>
+			<td>x86\_64</td>
+			<td>v0.0.7\_alpha</td>
+			<td>[download](https://www.dropbox.com/s/kjcr9cqghkcws4i/gomeboycolor_v0.0.7_alpha_linux_x86_64.zip)</td>
+		</tr>
+		<tr>
+			<td class="logo"><img src="images/mac_logo.png" /></td>
+			<td>Mac OSX</td>
+			<td>x86\_64</td>
+			<td>v0.0.7\_alpha</td>
+			<td>[download](https://www.dropbox.com/s/q17tejwxao3w930/gomeboycolor_v0.0.7_alpha_darwin_x86_64.zip)</td>
+		</tr>
+		<tr>
+			<td class="logo"><img src="images/windows.png" /></td>
+			<td>Windows</td>
+			<td>x86\_64</td>
+			<td>v0.0.7\_alpha</td>
+			<td>[download](https://www.dropbox.com/s/kfdcohuqgns8suj/gomeboycolor_v0.0.7_alpha_windows_x86_64.zip)</td>
+		</tr>
+	</tbody>
+</table>
+
+
 # About 
 
 The emulator is written entirely in [go](http://golang.org/). Why? It's fast, it's fun to code in, has great tooling and is really simple to pick up. It also has a history of [people writing emulators in](http://dave.cheney.net/2013/01/09/go-the-language-for-emulators), maybe it's the next "Hello World"?
 
-I started working on this after reading [Code: The Hidden Language of Computer Hardware and Software](http://www.amazon.co.uk/gp/product/0735611319/ref=as_li_tf_tl?ie=UTF8&camp=1634&creative=6738&creativeASIN=0735611319&linkCode=as2&tag=djhworld-21) by Charles Petzold, a delightful read that takes you through the history of how computers came to be and how they function, right from the days of telegraph relays to the modern transistor. This book inspired me to investigate further and what better way to do it than writing your own computer? Well, *technically* it's Nintendo's computer, implemented in software. 
+I started working on this after reading [Code: The Hidden Language of Computer Hardware and Software\*](http://www.amazon.co.uk/gp/product/0735611319/ref=as_li_tf_tl?ie=UTF8&camp=1634&creative=6738&creativeASIN=0735611319&linkCode=as2&tag=djhworld-21) by Charles Petzold, a delightful read that takes you through the history of how computers came to be and how they function, right from the days of telegraph relays to the modern transistor. This book inspired me to investigate further and what better way to do it than writing your own computer? Well, *technically* it's Nintendo's computer, implemented in software. 
 
 People have often asked me how challenging it is to actually write an emulator that works, and as it turns out, it really isn't that difficult. However, it's immensely frustrating, baffling, tedious, anger inducing, soul crushing, boring, exciting, challenging and thankfully *hugely rewarding*. A journey of highs and lows with sometimes very little to show for it, but as soon as all the pieces start to fall into place and you see your software boot into its own environment all by itself, a small bubble of pride makes it all worthwhile.
 
 The project is open sourced under the MIT license, details of which you can [view here.](https://raw.github.com/djhworld/gomeboycolor/master/LICENSE.txt)
+
+<div class="footnotes" style="padding-left:15px !important; padding-bottom:15px;">
+	<span class="small"><sup>\*</sup> *This is an Amazon referral link, if you don't feel comfortable with this, you are welcome to use the non-referral link [here](http://www.amazon.co.uk/Code-Language-Computer-Hardware-Software/dp/0735611319)*</span>
+</div>
+
 
 # Roadmap
 
 * Sound. I've been putting this off for quite some time but as I get nearer to feature complete status, this is the next priority (see [#10](https://github.com/djhworld/gomeboycolor/issues/10))
 * More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types
 * GUI based launcher with ROM and RAM saves administration (see [#35](https://github.com/djhworld/gomeboycolor/issues/35))
+
 
 # Documentation 
 
@@ -96,6 +139,19 @@ You can pass an option argument to the boolean flags if you want to enable that 
 
 	gomeboycolor -skipboot=false location/of/romfile.gbc
 ``````
+
+## Controls
+
+	up arrow	- move up
+	down arrow	- move down
+	left arrow	- move left
+	right arrow	- move right
+	Z		- A button
+	X		- B button
+	Enter		- Start
+	Right shift	- Select
+
+	
 
 ## Storage
 

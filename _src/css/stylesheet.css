@@ -441,6 +441,32 @@ div#nav ul li a:hover {
 	text-decoration:underline;
 }
 
+table#downloads {
+	width:80%;
+	margin:0 auto;
+	margin-bottom:30px;
+	font-size:18px;
+	border:none;
+}
+
+table#downloads th {
+	border:none;
+	border-bottom: 1px solid #000;
+}
+
+table#downloads .logo {
+	width:25px;
+	vertical-align:middle;
+}
+
+table#downloads tr {
+	border:none;
+}
+
+table#downloads tr td {
+	border:none;
+}
+
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
 @media only screen and (min-width: 480px) and (max-width: 767px) {}
 
