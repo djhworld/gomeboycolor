@@ -4,6 +4,7 @@
 		<li><a href="/#screenies">Screenshots</a></li>
 		<li><a href="/#about">About</a></li>
 		<li><a href="/#roadmap">Roadmap</a></li>
+		<li><a href="/#documentation">Documentation</a></li>
 	</ul>
 </div>
 
@@ -58,7 +59,7 @@ The project is open sourced under the MIT license, details of which you can [vie
 * More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types
 * GUI based launcher with ROM and RAM saves administration (see [#35](https://github.com/djhworld/gomeboycolor/issues/35))
 
-# Instructions
+# Documentation 
 
 ## Installing
 
@@ -70,11 +71,52 @@ To launch the emulator, simply invoke the executable with the location of a ROM 
 
 	./gomeboycolor ~/location/to/my/romfile.gbc
 
-## Flags
+## Usage 
 
 You can pass some optional flags to the emulator (before the ROM file argument) that change some parameters of how the emulator runs, details of these are as follows 
 
+``````
+Usage: -
 
+To launch the emulator, simply run and pass it the location of your ROM file, e.g. 
 
+	gomeboycolor location/of/romfile.gbc
 
+Flags: -
 
+	-help			->	Show this help message
+	-skipboot		->	Disables the boot sequence and will boot you straight into the ROM you have provided. Defaults to false
+	-color			->	Turns color GB features on. Defaults to true
+	-showfps		->	Prints average frames per second to the console. Defaults to false
+	-dump			->	Dump CPU state after every cycle. Will be very SLOW and resource intensive. Defaults to false
+	-size=(1-6)		->	Set screen size. Defaults to 1.
+	-title=(title)		->	Change window title. Defaults to 'gomeboycolor'.
+
+You can pass an option argument to the boolean flags if you want to enable that particular option. e.g. to disable the boot screen you would do the following
+
+	gomeboycolor -skipboot=false location/of/romfile.gbc
+``````
+
+## Storage
+
+The emulator will create a directory under your home directory for storing ROM saves and other settings. So for Windows this would be something like
+
+	C:\Users\joebloggs\.gomeboycolor
+
+Or on OSX/Linux
+
+	~/.gomeboycolor
+
+You can optionally create the file ````config.json```` and store it under there. This will allow you to set the defaults for the flags so you don't need to keep providing them when running the emulator. An example file is detailed below
+
+``````
+{
+	"Title":"gomeboycolor",
+	"ScreenSize":2,
+	"ColorMode":true,
+	"SkipBoot":true,
+	"DisplayFPS":false
+}
+``````
+
+Future plans will negate the need for storing lots of items in this folder as I plan to move it to a small database such as sqlite. 
