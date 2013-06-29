@@ -12,7 +12,9 @@ import (
 	"types"
 )
 
-type APU struct{}
+type APU struct {
+	mem [0x41]byte
+}
 
 func NewAPU() *APU {
 	var a *APU = new(APU)
@@ -24,12 +26,15 @@ func (apu *APU) Name() string {
 	return "APU"
 }
 
-func (apu *APU) Read(Address types.Word) byte {
-	return 0x00
+func (apu *APU) Read(addr types.Word) byte {
+	if addr == 0xFF26 {
+		return 0x00
+	}
+	return apu.mem[addr-0xFF00]
 }
 
-func (apu *APU) Write(Address types.Word, Value byte) {
-
+func (apu *APU) Write(addr types.Word, value byte) {
+	apu.mem[addr-0xFF00] = value
 }
 
 func (apu *APU) LinkIRQHandler(m components.IRQHandler) {
