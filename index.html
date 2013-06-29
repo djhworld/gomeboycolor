@@ -8,7 +8,7 @@
     <link rel="stylesheet" type="text/css" href="css/pygment_trac.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="css/print.css" media="print" />
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+		<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
     <title>gomeboycolor by djhworld</title>
   </head>
@@ -19,7 +19,7 @@
 
         <header>
 
-			<a href="https://github.com/djhworld/gomeboycolor/downloads" id="downloads-button" class="button"><span>Downloads</span></a>
+			<a href="#downloads" id="downloads-button" class="button"><span>Downloads</span></a>
 			<a href="https://github.com/djhworld/gomeboycolor" id="view-on-github" class="button"><span>View on GitHub</span></a>
 
 			<a href="./"><h1>gomeboycolor</h1></a>
@@ -37,10 +37,16 @@
 <a href="./#screenies">Screenshots</a>
 </li>
 		<li>
+<a href="./#downloads">Downloads</a>
+</li>
+		<li>
 <a href="./#about">About</a>
 </li>
 		<li>
 <a href="./#roadmap">Roadmap</a>
+</li>
+		<li>
+<a href="./#documentation">Documentation</a>
 </li>
 	</ul>
 </div>
@@ -50,7 +56,7 @@
 <p>Since then it’s become my side project and I feel I’m at a point where I can share it with the world.</p>
 <h1 id="features">Features</h1>
 <ul>
-<li>Cross platform support for 64-bit Windows, Linux and OSX operating systems, binaries available <a href>here</a></li>
+<li>Cross platform support for 64-bit Windows, Linux and OSX operating systems, binaries available <a href="#downloads">here</a></li>
 <li>Supports most<sup>†</sup> of the traditional black and white Gameboy ROMs</li>
 <li>Supports most<sup>†</sup> Gameboy Color ROMs with colour support<sup>‡</sup> (and black and white mode for supported GBC titles if desired)</li>
 <li>Battery saves facility, with compressed save files for lightweight storage</li>
@@ -60,10 +66,10 @@
 </ul>
 <div class="footnotes">
 	
-<span class="small"><sup>†</sup> *This project is still under active development so there will inevitably be ROMs out there that don’t work (yet) or have bugs.</span> <br /> <span class="small"><sup>‡</sup> <em>Gameboy Color features are mostly done but there are a few <a href>outstanding tasks remaining</a></em></span>
+<span class="small"><sup>†</sup><em>This project is still under active development so there will inevitably be ROMs out there that don’t work (yet) or have bugs.</em></span> <br /> <span class="small"><sup>‡</sup> <em>Gameboy Color features are mostly done but there are a few <a href>outstanding tasks remaining</a></em></span>
 </div>
 
-<h1 id="screenies">Screenies</h1>
+<h1 id="screenshots">Screenshots</h1>
 <div id="screenshots">
 	<ul>
 		<li>
@@ -87,17 +93,146 @@
 	</ul>
 </div>
 
+<h1 id="downloads"> Downloads</h1>
+<table id="downloads">
+	<thead>
+		<th class="logo"></th>
+		<th>
+OS
+</th>
+		<th>
+Arch
+</th>
+		<th>
+Version
+</th>
+		<th>
+Download link
+</th>
+	</thead>
+	<tbody>
+		<tr>
+			<td class="logo">
+<img src="images/linux.png" />
+</td>
+			<td>
+Linux
+</td>
+			<td>
+x86_64
+</td>
+			<td>
+v0.0.7_alpha
+</td>
+			<td>
+<a href="https://www.dropbox.com/s/kjcr9cqghkcws4i/gomeboycolor_v0.0.7_alpha_linux_x86_64.zip">download</a>
+</td>
+		</tr>
+		<tr>
+			<td class="logo">
+<img src="images/mac_logo.png" />
+</td>
+			<td>
+Mac OSX
+</td>
+			<td>
+x86_64
+</td>
+			<td>
+v0.0.7_alpha
+</td>
+			<td>
+<a href="https://www.dropbox.com/s/q17tejwxao3w930/gomeboycolor_v0.0.7_alpha_darwin_x86_64.zip">download</a>
+</td>
+		</tr>
+		<tr>
+			<td class="logo">
+<img src="images/windows.png" />
+</td>
+			<td>
+Windows
+</td>
+			<td>
+x86_64
+</td>
+			<td>
+v0.0.7_alpha
+</td>
+			<td>
+<a href="https://www.dropbox.com/s/kfdcohuqgns8suj/gomeboycolor_v0.0.7_alpha_windows_x86_64.zip">download</a>
+</td>
+		</tr>
+	</tbody>
+</table>
+
+
 <h1 id="about">About</h1>
 <p>The emulator is written entirely in <a href="http://golang.org/">go</a>. Why? It’s fast, it’s fun to code in, has great tooling and is really simple to pick up. It also has a history of <a href="http://dave.cheney.net/2013/01/09/go-the-language-for-emulators">people writing emulators in</a>, maybe it’s the next “Hello World”?</p>
-<p>I started working on this after reading <a href="http://www.amazon.co.uk/gp/product/0735611319/ref=as_li_tf_tl?ie=UTF8&amp;camp=1634&amp;creative=6738&amp;creativeASIN=0735611319&amp;linkCode=as2&amp;tag=djhworld-21">Code: The Hidden Language of Computer Hardware and Software</a> by Charles Petzold, a delightful read that takes you through the history of how computers came to be and how they function, right from the days of telegraph relays to the modern transistor. This book inspired me to investigate further and what better way to do it than writing your own computer? Well, <em>technically</em> it’s Nintendo’s computer, implemented in software.</p>
+<p>I started working on this after reading <a href="http://www.amazon.co.uk/gp/product/0735611319/ref=as_li_tf_tl?ie=UTF8&amp;camp=1634&amp;creative=6738&amp;creativeASIN=0735611319&amp;linkCode=as2&amp;tag=djhworld-21">Code: The Hidden Language of Computer Hardware and Software*</a> by Charles Petzold, a delightful read that takes you through the history of how computers came to be and how they function, right from the days of telegraph relays to the modern transistor. This book inspired me to investigate further and what better way to do it than writing your own computer? Well, <em>technically</em> it’s Nintendo’s computer, implemented in software.</p>
 <p>People have often asked me how challenging it is to actually write an emulator that works, and as it turns out, it really isn’t that difficult. However, it’s immensely frustrating, baffling, tedious, anger inducing, soul crushing, boring, exciting, challenging and thankfully <em>hugely rewarding</em>. A journey of highs and lows with sometimes very little to show for it, but as soon as all the pieces start to fall into place and you see your software boot into its own environment all by itself, a small bubble of pride makes it all worthwhile.</p>
 <p>The project is open sourced under the MIT license, details of which you can <a href="https://raw.github.com/djhworld/gomeboycolor/master/LICENSE.txt">view here.</a></p>
+<div class="footnotes" style="padding-left:15px !important; padding-bottom:15px;">
+	
+<span class="small"><sup>*</sup> <em>This is an Amazon referral link, if you don’t feel comfortable with this, you are welcome to use the non-referral link <a href="http://www.amazon.co.uk/Code-Language-Computer-Hardware-Software/dp/0735611319">here</a></em></span>
+</div>
+
+
 <h1 id="roadmap">Roadmap</h1>
 <ul>
 <li>Sound. I’ve been putting this off for quite some time but as I get nearer to feature complete status, this is the next priority (see <a href="https://github.com/djhworld/gomeboycolor/issues/10">#10</a>)</li>
 <li>More game support. Memory bank controller MBC2 is currently unsupported, along with a few other cartridge types</li>
 <li>GUI based launcher with ROM and RAM saves administration (see <a href="https://github.com/djhworld/gomeboycolor/issues/35">#35</a>)</li>
 </ul>
+<h1 id="documentation">Documentation</h1>
+<h2 id="installing">Installing</h2>
+<p>Installation involves simply unzipping the downloaded ZIP file to a location of your choice. *nix based distributions can add the <code>bin</code> directory to their PATH if desired</p>
+<h2 id="running">Running</h2>
+<p>To launch the emulator, simply invoke the executable with the location of a ROM file on your machine, e.g.</p>
+<pre><code>./gomeboycolor ~/location/to/my/romfile.gbc</code></pre>
+<h2 id="usage">Usage</h2>
+<p>You can pass some optional flags to the emulator (before the ROM file argument) that change some parameters of how the emulator runs, details of these are as follows</p>
+<pre><code>Usage: -
+
+To launch the emulator, simply run and pass it the location of your ROM file, e.g. 
+
+	gomeboycolor location/of/romfile.gbc
+
+Flags: -
+
+	-help			-&gt;	Show this help message
+	-skipboot		-&gt;	Disables the boot sequence and will boot you straight into the ROM you have provided. Defaults to false
+	-color			-&gt;	Turns color GB features on. Defaults to true
+	-showfps		-&gt;	Prints average frames per second to the console. Defaults to false
+	-dump			-&gt;	Dump CPU state after every cycle. Will be very SLOW and resource intensive. Defaults to false
+	-size=(1-6)		-&gt;	Set screen size. Defaults to 1.
+	-title=(title)		-&gt;	Change window title. Defaults to 'gomeboycolor'.
+
+You can pass an option argument to the boolean flags if you want to enable that particular option. e.g. to disable the boot screen you would do the following
+
+	gomeboycolor -skipboot=false location/of/romfile.gbc</code></pre>
+<h2 id="controls">Controls</h2>
+<pre><code>up arrow	- move up
+down arrow	- move down
+left arrow	- move left
+right arrow	- move right
+Z		- A button
+X		- B button
+Enter		- Start
+Right shift	- Select</code></pre>
+<h2 id="storage">Storage</h2>
+<p>The emulator will create a directory under your home directory for storing ROM saves and other settings. So for Windows this would be something like</p>
+<pre><code>C:\Users\joebloggs\.gomeboycolor</code></pre>
+<p>Or on OSX/Linux</p>
+<pre><code>~/.gomeboycolor</code></pre>
+<p>You can optionally create the file <code>config.json</code> and store it under there. This will allow you to set the defaults for the flags so you don’t need to keep providing them when running the emulator. An example file is detailed below</p>
+<pre><code>{
+	&quot;Title&quot;:&quot;gomeboycolor&quot;,
+	&quot;ScreenSize&quot;:2,
+	&quot;ColorMode&quot;:true,
+	&quot;SkipBoot&quot;:true,
+	&quot;DisplayFPS&quot;:false
+}</code></pre>
+<p>Future plans will negate the need for storing lots of items in this folder as I plan to move it to a small database such as sqlite.</p>
         </section>
 
         <footer>
