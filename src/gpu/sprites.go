@@ -182,7 +182,7 @@ func (sa *SpriteAttributes) Update(attributeId int, fromValue byte) {
 	case 1:
 		sa.X = int(fromValue)
 	case 3:
-		if (fromValue & 0x80) == 0x80 {
+		if (fromValue & 0x80) != 0x80 {
 			sa.SpriteHasPriority = true
 		} else {
 			sa.SpriteHasPriority = false

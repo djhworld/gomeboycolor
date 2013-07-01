@@ -98,12 +98,13 @@ type GPU struct {
 	bgPalette      Palette
 	objectPalettes [2]Palette
 
-	cgbBackgroundPalettes    [8]CGBPalette
-	cgbObjectPalettes        [8]CGBPalette
-	cgbBGPWriteSpecReg       CGBPaletteSpecRegister
-	cgbBGPWriteDataRegister  byte
-	cgbOBJPWriteSpecReg      CGBPaletteSpecRegister
-	cgbOBJPWriteDataRegister byte
+	cgbBackgroundPalettes             [8]CGBPalette
+	cgbObjectPalettes                 [8]CGBPalette
+	cgbBGPWriteSpecReg                CGBPaletteSpecRegister
+	cgbBGPWriteDataRegister           byte
+	cgbOBJPWriteSpecReg               CGBPaletteSpecRegister
+	cgbOBJPWriteDataRegister          byte
+	cgbScreenPixelBackgroundTileAttrs [144][160]*CGBBackgroundTileAttrs
 }
 
 func NewGPU() *GPU {
@@ -514,6 +515,7 @@ func (g *GPU) drawCGBScanline(tilemapOffset, lineOffset types.Word, screenX, til
 
 		//draw the pixel to the screenData data buffer (running through the color palette)
 		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][g.currentTileLine[tileX]].ToRGB()
+		g.cgbScreenPixelBackgroundTileAttrs[g.ly][screenX] = tileInfo
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -660,8 +662,10 @@ func (g *GPU) drawCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) 
 			if g.currentTileLine[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
-					//TODO: Priority stuff needs to be changed for CGB as we're not using the BG palette
-					if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
+					//if background tile has priority then skip drawing this sprite pixel
+					if g.cgbScreenPixelBackgroundTileAttrs[adjY][adjX].HasPriority {
+						continue
+					} else if !s.SpriteAttributes().SpriteHasPriority { //if sprte does not have priority then assume background has priority first
 						continue
 					}
 
@@ -683,7 +687,8 @@ func (g *GPU) drawNonCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY in
 			if g.currentTileLine[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
-					if s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
+					//If sprite does NOT have priority and background palette color at coordinate (adjX, adjY) isn't in bgp[0], then skip drawing pixel
+					if !s.SpriteAttributes().SpriteHasPriority && g.screenData[adjY][adjX] != g.bgPalette[0] {
 						continue
 					}
 
