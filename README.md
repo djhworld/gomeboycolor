@@ -4,14 +4,40 @@ gomeboycolor
 
 Nintendo Gameboy Color emulator, this is my first emulator so I'm learning as I go along...
 
+You are welcome to visit the github page for this project by [clicking here](http://djhworld.github.io/gomeboycolor), this includes links to [executables](http://djhworld.github.io/gomeboycolor/#downloads), [documentation](http://djhworld.github.io/gomeboycolor/#documentation) and some [background about the project](http://djhworld.github.io/gomeboycolor/#about).
+
 FAQ
 ============================
 
 #### How do I build it?
 
-I've put together a Rakefile that works across all platforms. This works great with a jRuby installation. 
+You will need an installation of [Go](http://golang.org) (version >= 1.1.1) available on your PATH, as well as a version of Ruby with rake. Personally I've had great success using [jruby](http://jruby.org/).
 
-You will need libglfw installed for this to work. I've only tested this on an OSX machine so far and I'm pretty certain it's going to be a real pain in the butt to get it working on Windows. 
+To build the project you need to run ````rake```` from the root of this repository, this will
+
+1. Fetch dependencies
+2. Setup folders
+3. Build the project
+
+On Windows and OSX you shouldn't have to do anything more then that as I've included the shared libraries this project needs to build with (glew and GLFW)
+
+However on Linux you will need to have libGLEW and libglfw installed.
+
+Builds have been tested on the following systems, note that these are all 64-bit
+
+* OSX Mountain Lion (10.5.8)
+* Ubuntu Linux 13.04
+* Windows 7
+
+License
+-----------------------------
+Copyright (c) 2013. Daniel James Harper
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Progress
 ---------------------------
@@ -37,14 +63,3 @@ Progress
 ![Passes all blargg CPU tests](https://github.com/djhworld/gomeboycolor/raw/master/images/cpu_instrs.gb.png)&nbsp;
 ![Passes blargg instruction timing test](https://github.com/djhworld/gomeboycolor/raw/master/images/instr_timing.gb.png)&nbsp;
 ![test](https://github.com/djhworld/gomeboycolor/raw/master/images/test.gb.png)&nbsp;
-
-License
-============================
-
-Copyright (c) 2013. Daniel James Harper
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
