@@ -59,22 +59,22 @@ Since then it's become my side project and I feel I'm at a point where I can sha
 			<td class="logo"><img src="images/linux.png" /></td>
 			<td>Linux</td>
 			<td>x86\_64</td>
-			<td>v0.0.7\_alpha</td>
-			<td>[download](https://www.dropbox.com/s/kjcr9cqghkcws4i/gomeboycolor_v0.0.7_alpha_linux_x86_64.zip)</td>
+			<td>[v0.0.7\_alpha](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha)</td>
+			<td>[download](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha/1222/gomeboycolor_v0.0.7_alpha_linux_x86_64.zip)</td>
 		</tr>
 		<tr>
 			<td class="logo"><img src="images/mac_logo.png" /></td>
 			<td>Mac OSX</td>
 			<td>x86\_64</td>
-			<td>v0.0.7\_alpha</td>
-			<td>[download](https://www.dropbox.com/s/q17tejwxao3w930/gomeboycolor_v0.0.7_alpha_darwin_x86_64.zip)</td>
+			<td>[v0.0.7\_alpha](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha)</td>
+			<td>[download](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha/1218/gomeboycolor_v0.0.7_alpha_darwin_x86_64.zip)</td>
 		</tr>
 		<tr>
 			<td class="logo"><img src="images/windows.png" /></td>
 			<td>Windows</td>
 			<td>x86\_64</td>
-			<td>v0.0.7\_alpha</td>
-			<td>[download](https://www.dropbox.com/s/kfdcohuqgns8suj/gomeboycolor_v0.0.7_alpha_windows_x86_64.zip)</td>
+			<td>[v0.0.7\_alpha](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha)</td>
+			<td>[download](https://github.com/djhworld/gomeboycolor/releases/v0.0.7_alpha/1223/gomeboycolor_v0.0.7_alpha_windows_x86_64.zip)</td>
 		</tr>
 	</tbody>
 </table>
