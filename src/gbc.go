@@ -13,6 +13,7 @@ import (
 	"mmu"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 	"timer"
@@ -66,7 +67,6 @@ func NewGBC() *GomeboyColor {
 	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
 	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
 	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)
-	gbc.gpu.LinkScreen(gbc.io.Display)
 
 	return gbc
 }
@@ -138,6 +138,7 @@ func (gbc *GomeboyColor) StoreFPSSample(sample int) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	fmt.Printf("%s. %s\n", TITLE, VERSION)
 	fmt.Println("Copyright (c) 2013. Daniel James Harper.")
 	fmt.Println("http://djhworld.github.io/gomeboycolor")
@@ -216,16 +217,24 @@ func main() {
 		log.Fatalf("%v", ioInitializeErr)
 	}
 
-	gbc.setupBoot()
-
 	//load RAM into MBC (if supported)
 	gbc.mmu.LoadCartridgeRam(gbc.config.SavesDir)
+	gbc.gpu.LinkScreen(gbc.io.ScreenOutputChannel)
+	gbc.setupBoot()
 
 	log.Println("Completed setup")
 	log.Println(strings.Repeat("*", 120))
 
 	log.Println("Starting emulator")
-	gbc.Run()
+
+	//Starts emulator code in a goroutine
+	go gbc.Run()
+
+	//lock the OS thread here
+	runtime.LockOSThread()
+
+	//set the IO controller to run indefinitely (it waits for screen updates)
+	gbc.io.Run()
 }
 
 func (gbc *GomeboyColor) setupBoot() {
@@ -348,7 +357,7 @@ func (gbc *GomeboyColor) Reset() {
 	gbc.mmu.Reset()
 	gbc.apu.Reset()
 	gbc.io.KeyHandler.Reset()
-	gbc.io.Display.DrawFrame(&([144][160]types.RGB{}))
+	gbc.io.ScreenOutputChannel <- &(types.Screen{})
 	gbc.setupBoot()
 }
 

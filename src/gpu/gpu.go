@@ -4,7 +4,6 @@ import (
 	"components"
 	"constants"
 	"fmt"
-	"inputoutput"
 	"log"
 	"types"
 )
@@ -56,8 +55,8 @@ type Tile [8][8]int
 type Palette [4]types.RGB
 
 type GPU struct {
-	screenData            [144][160]types.RGB
-	screen                inputoutput.Screen
+	screenData            types.Screen
+	screenOutputChannel   chan *types.Screen
 	irqHandler            components.IRQHandler
 	vram                  [2][8192]byte
 	oamRam                [160]byte
@@ -113,8 +112,8 @@ func NewGPU() *GPU {
 	return g
 }
 
-func (g *GPU) LinkScreen(screen inputoutput.Screen) {
-	g.screen = screen
+func (g *GPU) LinkScreen(screenChannel chan *types.Screen) {
+	g.screenOutputChannel = screenChannel
 	log.Println(PREFIX, "Linked screen to GPU")
 }
 
@@ -130,7 +129,7 @@ func (g *GPU) Name() string {
 func (g *GPU) Reset() {
 	log.Println(PREFIX, "Resetting", g.Name())
 	g.Write(LCDC, 0x00)
-	g.screenData = *new([144][160]types.RGB)
+	g.screenData = *new(types.Screen)
 	g.mode = 0
 	g.ly = 0
 	g.clock = 0
@@ -205,8 +204,9 @@ func (g *GPU) Step(t int) {
 				}
 				g.vBlankInterruptThrown = true
 			}
-			g.screen.DrawFrame(&g.screenData)
 
+			//dump output to screen controller over a channel
+			g.screenOutputChannel <- &g.screenData
 		} else if g.ly > 153 {
 			g.vBlankInterruptThrown = false
 			g.ly = 0

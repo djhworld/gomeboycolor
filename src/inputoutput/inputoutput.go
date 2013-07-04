@@ -119,20 +119,19 @@ func (k *KeyHandler) KeyUp(key int) {
 	}
 }
 
-//Clients just need to talk to the interface to draw frames. Screen data is a pointer for performance reasons
-type Screen interface {
-	DrawFrame(screenData *[144][160]types.RGB)
-}
-
 type IO struct {
-	KeyHandler *KeyHandler
-	Display    *Display
+	KeyHandler          *KeyHandler
+	Display             *Display
+	ScreenOutputChannel chan *types.Screen
+	AudioOutputChannel  chan int
 }
 
 func NewIO() *IO {
 	var i *IO = new(IO)
 	i.KeyHandler = new(KeyHandler)
 	i.Display = new(Display)
+	i.ScreenOutputChannel = make(chan *types.Screen)
+	i.AudioOutputChannel = make(chan int)
 	return i
 }
 
@@ -166,6 +165,18 @@ func (i *IO) Init(title string, screenSize int, onCloseHandler func()) error {
 	})
 
 	return nil
+}
+
+//This will wait for updates to the display or audio and dispatch them accordingly
+func (i *IO) Run() {
+	for {
+		select {
+		case data := <-i.ScreenOutputChannel:
+			i.Display.drawFrame(data)
+		case data := <-i.AudioOutputChannel:
+			log.Println("Writing %d to audio!", data)
+		}
+	}
 }
 
 type Display struct {
@@ -212,7 +223,7 @@ func (s *Display) init(title string, screenSizeMultiplier int) error {
 
 }
 
-func (s *Display) DrawFrame(screenData *[144][160]types.RGB) {
+func (s *Display) drawFrame(screenData *types.Screen) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.Disable(gl.DEPTH_TEST)
 	gl.PointSize(float32(s.ScreenSizeMultiplier) + 1.0)

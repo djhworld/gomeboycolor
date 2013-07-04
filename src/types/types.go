@@ -8,6 +8,8 @@ type RGB struct {
 	Blue  byte
 }
 
+type Screen [144][160]RGB
+
 type Register byte
 type Word uint16
 type Words []Word
