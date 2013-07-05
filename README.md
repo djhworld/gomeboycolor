@@ -13,6 +13,8 @@ FAQ
 
 You will need an installation of [Go](http://golang.org) (version >= 1.1.1) available on your PATH, as well as a version of Ruby with rake. Personally I've had great success using [jruby](http://jruby.org/).
 
+The Rakefile uses the ````sys/uname```` package to identify what system you are using, you can install this by running ````gem install sys-uname````
+
 To build the project you need to run ````rake```` from the root of this repository, this will
 
 1. Fetch dependencies
