@@ -56,6 +56,7 @@ type Palette [4]types.RGB
 
 type GPU struct {
 	screenData            types.Screen
+	rawScreenDotData      [144][160]int
 	screenOutputChannel   chan *types.Screen
 	irqHandler            components.IRQHandler
 	vram                  [2][8192]byte
@@ -78,7 +79,7 @@ type GPU struct {
 	obp1                         byte
 	cgbVramBankSelectionRegister byte
 	RunningColorGBHardware       bool
-	currentTileLine              *[8]int
+	currentTileLineDotData       *[8]int
 
 	bgrdOn         bool
 	spritesOn      bool
@@ -130,6 +131,7 @@ func (g *GPU) Reset() {
 	log.Println(PREFIX, "Resetting", g.Name())
 	g.Write(LCDC, 0x00)
 	g.screenData = *new(types.Screen)
+	g.rawScreenDotData = *new([144][160]int)
 	g.mode = 0
 	g.ly = 0
 	g.clock = 0
@@ -146,7 +148,7 @@ func (g *GPU) Reset() {
 	g.cgbOBJPWriteSpecReg = *new(CGBPaletteSpecRegister)
 	g.cgbBackgroundPalettes = *new([8]CGBPalette)
 	g.cgbObjectPalettes = *new([8]CGBPalette)
-	g.currentTileLine = new([8]int)
+	g.currentTileLineDotData = new([8]int)
 }
 
 func (g *GPU) Step(t int) {
@@ -511,10 +513,11 @@ func (g *GPU) drawCGBScanline(tilemapOffset, lineOffset types.Word, screenX, til
 
 	for ; screenX < DISPLAY_WIDTH; screenX++ {
 		var t *Tile = &g.tiledata[tileInfo.BankNo][tileNumber]
-		formatTileLine(t, tileY, tileInfo.FlipHorizontally, tileInfo.FlipVertically, g.currentTileLine)
+		formatTileLine(t, tileY, tileInfo.FlipHorizontally, tileInfo.FlipVertically, g.currentTileLineDotData)
 
 		//draw the pixel to the screenData data buffer (running through the color palette)
-		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][g.currentTileLine[tileX]].ToRGB()
+		g.screenData[g.ly][screenX] = g.cgbBackgroundPalettes[tileInfo.PaletteNo][g.currentTileLineDotData[tileX]].ToRGB()
+		g.rawScreenDotData[g.ly][screenX] = g.currentTileLineDotData[tileX]
 		g.cgbScreenPixelBackgroundTileAttrs[g.ly][screenX] = tileInfo
 
 		//move along line in tile until you reach the end
@@ -537,6 +540,7 @@ func (g *GPU) drawNonCGBScanline(tilemapOffset, lineOffset types.Word, screenX, 
 		//draw the pixel to the screenData data buffer (running through the bgPalette)
 		color := g.bgPalette[g.tiledata[0][tileId][tileY][tileX]]
 		g.screenData[g.ly][screenX] = color
+		g.rawScreenDotData[g.ly][screenX] = g.tiledata[0][tileId][tileY][tileX]
 
 		//move along line in tile until you reach the end
 		tileX++
@@ -655,21 +659,25 @@ func (g *GPU) drawCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY int) 
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
 		//tile data can come from one of two banks in CGB mode
 		var t *Tile = &g.tiledata[s.SpriteAttributes().CGBBankNo][tileId]
-		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLine)
+		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLineDotData)
 
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
-			if g.currentTileLine[tileX] != 0 {
+			if g.currentTileLineDotData[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
 					//if background tile has priority then skip drawing this sprite pixel
-					if g.cgbScreenPixelBackgroundTileAttrs[adjY][adjX].HasPriority {
-						continue
-					} else if !s.SpriteAttributes().SpriteHasPriority { //if sprte does not have priority then assume background has priority first
-						continue
+
+					if g.bgrdOn {
+						bgDotData := g.rawScreenDotData[adjY][adjX]
+						objDotData := g.currentTileLineDotData[tileX]
+						result := calculateObjToBackgroundPriority(g.cgbScreenPixelBackgroundTileAttrs[adjY][adjX].HasPriority, s.SpriteAttributes().SpriteHasPriority, bgDotData, objDotData)
+						if result != OBJ_PRIORITY {
+							continue
+						}
 					}
 
-					g.screenData[adjY][adjX] = g.cgbObjectPalettes[s.SpriteAttributes().CGBPaletteNo][g.currentTileLine[tileX]].ToRGB()
+					g.screenData[adjY][adjX] = g.cgbObjectPalettes[s.SpriteAttributes().CGBPaletteNo][g.currentTileLineDotData[tileX]].ToRGB()
 				}
 			}
 		}
@@ -680,11 +688,11 @@ func (g *GPU) drawNonCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY in
 	if s.SpriteAttributes().X >= 0 && s.SpriteAttributes().Y >= 0 {
 		//tile data in non CGB mode only comes from bank 0
 		var t *Tile = &g.tiledata[0][tileId]
-		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLine)
+		formatTileLine(t, tileY, s.SpriteAttributes().ShouldFlipHorizontally, s.SpriteAttributes().ShouldFlipVertically, g.currentTileLineDotData)
 
 		sx, sy := s.SpriteAttributes().X-8, s.SpriteAttributes().Y-16
 		for tileX := 0; tileX < 8; tileX++ {
-			if g.currentTileLine[tileX] != 0 {
+			if g.currentTileLineDotData[tileX] != 0 {
 				adjX, adjY := sx+tileX, sy+tileY+screenYOffset
 				if (adjY < DISPLAY_HEIGHT && adjY >= 0) && (adjX < DISPLAY_WIDTH && adjX >= 0) {
 					//If sprite does NOT have priority and background palette color at coordinate (adjX, adjY) isn't in bgp[0], then skip drawing pixel
@@ -692,7 +700,7 @@ func (g *GPU) drawNonCGBSpriteTileLine(s Sprite, tileId, screenYOffset, tileY in
 						continue
 					}
 
-					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().NonCGBPaletteSelected][g.currentTileLine[tileX]]
+					g.screenData[adjY][adjX] = g.objectPalettes[s.SpriteAttributes().NonCGBPaletteSelected][g.currentTileLineDotData[tileX]]
 				}
 			}
 		}

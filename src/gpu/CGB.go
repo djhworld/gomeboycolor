@@ -5,6 +5,9 @@ import (
 	"types"
 )
 
+const OBJ_PRIORITY = 1
+const BG_PRIORITY = 2
+
 //Colour GB graphics register addresses
 const (
 	CGB_VRAM_BANK_SELECT        types.Word = 0xFF4F
@@ -85,4 +88,50 @@ func (psr *CGBPaletteSpecRegister) Update(value byte) {
 
 func (psr *CGBPaletteSpecRegister) Increment() {
 	psr.Update(psr.Value + 1)
+}
+
+/*
+Calculate the priority of BG vs OBJ using rules defined in
+the Gameboy Programming Manual - Page 67
+*/
+func calculateObjToBackgroundPriority(backgroundPriorityFlag, objPriorityFlag bool, bgDotData, objDotData int) int {
+	if backgroundPriorityFlag { //BG has highest priority
+		switch {
+		case objDotData == 0x00 && bgDotData == 0x00: //bg gets priority
+			return BG_PRIORITY
+		case objDotData == 0x00 && bgDotData != 0x00: //bg gets priority
+			return BG_PRIORITY
+		case objDotData != 0x00 && bgDotData == 0x00: //object gets priority
+			return OBJ_PRIORITY
+		case objDotData != 0x00 && bgDotData != 0x00: //bg gets priority
+			return BG_PRIORITY
+		}
+	} else { // bg depends on what obj priority is
+		if objPriorityFlag { //OBJ has highest priority
+			switch {
+			case objDotData == 0x00 && bgDotData == 0x00: //bg gets priority
+				return BG_PRIORITY
+			case objDotData == 0x00 && bgDotData != 0x00: //bg gets priority
+				return BG_PRIORITY
+			case objDotData != 0x00 && bgDotData == 0x00: //object gets priority
+				return OBJ_PRIORITY
+			case objDotData != 0x00 && bgDotData != 0x00: //object gets priority
+				return OBJ_PRIORITY
+			}
+		} else {
+			switch { //give priority to BG
+			case objDotData == 0x00 && bgDotData == 0x00: //bg gets priority
+				return BG_PRIORITY
+			case objDotData == 0x00 && bgDotData != 0x00: //bg gets priority
+				return BG_PRIORITY
+			case objDotData != 0x00 && bgDotData == 0x00: //object gets priority
+				return OBJ_PRIORITY
+			case objDotData != 0x00 && bgDotData != 0x00: //bg gets priority
+				return BG_PRIORITY
+			}
+		}
+
+	}
+
+	return OBJ_PRIORITY
 }
