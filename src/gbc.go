@@ -1,24 +1,25 @@
 package main
 
 import (
-	"apu"
 	"bufio"
-	"cartridge"
-	"cpu"
 	"flag"
 	"fmt"
-	"gpu"
-	"inputoutput"
 	"log"
-	"mmu"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
-	"timer"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/apu"
+	"github.com/djhworld/gomeboycolor/cartridge"
+	"github.com/djhworld/gomeboycolor/cpu"
+	"github.com/djhworld/gomeboycolor/gpu"
+	"github.com/djhworld/gomeboycolor/inputoutput"
+	"github.com/djhworld/gomeboycolor/mmu"
+	"github.com/djhworld/gomeboycolor/timer"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 const FRAME_CYCLES = 70224

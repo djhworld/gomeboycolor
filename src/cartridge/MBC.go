@@ -1,6 +1,6 @@
 package cartridge
 
-import "types"
+import "github.com/djhworld/gomeboycolor/types"
 
 type MemoryBankController interface {
 	Write(addr types.Word, value byte)

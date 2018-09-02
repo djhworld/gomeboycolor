@@ -1,12 +1,13 @@
 package cartridge
 
 import (
-	"constants"
 	"fmt"
 	"log"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 //Represents MBC1

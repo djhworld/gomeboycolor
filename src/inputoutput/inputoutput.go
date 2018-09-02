@@ -1,12 +1,11 @@
 package inputoutput
 
 import (
-	"components"
-	"constants"
-	"github.com/go-gl/gl"
-	"github.com/go-gl/glfw"
 	"log"
-	"types"
+
+	"github.com/djhworld/gomeboycolor/components"
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/types"
 )
 
 const PREFIX string = "IO"
@@ -15,7 +14,7 @@ const ROW_2 byte = 0x20
 const SCREEN_WIDTH int = 160
 const SCREEN_HEIGHT int = 144
 
-var DefaultControlScheme ControlScheme = ControlScheme{glfw.KeyUp, glfw.KeyDown, glfw.KeyLeft, glfw.KeyRight, 90, 88, 294, 288}
+var DefaultControlScheme ControlScheme = ControlScheme{1, 2, 3, 4, 90, 88, 294, 288}
 
 type ControlScheme struct {
 	UP     int
@@ -136,33 +135,36 @@ func NewIO() *IO {
 }
 
 func (i *IO) Init(title string, screenSize int, onCloseHandler func()) error {
-	var err error
+	/*
+		var err error
 
-	err = glfw.Init()
-	if err != nil {
-		return err
-	}
 
-	err = i.Display.init(title, screenSize)
-	if err != nil {
-		return err
-	}
-
-	i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
-	glfw.SetKeyCallback(func(key, state int) {
-		if state == glfw.KeyPress {
-			i.KeyHandler.KeyDown(key)
-		} else {
-			i.KeyHandler.KeyUp(key)
+		err = glfw.Init()
+		if err != nil {
+			return err
 		}
-	})
 
-	glfw.SetWindowCloseCallback(func() int {
-		glfw.CloseWindow()
-		glfw.Terminate()
-		onCloseHandler()
-		return 0
-	})
+		err = i.Display.init(title, screenSize)
+		if err != nil {
+			return err
+		}
+
+		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
+		glfw.SetKeyCallback(func(key, state int) {
+			if state == glfw.KeyPress {
+				i.KeyHandler.KeyDown(key)
+			} else {
+				i.KeyHandler.KeyUp(key)
+			}
+		})
+
+		glfw.SetWindowCloseCallback(func() int {
+			glfw.CloseWindow()
+			glfw.Terminate()
+			onCloseHandler()
+			return 0
+		})
+	*/
 
 	return nil
 }
@@ -185,57 +187,61 @@ type Display struct {
 }
 
 func (s *Display) init(title string, screenSizeMultiplier int) error {
-	s.Name = PREFIX + "-SCREEN"
+	/*
+		s.Name = PREFIX + "-SCREEN"
 
-	log.Printf("%s: Initialising display", s.Name)
-	var err error
+		log.Printf("%s: Initialising display", s.Name)
+		var err error
 
-	s.ScreenSizeMultiplier = screenSizeMultiplier
-	log.Printf("%s: Set screen size multiplier to %dx", s.Name, s.ScreenSizeMultiplier)
+		s.ScreenSizeMultiplier = screenSizeMultiplier
+		log.Printf("%s: Set screen size multiplier to %dx", s.Name, s.ScreenSizeMultiplier)
 
-	glfw.OpenWindowHint(glfw.WindowNoResize, 1)
-	err = glfw.OpenWindow(SCREEN_WIDTH*s.ScreenSizeMultiplier, SCREEN_HEIGHT*s.ScreenSizeMultiplier, 0, 0, 0, 0, 0, 0, glfw.Windowed)
-	if err != nil {
-		return err
-	}
+		glfw.OpenWindowHint(glfw.WindowNoResize, 1)
+		err = glfw.OpenWindow(SCREEN_WIDTH*s.ScreenSizeMultiplier, SCREEN_HEIGHT*s.ScreenSizeMultiplier, 0, 0, 0, 0, 0, 0, glfw.Windowed)
+		if err != nil {
+			return err
+		}
 
-	glfw.SetWindowTitle(title)
+		glfw.SetWindowTitle(title)
 
-	//resize function
-	onResize := func(w, h int) {
-		gl.Viewport(0, 0, w, h)
-		gl.MatrixMode(gl.PROJECTION)
-		gl.LoadIdentity()
-		gl.Ortho(0, float64(w), float64(h), 0, -1, 1)
+		//resize function
+		onResize := func(w, h int) {
+			gl.Viewport(0, 0, w, h)
+			gl.MatrixMode(gl.PROJECTION)
+			gl.LoadIdentity()
+			gl.Ortho(0, float64(w), float64(h), 0, -1, 1)
+			gl.ClearColor(0.255, 0.255, 0.255, 0)
+			gl.Clear(gl.COLOR_BUFFER_BIT)
+			gl.MatrixMode(gl.MODELVIEW)
+			gl.LoadIdentity()
+		}
+
+		glfw.SetWindowSizeCallback(onResize)
+		desktopMode := glfw.DesktopMode()
+		glfw.SetWindowPos((desktopMode.W-SCREEN_WIDTH*s.ScreenSizeMultiplier)/2, (desktopMode.H-SCREEN_HEIGHT*s.ScreenSizeMultiplier)/2)
+
 		gl.ClearColor(0.255, 0.255, 0.255, 0)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.MatrixMode(gl.MODELVIEW)
-		gl.LoadIdentity()
-	}
-
-	glfw.SetWindowSizeCallback(onResize)
-	desktopMode := glfw.DesktopMode()
-	glfw.SetWindowPos((desktopMode.W-SCREEN_WIDTH*s.ScreenSizeMultiplier)/2, (desktopMode.H-SCREEN_HEIGHT*s.ScreenSizeMultiplier)/2)
-
-	gl.ClearColor(0.255, 0.255, 0.255, 0)
+	*/
 
 	return nil
 
 }
 
 func (s *Display) drawFrame(screenData *types.Screen) {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.Disable(gl.DEPTH_TEST)
-	gl.PointSize(float32(s.ScreenSizeMultiplier) + 1.0)
-	gl.Begin(gl.POINTS)
-	for y := 0; y < SCREEN_HEIGHT; y++ {
-		for x := 0; x < SCREEN_WIDTH; x++ {
-			var pixel types.RGB = screenData[y][x]
-			gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
-			gl.Vertex2i(x*s.ScreenSizeMultiplier, y*s.ScreenSizeMultiplier)
+	/*
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+		gl.Disable(gl.DEPTH_TEST)
+		gl.PointSize(float32(s.ScreenSizeMultiplier) + 1.0)
+		gl.Begin(gl.POINTS)
+		for y := 0; y < SCREEN_HEIGHT; y++ {
+			for x := 0; x < SCREEN_WIDTH; x++ {
+				var pixel types.RGB = screenData[y][x]
+				gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
+				gl.Vertex2i(x*s.ScreenSizeMultiplier, y*s.ScreenSizeMultiplier)
+			}
 		}
-	}
 
-	gl.End()
-	glfw.SwapBuffers()
+		gl.End()
+		glfw.SwapBuffers()
+	*/
 }

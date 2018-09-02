@@ -3,8 +3,9 @@ package cartridge
 import (
 	"fmt"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 //Represents MBC3

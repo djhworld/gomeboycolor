@@ -3,11 +3,8 @@ package main
 //Probably needlessly complex debug facility, but useful none the less
 
 import (
-	"code.google.com/p/freetype-go/freetype"
-	"code.google.com/p/freetype-go/freetype/truetype"
 	"errors"
 	"fmt"
-	"gpu"
 	"image"
 	"image/color"
 	"image/draw"
@@ -16,8 +13,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/gpu"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
+
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
 )
 
 type DebugCommandHandler func(*GomeboyColor, ...string)
@@ -387,7 +389,7 @@ func DrawTextOnImage(text string, font *truetype.Font, img *image.NRGBA, size, x
 	c.SetClip(img.Bounds())
 	c.SetDst(img)
 	c.SetSrc(image.Black)
-	pt := freetype.Pt(x, y+int(c.PointToFix32(float64(size))>>8))
+	pt := freetype.Pt(x, y+int(c.PointToFixed(float64(size))>>8))
 	c.DrawString(text, pt)
 }
 

@@ -4,7 +4,8 @@ package gpu
 
 import (
 	"fmt"
-	"types"
+
+	"github.com/djhworld/gomeboycolor/types"
 )
 
 type Sprite interface {

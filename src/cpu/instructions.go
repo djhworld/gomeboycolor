@@ -2,7 +2,8 @@ package cpu
 
 import (
 	"fmt"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 type Instruction struct {
