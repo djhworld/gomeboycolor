@@ -63,8 +63,8 @@ func Init(cart *cartridge.Cartridge, conf *config.Config) (*GomeboyColor, error)
 	}
 
 	//load RAM into MBC (if supported)
-	//TODO!!!!
-	//gbc.mmu.LoadCartridgeRam(gbc.config.SavesDir)
+	//TODO need to figure this bit out
+	//gbc.mmu.LoadCartridgeRam(nil)
 	gbc.gpu.LinkScreen(gbc.io.ScreenOutputChannel)
 	gbc.setupBoot()
 
@@ -304,8 +304,8 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 }
 
 func (gbc *GomeboyColor) onClose() {
-	//TODO!!!!!!!!!!!!!!!!
-	//gbc.mmu.SaveCartridgeRam(gbc.config.SavesDir)
+	//TODO need to figure this bit out
+	//gbc.mmu.SaveCartridgeRam(nil)
 	log.Println("Goodbye!")
 	os.Exit(0)
 }

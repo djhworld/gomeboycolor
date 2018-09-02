@@ -3,6 +3,7 @@ package mmu
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"sort"
 
@@ -266,17 +267,17 @@ func (mmu *GbcMMU) IsCartridgeColor() bool {
 	return mmu.cartridge.IsColourGB
 }
 
-func (mmu *GbcMMU) SaveCartridgeRam(savesDir string) {
-	err := mmu.cartridge.SaveRam(savesDir)
+func (mmu *GbcMMU) SaveCartridgeRam(writer io.Writer) {
+	err := mmu.cartridge.SaveRam(writer)
 	if err != nil {
-		log.Println("Error occured attempting to save RAM to disk: ", err)
+		log.Println("Error occured attempting to save RAM: ", err)
 	}
 }
 
-func (mmu *GbcMMU) LoadCartridgeRam(savesDir string) {
-	err := mmu.cartridge.LoadRam(savesDir)
+func (mmu *GbcMMU) LoadCartridgeRam(reader io.Reader) {
+	err := mmu.cartridge.LoadRam(reader)
 	if err != nil {
-		log.Println("Error occured attempting to load RAM from disk: ", err)
+		log.Println("Error occured attempting to load RAM: ", err)
 	}
 }
 

@@ -9,25 +9,21 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"io/ioutil"
 	"log"
-	"path/filepath"
 	"time"
 )
 
 type SaveFile struct {
 	Game       string
-	Path       string
 	NoOfBanks  int
 	Banks      []string
 	BankHashes []uint32
 	LastSaved  string
 }
 
-func NewSaveFile(savesDir string, game string) *SaveFile {
+func NewSaveFile(game string) *SaveFile {
 	var s *SaveFile = new(SaveFile)
 	s.Game = game
-	s.Path = filepath.Join(savesDir, game) + ".sav"
 	return s
 }
 
@@ -73,16 +69,13 @@ func (s *SaveFile) InflateBank(bankStr string) ([]byte, error) {
 	return outBuffer.Bytes(), nil
 }
 
-func (s *SaveFile) Load(noOfBanks int) ([][]byte, error) {
-	log.Println("Loading RAM from", s.Path)
-	file, err := ioutil.ReadFile(s.Path)
-	if err != nil {
-		return nil, err
-	}
+func (s *SaveFile) Load(reader io.Reader, noOfBanks int) ([][]byte, error) {
+	log.Println("Loading RAM from reader")
 
-	//Now parse into struct
+	decoder := json.NewDecoder(reader)
+
 	var saveFile SaveFile
-	err = json.Unmarshal(file, &saveFile)
+	err := decoder.Decode(&saveFile)
 	if err != nil {
 		return nil, err
 	}
@@ -126,13 +119,13 @@ func (s *SaveFile) Load(noOfBanks int) ([][]byte, error) {
 //compresses ram banks and stores as base64 strings.
 //hashes are taken each bank
 //information is stored on disk in JSON format
-func (s *SaveFile) Save(data [][]byte) error {
+func (s *SaveFile) Save(writer io.Writer, data [][]byte) error {
 	s.NoOfBanks = len(data)
 	s.Banks = make([]string, s.NoOfBanks)
 	s.BankHashes = make([]uint32, s.NoOfBanks)
 	s.LastSaved = fmt.Sprint(time.Now().Format(time.UnixDate))
 
-	log.Println("Saving RAM to", s.Path)
+	log.Println("Saving RAM to writer")
 	for i, bank := range data {
 		//take crc32 hash of bank
 		s.BankHashes[i] = crc32.ChecksumIEEE(bank)
@@ -148,13 +141,11 @@ func (s *SaveFile) Save(data [][]byte) error {
 	}
 
 	//serialize to JSON
-	js, err := json.Marshal(&s)
+	encoder := json.NewEncoder(writer)
+	err := encoder.Encode(&s)
 	if err != nil {
 		return errors.New(fmt.Sprintln("Error attempting to parse into JSON", err))
 	}
 
-	log.Println("Save file", s.Path, "size is", len(js), "bytes")
-
-	//write to disk
-	return ioutil.WriteFile(s.Path, js, 0755)
+	return nil
 }

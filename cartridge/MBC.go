@@ -1,12 +1,16 @@
 package cartridge
 
-import "github.com/djhworld/gomeboycolor/types"
+import (
+	"io"
+
+	"github.com/djhworld/gomeboycolor/types"
+)
 
 type MemoryBankController interface {
 	Write(addr types.Word, value byte)
 	Read(addr types.Word) byte
-	SaveRam(savesDir string, game string) error
-	LoadRam(savesDir string, game string) error
+	SaveRam(game string, writer io.Writer) error
+	LoadRam(game string, reader io.Reader) error
 	switchROMBank(bank int)
 	switchRAMBank(bank int)
 }

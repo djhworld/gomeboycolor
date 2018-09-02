@@ -3,7 +3,7 @@ package cartridge
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"io"
 	"strings"
 
 	"github.com/djhworld/gomeboycolor/utils"
@@ -122,14 +122,12 @@ func (c *Cartridge) Init(rom []byte) error {
 	return nil
 }
 
-// TODO this should really be an io.Writer
-func (c *Cartridge) SaveRam(savesDir string) error {
-	return c.MBC.SaveRam(savesDir, filepath.Base(c.Filename))
+func (c *Cartridge) SaveRam(writer io.Writer) error {
+	return c.MBC.SaveRam(c.Filename, writer)
 }
 
-// TODO this should really be an io.Reader
-func (c *Cartridge) LoadRam(savesDir string) error {
-	return c.MBC.LoadRam(savesDir, filepath.Base(c.Filename))
+func (c *Cartridge) LoadRam(reader io.Reader) error {
+	return c.MBC.LoadRam(c.Filename, reader)
 }
 
 func (c *Cartridge) String() string {

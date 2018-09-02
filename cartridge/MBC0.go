@@ -2,6 +2,7 @@ package cartridge
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -53,10 +54,10 @@ func (m *MBC0) switchRAMBank(bank int) {
 	// not needed for MBC0
 }
 
-func (m *MBC0) SaveRam(savesDir string, game string) error {
+func (m *MBC0) SaveRam(game string, writer io.Writer) error {
 	return nil
 }
 
-func (m *MBC0) LoadRam(savesDir string, game string) error {
+func (m *MBC0) LoadRam(game string, reader io.Reader) error {
 	return nil
 }

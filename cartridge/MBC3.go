@@ -2,6 +2,7 @@ package cartridge
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/djhworld/gomeboycolor/types"
@@ -113,20 +114,20 @@ func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
 
-func (m *MBC3) SaveRam(savesDir string, game string) error {
+func (m *MBC3) SaveRam(game string, writer io.Writer) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile(savesDir, game)
-		err := s.Save(m.ramBanks)
+		s := NewSaveFile(game)
+		err := s.Save(writer, m.ramBanks)
 		s = nil
 		return err
 	}
 	return nil
 }
 
-func (m *MBC3) LoadRam(savesDir string, game string) error {
+func (m *MBC3) LoadRam(game string, reader io.Reader) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile(savesDir, game)
-		banks, err := s.Load(4)
+		s := NewSaveFile(game)
+		banks, err := s.Load(reader, 4)
 		if err != nil {
 			return err
 		}
