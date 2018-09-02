@@ -16,6 +16,7 @@ import (
 	"github.com/djhworld/gomeboycolor/cpu"
 	"github.com/djhworld/gomeboycolor/gpu"
 	"github.com/djhworld/gomeboycolor/inputoutput"
+	"github.com/djhworld/gomeboycolor/metric"
 	"github.com/djhworld/gomeboycolor/mmu"
 	"github.com/djhworld/gomeboycolor/timer"
 	"github.com/djhworld/gomeboycolor/types"
@@ -28,20 +29,19 @@ const TITLE string = "gomeboycolor"
 var VERSION string
 
 type GomeboyColor struct {
-	gpu                    *gpu.GPU
-	cpu                    *cpu.GbcCPU
-	mmu                    *mmu.GbcMMU
-	io                     *inputoutput.IO
-	apu                    *apu.APU
-	timer                  *timer.Timer
-	debugOptions           *DebugOptions
-	config                 Config
-	cpuClockAcc            int
-	frameCount             int
-	stepCount              int
-	inBootMode             bool
-	fpsSamples             []int
-	averageFramesPerSecond int
+	gpu          *gpu.GPU
+	cpu          *cpu.GbcCPU
+	mmu          *mmu.GbcMMU
+	io           *inputoutput.IO
+	apu          *apu.APU
+	timer        *timer.Timer
+	fpsCounter   *metric.FPSCounter
+	debugOptions *DebugOptions
+	config       Config
+	cpuClockAcc  int
+	frameCount   int
+	stepCount    int
+	inBootMode   bool
 }
 
 func NewGBC() *GomeboyColor {
@@ -68,6 +68,8 @@ func NewGBC() *GomeboyColor {
 	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
 	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
 	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)
+
+	gbc.fpsCounter = metric.NewFPSCounter()
 
 	return gbc
 }
@@ -117,24 +119,12 @@ func (gbc *GomeboyColor) Run() {
 		gbc.frameCount++
 		if gbc.config.DisplayFPS {
 			if time.Since(currentTime) >= (1 * time.Second) {
-				gbc.StoreFPSSample(gbc.frameCount / 1.0)
-				log.Println("Average frames per second:", gbc.averageFramesPerSecond)
+				gbc.fpsCounter.Add(gbc.frameCount / 1.0)
+				log.Println("Average frames per second:", gbc.fpsCounter.Avg())
 				currentTime = time.Now()
 				gbc.frameCount = 0
 			}
 		}
-	}
-}
-
-func (gbc *GomeboyColor) StoreFPSSample(sample int) {
-	gbc.fpsSamples = append(gbc.fpsSamples, sample)
-	if len(gbc.fpsSamples) == 5 {
-		average := 0
-		for _, i := range gbc.fpsSamples {
-			average += i
-		}
-		gbc.averageFramesPerSecond = average / 5
-		gbc.fpsSamples = gbc.fpsSamples[1:]
 	}
 }
 
