@@ -1,13 +1,14 @@
 package cpu
 
 import (
-	"constants"
 	"errors"
 	"fmt"
 	"log"
-	"mmu"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/mmu"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 const NAME = "CPU"

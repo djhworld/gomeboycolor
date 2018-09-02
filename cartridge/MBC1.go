@@ -2,13 +2,16 @@ package cartridge
 
 import (
 	"fmt"
+	"log"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
-//Represents MBC3
-type MBC3 struct {
+//Represents MBC1
+type MBC1 struct {
 	Name            string
 	romBank0        []byte
 	romBanks        [][]byte
@@ -17,15 +20,17 @@ type MBC3 struct {
 	selectedRAMBank int
 	hasRAM          bool
 	ramEnabled      bool
+	hasBattery      bool
+	MaxMemMode      int
 	ROMSize         int
 	RAMSize         int
-	hasBattery      bool
 }
 
-func NewMBC3(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC3 {
-	var m *MBC3 = new(MBC3)
+func NewMBC1(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC1 {
+	var m *MBC1 = new(MBC1)
 
-	m.Name = "CARTRIDGE-MBC3"
+	m.Name = "CARTRIDGE-MBC1"
+	m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
 	m.hasBattery = hasBattery
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
@@ -44,7 +49,7 @@ func NewMBC3(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC3 {
 	return m
 }
 
-func (m *MBC3) String() string {
+func (m *MBC1) String() string {
 	var batteryStr string
 	if m.hasBattery {
 		batteryStr += "Yes"
@@ -59,31 +64,44 @@ func (m *MBC3) String() string {
 		fmt.Sprintln(utils.PadRight("Battery:", 18, " "), batteryStr)
 }
 
-func (m *MBC3) Write(addr types.Word, value byte) {
+func (m *MBC1) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x0000 && addr <= 0x1FFF:
-		if m.hasRAM {
+		//when in 4/32 mode...
+		if m.MaxMemMode == constants.FOURMB_ROM_32KBRAM && m.hasRAM {
 			if r := value & 0x0F; r == 0x0A {
+				log.Println(m.Name + ": Enabling RAM")
 				m.ramEnabled = true
 			} else {
+				log.Println(m.Name + ": Disabling RAM")
 				m.ramEnabled = false
 			}
 		}
 	case addr >= 0x2000 && addr <= 0x3FFF:
-		m.switchROMBank(int(value & 0x7F)) //7 bits rather than 5
+		m.switchROMBank(int(value & 0x1F))
 	case addr >= 0x4000 && addr <= 0x5FFF:
 		m.switchRAMBank(int(value & 0x03))
-	//case addr >= 0x6000 && addr <= 0x7FFF:
-	// RTC stuff....
-	//	return
+	case addr >= 0x6000 && addr <= 0x7FFF:
+		if mode := value & 0x01; mode == 0x00 {
+			m.MaxMemMode = constants.SIXTEENMB_ROM_8KBRAM
+			log.Println(m.Name + ": Switched MBC1 mode to 16/8")
+		} else {
+			m.MaxMemMode = constants.FOURMB_ROM_32KBRAM
+			log.Println(m.Name + ": Switched MBC1 mode to 4/32")
+		}
 	case addr >= 0xA000 && addr <= 0xBFFF:
 		if m.hasRAM && m.ramEnabled {
-			m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
+			switch m.MaxMemMode {
+			case constants.FOURMB_ROM_32KBRAM:
+				m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
+			case constants.SIXTEENMB_ROM_8KBRAM:
+				m.ramBanks[0][addr-0xA000] = value
+			}
 		}
 	}
 }
 
-func (m *MBC3) Read(addr types.Word) byte {
+func (m *MBC1) Read(addr types.Word) byte {
 	//ROM Bank 0
 	if addr < 0x4000 {
 		return m.romBank0[addr]
@@ -97,22 +115,27 @@ func (m *MBC3) Read(addr types.Word) byte {
 	//Upper bounds of memory map.
 	if addr >= 0xA000 && addr <= 0xC000 {
 		if m.hasRAM && m.ramEnabled {
-			return m.ramBanks[m.selectedRAMBank][addr-0xA000]
+			switch m.MaxMemMode {
+			case constants.FOURMB_ROM_32KBRAM:
+				return m.ramBanks[m.selectedRAMBank][addr-0xA000]
+			case constants.SIXTEENMB_ROM_8KBRAM:
+				return m.ramBanks[0][addr-0xA000]
+			}
 		}
 	}
 
 	return 0x00
 }
 
-func (m *MBC3) switchROMBank(bank int) {
+func (m *MBC1) switchROMBank(bank int) {
 	m.selectedROMBank = bank
 }
 
-func (m *MBC3) switchRAMBank(bank int) {
+func (m *MBC1) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
 
-func (m *MBC3) SaveRam(savesDir string, game string) error {
+func (m *MBC1) SaveRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
 		s := NewSaveFile(savesDir, game)
 		err := s.Save(m.ramBanks)
@@ -122,7 +145,7 @@ func (m *MBC3) SaveRam(savesDir string, game string) error {
 	return nil
 }
 
-func (m *MBC3) LoadRam(savesDir string, game string) error {
+func (m *MBC1) LoadRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
 		s := NewSaveFile(savesDir, game)
 		banks, err := s.Load(4)

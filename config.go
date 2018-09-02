@@ -11,7 +11,8 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 const (

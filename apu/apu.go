@@ -7,9 +7,10 @@
 package apu
 
 import (
-	"components"
 	"log"
-	"types"
+
+	"github.com/djhworld/gomeboycolor/components"
+	"github.com/djhworld/gomeboycolor/types"
 )
 
 type APU struct {

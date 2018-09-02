@@ -1,6 +1,6 @@
 package components
 
-import "types"
+import "github.com/djhworld/gomeboycolor/types"
 
 type Peripheral interface {
 	Name() string

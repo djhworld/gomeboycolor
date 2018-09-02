@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 //Represents ROM only MBC (MBC0)

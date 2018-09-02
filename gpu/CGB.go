@@ -2,7 +2,8 @@ package gpu
 
 import (
 	"fmt"
-	"types"
+
+	"github.com/djhworld/gomeboycolor/types"
 )
 
 const OBJ_PRIORITY = 1

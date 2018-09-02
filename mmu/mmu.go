@@ -1,15 +1,16 @@
 package mmu
 
 import (
-	"cartridge"
-	"components"
-	"constants"
 	"errors"
 	"fmt"
 	"log"
 	"sort"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/cartridge"
+	"github.com/djhworld/gomeboycolor/components"
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
 const PREFIX = "MMU"

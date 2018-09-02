@@ -1,11 +1,12 @@
 package gpu
 
 import (
-	"components"
-	"constants"
 	"fmt"
 	"log"
-	"types"
+
+	"github.com/djhworld/gomeboycolor/components"
+	"github.com/djhworld/gomeboycolor/constants"
+	"github.com/djhworld/gomeboycolor/types"
 )
 
 const NAME = "GPU"

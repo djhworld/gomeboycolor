@@ -1,6 +1,6 @@
 package constants
 
-import "types"
+import "github.com/djhworld/gomeboycolor/types"
 
 //interrupt handler addresses
 const (

@@ -3,12 +3,13 @@ package cartridge
 import (
 	"fmt"
 	"strings"
-	"types"
-	"utils"
+
+	"github.com/djhworld/gomeboycolor/types"
+	"github.com/djhworld/gomeboycolor/utils"
 )
 
-//Represents MBC5
-type MBC5 struct {
+//Represents MBC3
+type MBC3 struct {
 	Name            string
 	romBank0        []byte
 	romBanks        [][]byte
@@ -20,14 +21,12 @@ type MBC5 struct {
 	ROMSize         int
 	RAMSize         int
 	hasBattery      bool
-	ROMBHigher      types.Word
-	ROMBLower       types.Word
 }
 
-func NewMBC5(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC5 {
-	var m *MBC5 = new(MBC5)
+func NewMBC3(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC3 {
+	var m *MBC3 = new(MBC3)
 
-	m.Name = "CARTRIDGE-MBC5"
+	m.Name = "CARTRIDGE-MBC3"
 	m.hasBattery = hasBattery
 	m.ROMSize = romSize
 	m.RAMSize = ramSize
@@ -36,7 +35,7 @@ func NewMBC5(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC5 {
 		m.hasRAM = true
 		m.ramEnabled = true
 		m.selectedRAMBank = 0
-		m.ramBanks = populateRAMBanks(16)
+		m.ramBanks = populateRAMBanks(4)
 	}
 
 	m.selectedROMBank = 0
@@ -46,7 +45,7 @@ func NewMBC5(rom []byte, romSize int, ramSize int, hasBattery bool) *MBC5 {
 	return m
 }
 
-func (m *MBC5) String() string {
+func (m *MBC3) String() string {
 	var batteryStr string
 	if m.hasBattery {
 		batteryStr += "Yes"
@@ -61,7 +60,7 @@ func (m *MBC5) String() string {
 		fmt.Sprintln(utils.PadRight("Battery:", 18, " "), batteryStr)
 }
 
-func (m *MBC5) Write(addr types.Word, value byte) {
+func (m *MBC3) Write(addr types.Word, value byte) {
 	switch {
 	case addr >= 0x0000 && addr <= 0x1FFF:
 		if m.hasRAM {
@@ -71,16 +70,13 @@ func (m *MBC5) Write(addr types.Word, value byte) {
 				m.ramEnabled = false
 			}
 		}
-	case addr >= 0x2000 && addr <= 0x2FFF:
-		//lower 8 bits of rom bank are set here
-		m.ROMBLower = types.Word(value)
-		m.switchROMBank(int(m.ROMBLower | m.ROMBHigher<<8))
-	case addr >= 0x3000 && addr <= 0x3FFF:
-		//lowest bit of this value allows you to select banks > 256
-		m.ROMBHigher = types.Word(value & 0x01)
-		m.switchROMBank(int(m.ROMBLower | m.ROMBHigher<<8))
+	case addr >= 0x2000 && addr <= 0x3FFF:
+		m.switchROMBank(int(value & 0x7F)) //7 bits rather than 5
 	case addr >= 0x4000 && addr <= 0x5FFF:
 		m.switchRAMBank(int(value & 0x03))
+	//case addr >= 0x6000 && addr <= 0x7FFF:
+	// RTC stuff....
+	//	return
 	case addr >= 0xA000 && addr <= 0xBFFF:
 		if m.hasRAM && m.ramEnabled {
 			m.ramBanks[m.selectedRAMBank][addr-0xA000] = value
@@ -88,7 +84,7 @@ func (m *MBC5) Write(addr types.Word, value byte) {
 	}
 }
 
-func (m *MBC5) Read(addr types.Word) byte {
+func (m *MBC3) Read(addr types.Word) byte {
 	//ROM Bank 0
 	if addr < 0x4000 {
 		return m.romBank0[addr]
@@ -96,9 +92,6 @@ func (m *MBC5) Read(addr types.Word) byte {
 
 	//Switchable ROM BANK
 	if addr >= 0x4000 && addr < 0x8000 {
-		if m.selectedROMBank == 0 {
-			return m.romBank0[addr]
-		}
 		return m.romBanks[m.selectedROMBank][addr-0x4000]
 	}
 
@@ -112,15 +105,15 @@ func (m *MBC5) Read(addr types.Word) byte {
 	return 0x00
 }
 
-func (m *MBC5) switchROMBank(bank int) {
+func (m *MBC3) switchROMBank(bank int) {
 	m.selectedROMBank = bank
 }
 
-func (m *MBC5) switchRAMBank(bank int) {
+func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
 
-func (m *MBC5) SaveRam(savesDir string, game string) error {
+func (m *MBC3) SaveRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
 		s := NewSaveFile(savesDir, game)
 		err := s.Save(m.ramBanks)
@@ -130,10 +123,10 @@ func (m *MBC5) SaveRam(savesDir string, game string) error {
 	return nil
 }
 
-func (m *MBC5) LoadRam(savesDir string, game string) error {
+func (m *MBC3) LoadRam(savesDir string, game string) error {
 	if m.hasRAM && m.hasBattery {
 		s := NewSaveFile(savesDir, game)
-		banks, err := s.Load(16)
+		banks, err := s.Load(4)
 		if err != nil {
 			return err
 		}
