@@ -116,7 +116,7 @@ func (m *MBC3) switchRAMBank(bank int) {
 
 func (m *MBC3) SaveRam(writer io.Writer) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile()
+		s := NewSave()
 		err := s.Save(writer, m.ramBanks)
 		s = nil
 		return err
@@ -126,7 +126,7 @@ func (m *MBC3) SaveRam(writer io.Writer) error {
 
 func (m *MBC3) LoadRam(reader io.Reader) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile()
+		s := NewSave()
 		banks, err := s.Load(reader, 4)
 		if err != nil {
 			return err
