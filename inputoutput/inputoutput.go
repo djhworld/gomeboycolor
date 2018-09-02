@@ -17,17 +17,26 @@ const ROW_2 byte = 0x20
 const SCREEN_WIDTH int = 160
 const SCREEN_HEIGHT int = 144
 
-var DefaultControlScheme ControlScheme = ControlScheme{1, 2, 3, 4, 90, 88, 294, 288}
+var DefaultControlScheme ControlScheme = ControlScheme{
+	glfw.KeyUp,
+	glfw.KeyDown,
+	glfw.KeyLeft,
+	glfw.KeyRight,
+	glfw.KeyZ,
+	glfw.KeyX,
+	glfw.KeyA,
+	glfw.KeyS,
+}
 
 type ControlScheme struct {
-	UP     int
-	DOWN   int
-	LEFT   int
-	RIGHT  int
-	A      int
-	B      int
-	START  int
-	SELECT int
+	UP     glfw.Key
+	DOWN   glfw.Key
+	LEFT   glfw.Key
+	RIGHT  glfw.Key
+	A      glfw.Key
+	B      glfw.Key
+	START  glfw.Key
+	SELECT glfw.Key
 }
 
 type KeyHandler struct {
@@ -77,7 +86,7 @@ func (k *KeyHandler) Write(addr types.Word, value byte) {
 }
 
 //released sets bit for key to 0
-func (k *KeyHandler) KeyDown(key int) {
+func (k *KeyHandler) KeyDown(key glfw.Key) {
 	k.irqHandler.RequestInterrupt(constants.JOYP_HILO_IRQ)
 	switch key {
 	case k.controlScheme.UP:
@@ -100,7 +109,7 @@ func (k *KeyHandler) KeyDown(key int) {
 }
 
 //released sets bit for key to 1
-func (k *KeyHandler) KeyUp(key int) {
+func (k *KeyHandler) KeyUp(key glfw.Key) {
 	switch key {
 	case k.controlScheme.UP:
 		k.rows[0] |= 0x4
@@ -145,16 +154,19 @@ func (i *IO) Init(title string, screenSize int, onCloseHandler func()) error {
 		return err
 	}
 
-	/*
-		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
-		i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-			if action == glfw.Press {
-				i.KeyHandler.KeyDown(key)
-			} else {
-				i.KeyHandler.KeyUp(key)
-			}
-		})
-	*/
+	i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
+	i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if action == glfw.Repeat {
+			i.KeyHandler.KeyDown(key)
+			return
+		}
+
+		if action == glfw.Press {
+			i.KeyHandler.KeyDown(key)
+		} else {
+			i.KeyHandler.KeyUp(key)
+		}
+	})
 
 	return nil
 }
@@ -239,10 +251,10 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 }
 
 func (s *Display) drawFrame(screenData *types.Screen) {
-	gl.Viewport(0, 0, int32(SCREEN_WIDTH)*2, int32(SCREEN_HEIGHT)*2)
+	gl.Viewport(0, 0, int32(SCREEN_WIDTH*s.ScreenSizeMultiplier)*2, int32(SCREEN_HEIGHT*s.ScreenSizeMultiplier)*2)
 	gl.MatrixMode(gl.PROJECTION)
 	gl.LoadIdentity()
-	gl.Ortho(0, float64(SCREEN_WIDTH), float64(SCREEN_HEIGHT), 0, -1, 1)
+	gl.Ortho(0, float64(SCREEN_WIDTH*s.ScreenSizeMultiplier), float64(SCREEN_HEIGHT*s.ScreenSizeMultiplier), 0, -1, 1)
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.MatrixMode(gl.MODELVIEW)
