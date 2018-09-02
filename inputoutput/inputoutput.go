@@ -135,6 +135,7 @@ type IO struct {
 	Display             *Display
 	ScreenOutputChannel chan *types.Screen
 	AudioOutputChannel  chan int
+	headless            bool
 }
 
 func NewIO() *IO {
@@ -143,32 +144,36 @@ func NewIO() *IO {
 	i.Display = new(Display)
 	i.ScreenOutputChannel = make(chan *types.Screen)
 	i.AudioOutputChannel = make(chan int)
+	i.headless = false
 	return i
 }
 
-func (i *IO) Init(title string, screenSize int, onCloseHandler func()) error {
-	var err error
+func (i *IO) Init(title string, screenSize int, headless bool, onCloseHandler func()) error {
+	i.headless = headless
+	var err error = nil
 
-	err = i.Display.init(title, screenSize, onCloseHandler)
-	if err != nil {
-		return err
+	if !i.headless {
+		err = i.Display.init(title, screenSize, onCloseHandler)
+		if err != nil {
+			return err
+		}
+
+		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
+		i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+			if action == glfw.Repeat {
+				i.KeyHandler.KeyDown(key)
+				return
+			}
+
+			if action == glfw.Press {
+				i.KeyHandler.KeyDown(key)
+			} else {
+				i.KeyHandler.KeyUp(key)
+			}
+		})
 	}
 
-	i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
-	i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if action == glfw.Repeat {
-			i.KeyHandler.KeyDown(key)
-			return
-		}
-
-		if action == glfw.Press {
-			i.KeyHandler.KeyDown(key)
-		} else {
-			i.KeyHandler.KeyUp(key)
-		}
-	})
-
-	return nil
+	return err
 }
 
 //This will wait for updates to the display or audio and dispatch them accordingly
@@ -176,9 +181,13 @@ func (i *IO) Run() {
 	for {
 		select {
 		case data := <-i.ScreenOutputChannel:
-			i.Display.drawFrame(data)
+			if !i.headless {
+				i.Display.drawFrame(data)
+			}
 		case data := <-i.AudioOutputChannel:
-			log.Println("Writing %d to audio!", data)
+			if !i.headless {
+				log.Println("Writing %d to audio!", data)
+			}
 		}
 	}
 }
