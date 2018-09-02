@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/metric"
 	"github.com/djhworld/gomeboycolor/mmu"
+	"github.com/djhworld/gomeboycolor/store"
 	"github.com/djhworld/gomeboycolor/timer"
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
@@ -27,9 +27,10 @@ const TITLE string = "gomeboycolor"
 
 var VERSION string
 
-func Init(cart *cartridge.Cartridge, conf *config.Config) (*GomeboyColor, error) {
+func Init(cart *cartridge.Cartridge, saveStore store.Store, conf *config.Config) (*GomeboyColor, error) {
 	var gbc *GomeboyColor = NewGBC()
 	gbc.config = conf
+	gbc.saveStore = saveStore
 	b, er := gbc.mmu.LoadBIOS(BOOTROM)
 	if !b {
 		log.Println("Error loading bootrom:", er)
@@ -54,17 +55,23 @@ func Init(cart *cartridge.Cartridge, conf *config.Config) (*GomeboyColor, error)
 	}
 
 	//append cartridge name and filename to title
-	gbc.config.Title += fmt.Sprintf(" - %s - %s", filepath.Base(cart.Filename), cart.Title)
+	gbc.config.Title += fmt.Sprintf(" - %s - %s", cart.Name, cart.Title)
 
-	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose)
+	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose(cart.ID))
 
 	if ioInitializeErr != nil {
 		log.Fatalf("%v", ioInitializeErr)
 	}
 
 	//load RAM into MBC (if supported)
-	//TODO need to figure this bit out
-	//gbc.mmu.LoadCartridgeRam(nil)
+	r, err := gbc.saveStore.Open(cart.ID)
+	if err == nil {
+		gbc.mmu.LoadCartridgeRam(r)
+	} else {
+		log.Printf("Could not load a save state for: %s (%v)", cart.ID, err)
+	}
+	defer r.Close()
+
 	gbc.gpu.LinkScreen(gbc.io.ScreenOutputChannel)
 	gbc.setupBoot()
 
@@ -84,6 +91,7 @@ type GomeboyColor struct {
 	fpsCounter   *metric.FPSCounter
 	debugOptions *DebugOptions
 	config       *config.Config
+	saveStore    store.Store
 	cpuClockAcc  int
 	frameCount   int
 	stepCount    int
@@ -303,11 +311,15 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
-func (gbc *GomeboyColor) onClose() {
-	//TODO need to figure this bit out
-	//gbc.mmu.SaveCartridgeRam(nil)
-	log.Println("Goodbye!")
-	os.Exit(0)
+func (gbc *GomeboyColor) onClose(id string) func() {
+	return func() {
+		//TODO need to figure this bit out
+		w, _ := gbc.saveStore.Create(id)
+		defer w.Close()
+		gbc.mmu.SaveCartridgeRam(w)
+		log.Println("Goodbye!")
+		os.Exit(0)
+	}
 }
 
 var BOOTROM []byte = []byte{

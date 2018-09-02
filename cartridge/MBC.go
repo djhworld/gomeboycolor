@@ -9,8 +9,8 @@ import (
 type MemoryBankController interface {
 	Write(addr types.Word, value byte)
 	Read(addr types.Word) byte
-	SaveRam(game string, writer io.Writer) error
-	LoadRam(game string, reader io.Reader) error
+	SaveRam(writer io.Writer) error
+	LoadRam(reader io.Reader) error
 	switchROMBank(bank int)
 	switchRAMBank(bank int)
 }

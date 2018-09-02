@@ -1,6 +1,7 @@
 package cartridge
 
 import (
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"io"
@@ -49,14 +50,15 @@ type Cartridge struct {
 	ROMSize    int
 	RAMSize    int
 	IsJapanese bool
-	Filename   string
+	Name       string
 	MBC        MemoryBankController
+	ID         string
 }
 
 func NewCartridge(romName string, romContents []byte) (*Cartridge, error) {
 	var cart *Cartridge = new(Cartridge)
 
-	cart.Filename = romName
+	cart.Name = romName
 	var err error = cart.Init(romContents)
 	if err != nil {
 		return nil, err
@@ -71,6 +73,10 @@ func (c *Cartridge) Init(rom []byte) error {
 	}
 
 	c.Title = strings.TrimSpace(string(rom[0x0134:0x0142]))
+	h := md5.New()
+	io.WriteString(h, c.Title)
+	c.ID = fmt.Sprintf("%x", h.Sum(nil))
+
 	c.IsColourGB = (rom[0x0143] == 0x80) || (rom[0x0143] == 0xC0)
 
 	ctype := rom[0x0147]
@@ -123,11 +129,11 @@ func (c *Cartridge) Init(rom []byte) error {
 }
 
 func (c *Cartridge) SaveRam(writer io.Writer) error {
-	return c.MBC.SaveRam(c.Filename, writer)
+	return c.MBC.SaveRam(writer)
 }
 
 func (c *Cartridge) LoadRam(reader io.Reader) error {
-	return c.MBC.LoadRam(c.Filename, reader)
+	return c.MBC.LoadRam(reader)
 }
 
 func (c *Cartridge) String() string {
@@ -147,7 +153,8 @@ func (c *Cartridge) String() string {
 		fmt.Sprintf(utils.PadRight("Title:", 19, " ")+"%s", c.Title),
 		fmt.Sprintf(utils.PadRight("Type:", 19, " ")+"%s %s", c.Type.Description, utils.ByteToString(c.Type.ID)),
 		fmt.Sprintf(utils.PadRight("Destination code:", 19, " ")+"%s", destinationRegion),
-		fmt.Sprintf(utils.PadRight("File:", 19, " ")+"%s", c.Filename),
+		fmt.Sprintf(utils.PadRight("Name:", 19, " ")+"%s", c.Name),
+		fmt.Sprintf(utils.PadRight("ID:", 19, " ")+"%s", c.ID),
 	}
 
 	return fmt.Sprintln("\n"+startingString, "Cartridge") +

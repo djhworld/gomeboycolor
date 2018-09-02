@@ -7,12 +7,13 @@ import (
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/config"
 	"github.com/djhworld/gomeboycolor/gbc"
+	"github.com/djhworld/gomeboycolor/store"
 )
 
-func StartEmulator(cartridge *cartridge.Cartridge, conf *config.Config) error {
+func StartEmulator(cartridge *cartridge.Cartridge, saveStore store.Store, conf *config.Config) error {
 	log.Println("Starting emulator")
 
-	emulator, err := gbc.Init(cartridge, conf)
+	emulator, err := gbc.Init(cartridge, saveStore, conf)
 	if err != nil {
 		return err
 	}

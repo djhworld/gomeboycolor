@@ -114,9 +114,9 @@ func (m *MBC3) switchRAMBank(bank int) {
 	m.selectedRAMBank = bank
 }
 
-func (m *MBC3) SaveRam(game string, writer io.Writer) error {
+func (m *MBC3) SaveRam(writer io.Writer) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile(game)
+		s := NewSaveFile()
 		err := s.Save(writer, m.ramBanks)
 		s = nil
 		return err
@@ -124,9 +124,9 @@ func (m *MBC3) SaveRam(game string, writer io.Writer) error {
 	return nil
 }
 
-func (m *MBC3) LoadRam(game string, reader io.Reader) error {
+func (m *MBC3) LoadRam(reader io.Reader) error {
 	if m.hasRAM && m.hasBattery {
-		s := NewSaveFile(game)
+		s := NewSaveFile()
 		banks, err := s.Load(reader, 4)
 		if err != nil {
 			return err

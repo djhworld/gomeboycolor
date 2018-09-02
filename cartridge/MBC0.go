@@ -54,10 +54,10 @@ func (m *MBC0) switchRAMBank(bank int) {
 	// not needed for MBC0
 }
 
-func (m *MBC0) SaveRam(game string, writer io.Writer) error {
+func (m *MBC0) SaveRam(writer io.Writer) error {
 	return nil
 }
 
-func (m *MBC0) LoadRam(game string, reader io.Reader) error {
+func (m *MBC0) LoadRam(reader io.Reader) error {
 	return nil
 }

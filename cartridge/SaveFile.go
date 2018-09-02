@@ -14,16 +14,14 @@ import (
 )
 
 type SaveFile struct {
-	Game       string
 	NoOfBanks  int
 	Banks      []string
 	BankHashes []uint32
 	LastSaved  string
 }
 
-func NewSaveFile(game string) *SaveFile {
+func NewSaveFile() *SaveFile {
 	var s *SaveFile = new(SaveFile)
-	s.Game = game
 	return s
 }
 
