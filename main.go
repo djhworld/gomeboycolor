@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -10,10 +11,8 @@ import (
 
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/config"
-	"github.com/djhworld/gomeboycolor/gbc"
 )
 
-const FRAME_CYCLES = 70224
 const TITLE string = "gomeboycolor"
 
 var VERSION string
@@ -97,23 +96,43 @@ func main() {
 	fmt.Println(conf)
 
 	romFilename := flag.Arg(0)
-	cart, err := cartridge.NewCartridge(romFilename)
+
+	romContents, err := RetrieveROM(romFilename)
+	if err != nil {
+		log.Println(err)
+	}
+
+	cart, err := cartridge.NewCartridge(romFilename, romContents)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	emulator, err := gbc.Init(cart, conf)
+	err = StartEmulator(cart, conf)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}
 
-	log.Println("Starting emulator")
+func RetrieveROM(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
 
-	//Starts emulator code in a goroutine
-	go emulator.Run()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-	//lock the OS thread here
-	runtime.LockOSThread()
+	stats, statsErr := file.Stat()
+	if statsErr != nil {
+		return nil, statsErr
+	}
 
-	//set the IO controller to run indefinitely (it waits for screen updates)
-	emulator.RunIO()
+	var size int64 = stats.Size()
+	bytes := make([]byte, size)
 
+	bufr := bufio.NewReader(file)
+	_, err = bufr.Read(bytes)
+
+	return bytes, err
 }

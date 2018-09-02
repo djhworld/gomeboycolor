@@ -1,10 +1,8 @@
 package cartridge
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -55,16 +53,11 @@ type Cartridge struct {
 	MBC        MemoryBankController
 }
 
-func NewCartridge(romFile string) (*Cartridge, error) {
+func NewCartridge(romName string, romContents []byte) (*Cartridge, error) {
 	var cart *Cartridge = new(Cartridge)
 
-	rom, err := RetrieveROM(romFile)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error retrieving ROM file: %v", err))
-	}
-
-	cart.Filename = romFile
-	err = cart.Init(rom)
+	cart.Filename = romName
+	var err error = cart.Init(romContents)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +122,12 @@ func (c *Cartridge) Init(rom []byte) error {
 	return nil
 }
 
+// TODO this should really be an io.Writer
 func (c *Cartridge) SaveRam(savesDir string) error {
 	return c.MBC.SaveRam(savesDir, filepath.Base(c.Filename))
 }
 
+// TODO this should really be an io.Reader
 func (c *Cartridge) LoadRam(savesDir string) error {
 	return c.MBC.LoadRam(savesDir, filepath.Base(c.Filename))
 }
@@ -162,26 +157,4 @@ func (c *Cartridge) String() string {
 		fmt.Sprintln(strings.Join(header, "\n")) +
 		fmt.Sprintln(c.MBC) +
 		fmt.Sprintln(strings.Repeat("-", 100))
-}
-
-func RetrieveROM(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
-
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	stats, statsErr := file.Stat()
-	if statsErr != nil {
-		return nil, statsErr
-	}
-
-	var size int64 = stats.Size()
-	bytes := make([]byte, size)
-
-	bufr := bufio.NewReader(file)
-	_, err = bufr.Read(bytes)
-
-	return bytes, err
 }
