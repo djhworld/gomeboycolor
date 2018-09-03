@@ -11,7 +11,7 @@ import (
 
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/config"
-	"github.com/djhworld/gomeboycolor/store"
+	"github.com/djhworld/gomeboycolor/saves"
 )
 
 const TITLE string = "gomeboycolor"
@@ -110,8 +110,7 @@ func main() {
 	}
 
 	//TODO make this configurable...?
-	//saveStore := store.NewNoopStore()
-	saveStore := store.NewFileSystemStore("./")
+	saveStore := saves.NewFileSystemStore("./")
 
 	err = StartEmulator(cart, saveStore, conf)
 	if err != nil {

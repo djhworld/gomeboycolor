@@ -16,7 +16,7 @@ import (
 	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/metric"
 	"github.com/djhworld/gomeboycolor/mmu"
-	"github.com/djhworld/gomeboycolor/store"
+	"github.com/djhworld/gomeboycolor/saves"
 	"github.com/djhworld/gomeboycolor/timer"
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
@@ -27,7 +27,7 @@ const TITLE string = "gomeboycolor"
 
 var VERSION string
 
-func Init(cart *cartridge.Cartridge, saveStore store.Store, conf *config.Config) (*GomeboyColor, error) {
+func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config) (*GomeboyColor, error) {
 	var gbc *GomeboyColor = NewGBC()
 	gbc.config = conf
 	gbc.saveStore = saveStore
@@ -91,7 +91,7 @@ type GomeboyColor struct {
 	fpsCounter   *metric.FPSCounter
 	debugOptions *DebugOptions
 	config       *config.Config
-	saveStore    store.Store
+	saveStore    saves.Store
 	cpuClockAcc  int
 	frameCount   int
 	stepCount    int
@@ -311,10 +311,10 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
-func (gbc *GomeboyColor) onClose(id string) func() {
+func (gbc *GomeboyColor) onClose(gameId string) func() {
 	return func() {
-		//TODO need to figure this bit out
-		w, _ := gbc.saveStore.Create(id)
+		//TODO need to figure this bit out (handle errors?)
+		w, _ := gbc.saveStore.Create(gameId)
 		defer w.Close()
 		gbc.mmu.SaveCartridgeRam(w)
 		log.Println("Goodbye!")
