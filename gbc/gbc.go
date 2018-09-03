@@ -27,60 +27,6 @@ const TITLE string = "gomeboycolor"
 
 var VERSION string
 
-func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config) (*GomeboyColor, error) {
-	var gbc *GomeboyColor = NewGBC()
-	gbc.config = conf
-	gbc.saveStore = saveStore
-	b, er := gbc.mmu.LoadBIOS(BOOTROM)
-	if !b {
-		log.Println("Error loading bootrom:", er)
-		return nil, er
-	}
-
-	gbc.mmu.LoadCartridge(cart)
-	gbc.debugOptions = new(DebugOptions)
-	gbc.debugOptions.Init(gbc.config.DumpState)
-
-	if gbc.config.Debug {
-		log.Println("Emulator will start in debug mode")
-		gbc.debugOptions.debuggerOn = true
-
-		//set breakpoint if defined
-		if b, err := utils.StringToWord(gbc.config.BreakOn); err != nil {
-			log.Fatalln("Cannot parse breakpoint:", gbc.config.BreakOn, "\n\t", err)
-		} else {
-			gbc.debugOptions.breakWhen = types.Word(b)
-			log.Println("Emulator will break into debugger when PC = ", gbc.debugOptions.breakWhen)
-		}
-	}
-
-	//append cartridge name and filename to title
-	gbc.config.Title += fmt.Sprintf(" - %s - %s", cart.Name, cart.Title)
-
-	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose(cart.ID))
-
-	if ioInitializeErr != nil {
-		log.Fatalf("%v", ioInitializeErr)
-	}
-
-	//load RAM into MBC (if supported)
-	r, err := gbc.saveStore.Open(cart.ID)
-	if err == nil {
-		gbc.mmu.LoadCartridgeRam(r)
-	} else {
-		log.Printf("Could not load a save state for: %s (%v)", cart.ID, err)
-	}
-	defer r.Close()
-
-	gbc.gpu.LinkScreen(gbc.io.ScreenOutputChannel)
-	gbc.setupBoot()
-
-	log.Println("Completed setup")
-	log.Println(strings.Repeat("*", 120))
-
-	return gbc, nil
-}
-
 type GomeboyColor struct {
 	gpu          *gpu.GPU
 	cpu          *cpu.GbcCPU
@@ -98,47 +44,80 @@ type GomeboyColor struct {
 	inBootMode   bool
 }
 
-func NewGBC() *GomeboyColor {
-	gbc := new(GomeboyColor)
+func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config) (*GomeboyColor, error) {
+	var gbc *GomeboyColor = newGomeboyColor(conf, saveStore)
 
-	gbc.mmu = mmu.NewGbcMMU()
-	gbc.cpu = cpu.NewCPU()
-	gbc.cpu.LinkMMU(gbc.mmu)
+	b, er := gbc.mmu.LoadBIOS(BOOTROM)
+	if !b {
+		log.Println("Error loading bootrom:", er)
+		return nil, er
+	}
 
-	gbc.io = inputoutput.NewIO()
-	gbc.gpu = gpu.NewGPU()
-	gbc.apu = apu.NewAPU()
-	gbc.timer = timer.NewTimer()
+	//append cartridge name and filename to title
+	gbc.config.Title += fmt.Sprintf(" - %s - %s", cart.Name, cart.Title)
 
-	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
-	gbc.gpu.LinkIRQHandler(gbc.mmu)
-	gbc.timer.LinkIRQHandler(gbc.mmu)
-	gbc.io.KeyHandler.LinkIRQHandler(gbc.mmu)
+	gbc.mmu.LoadCartridge(cart)
 
-	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF3F)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
-	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF57, 0xFF6F)
-	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
-	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
-	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)
+	gbc.debugOptions.Init(gbc.config.DumpState)
+	if gbc.config.Debug {
+		log.Println("Emulator will start in debug mode")
+		gbc.debugOptions.debuggerOn = true
 
-	gbc.fpsCounter = metric.NewFPSCounter()
+		//set breakpoint if defined
+		if b, err := utils.StringToWord(gbc.config.BreakOn); err != nil {
+			log.Fatalln("Cannot parse breakpoint:", gbc.config.BreakOn, "\n\t", err)
+		} else {
+			gbc.debugOptions.breakWhen = types.Word(b)
+			log.Println("Emulator will break into debugger when PC = ", gbc.debugOptions.breakWhen)
+		}
+	}
 
-	return gbc
+	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose(cart.ID))
+
+	if ioInitializeErr != nil {
+		log.Fatalf("%v", ioInitializeErr)
+	}
+
+	//load RAM into MBC (if supported)
+	r, err := gbc.saveStore.Open(cart.ID)
+	if err == nil {
+		gbc.mmu.LoadCartridgeRam(r)
+	} else {
+		log.Printf("Could not load a save state for: %s (%v)", cart.ID, err)
+	}
+	defer r.Close()
+
+	gbc.gpu.LinkScreen(gbc.io.ScreenOutputChannel)
+
+	gbc.setupBoot()
+
+	log.Println("Completed setup")
+	log.Println(strings.Repeat("*", 120))
+
+	return gbc, nil
 }
 
-func (gbc *GomeboyColor) DoFrame() {
-	for gbc.cpuClockAcc < FRAME_CYCLES {
-		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
-			gbc.Pause()
-		}
+func (gbc *GomeboyColor) Run() {
+	currentTime := time.Now()
 
-		if gbc.config.DumpState && !gbc.cpu.Halted {
-			fmt.Println(gbc.cpu)
+	for {
+		gbc.frameCount++
+
+		gbc.doFrame()
+		gbc.cpuClockAcc = 0
+		if gbc.config.DisplayFPS {
+			if time.Since(currentTime) >= (1 * time.Second) {
+				gbc.fpsCounter.Add(gbc.frameCount / 1.0)
+				log.Println("Average frames per second:", gbc.fpsCounter.Avg())
+				currentTime = time.Now()
+				gbc.frameCount = 0
+			}
 		}
-		gbc.Step()
 	}
+}
+
+func (gbc *GomeboyColor) RunIO() {
+	gbc.io.Run()
 }
 
 func (gbc *GomeboyColor) Step() {
@@ -155,61 +134,6 @@ func (gbc *GomeboyColor) Step() {
 	gbc.checkBootModeStatus()
 }
 
-func (gbc *GomeboyColor) Run() {
-	currentTime := time.Now()
-
-	for {
-		gbc.frameCount++
-
-		gbc.DoFrame()
-		gbc.cpuClockAcc = 0
-		if gbc.config.DisplayFPS {
-			if time.Since(currentTime) >= (1 * time.Second) {
-				gbc.fpsCounter.Add(gbc.frameCount / 1.0)
-				log.Println("Average frames per second:", gbc.fpsCounter.Avg())
-				currentTime = time.Now()
-				gbc.frameCount = 0
-			}
-		}
-	}
-}
-
-func (gbc *GomeboyColor) Pause() {
-	log.Println("DEBUGGER: Breaking because PC ==", gbc.debugOptions.breakWhen)
-	b := bufio.NewWriter(os.Stdout)
-	r := bufio.NewReader(os.Stdin)
-
-	fmt.Fprintln(b, "Debug mode, type ? for help")
-	for gbc.debugOptions.debuggerOn {
-		var instruction string
-		b.Flush()
-		fmt.Fprint(b, "> ")
-		b.Flush()
-		instruction, _ = r.ReadString('\n')
-		b.Flush()
-		var instructions []string = strings.Split(strings.Replace(instruction, "\n", "", -1), " ")
-		b.Flush()
-
-		command := instructions[0]
-
-		if command == "c" {
-			break
-		}
-
-		//dispatch
-		if v, ok := gbc.debugOptions.debugFuncMap[command]; ok {
-			v(gbc, instructions[1:]...)
-		} else {
-			fmt.Fprintln(b, "Unknown command:", command)
-			fmt.Fprintln(b, "Debug mode, type ? for help")
-		}
-	}
-}
-
-func (gbc *GomeboyColor) RunIO() {
-	gbc.io.Run()
-}
-
 func (gbc *GomeboyColor) Reset() {
 	log.Println("Resetting system")
 	gbc.cpu.Reset()
@@ -219,6 +143,52 @@ func (gbc *GomeboyColor) Reset() {
 	gbc.io.KeyHandler.Reset()
 	gbc.io.ScreenOutputChannel <- &(types.Screen{})
 	gbc.setupBoot()
+}
+
+func newGomeboyColor(conf *config.Config, saveStore saves.Store) *GomeboyColor {
+	gbc := new(GomeboyColor)
+
+	gbc.config = conf
+	gbc.saveStore = saveStore
+	gbc.debugOptions = new(DebugOptions)
+	gbc.fpsCounter = metric.NewFPSCounter()
+	gbc.mmu = mmu.NewGbcMMU()
+	gbc.cpu = cpu.NewCPU()
+
+	gbc.io = inputoutput.NewIO()
+	gbc.gpu = gpu.NewGPU()
+	gbc.apu = apu.NewAPU()
+	gbc.timer = timer.NewTimer()
+
+	gbc.cpu.LinkMMU(gbc.mmu)
+
+	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
+	gbc.gpu.LinkIRQHandler(gbc.mmu)
+	gbc.timer.LinkIRQHandler(gbc.mmu)
+	gbc.io.KeyHandler.LinkIRQHandler(gbc.mmu)
+
+	gbc.mmu.ConnectPeripheral(gbc.apu, 0xFF10, 0xFF3F)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
+	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF57, 0xFF6F)
+	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
+	gbc.mmu.ConnectPeripheralOn(gbc.io.KeyHandler, 0xFF00)
+	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)
+
+	return gbc
+}
+
+func (gbc *GomeboyColor) doFrame() {
+	for gbc.cpuClockAcc < FRAME_CYCLES {
+		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
+			gbc.pause()
+		}
+
+		if gbc.config.DumpState && !gbc.cpu.Halted {
+			fmt.Println(gbc.cpu)
+		}
+		gbc.Step()
+	}
 }
 
 func (gbc *GomeboyColor) setupBoot() {
@@ -319,6 +289,38 @@ func (gbc *GomeboyColor) onClose(gameId string) func() {
 		gbc.mmu.SaveCartridgeRam(w)
 		log.Println("Goodbye!")
 		os.Exit(0)
+	}
+}
+
+func (gbc *GomeboyColor) pause() {
+	log.Println("DEBUGGER: Breaking because PC ==", gbc.debugOptions.breakWhen)
+	b := bufio.NewWriter(os.Stdout)
+	r := bufio.NewReader(os.Stdin)
+
+	fmt.Fprintln(b, "Debug mode, type ? for help")
+	for gbc.debugOptions.debuggerOn {
+		var instruction string
+		b.Flush()
+		fmt.Fprint(b, "> ")
+		b.Flush()
+		instruction, _ = r.ReadString('\n')
+		b.Flush()
+		var instructions []string = strings.Split(strings.Replace(instruction, "\n", "", -1), " ")
+		b.Flush()
+
+		command := instructions[0]
+
+		if command == "c" {
+			break
+		}
+
+		//dispatch
+		if v, ok := gbc.debugOptions.debugFuncMap[command]; ok {
+			v(gbc, instructions[1:]...)
+		} else {
+			fmt.Fprintln(b, "Unknown command:", command)
+			fmt.Fprintln(b, "Debug mode, type ? for help")
+		}
 	}
 }
 
