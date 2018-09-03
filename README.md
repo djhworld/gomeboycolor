@@ -10,7 +10,7 @@ FAQ
 ============================
 
 
-#### How do I build it?
+### How do I build it?
 
 You will need 
 
@@ -26,7 +26,7 @@ make
 
 This will install the binary `gomeboycolor` to your GOBIN. 
 
-#### How do I run it
+### How do I run it
 
 ```
 gomeboycolor <path-to-rom-file>
