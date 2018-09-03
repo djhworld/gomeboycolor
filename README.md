@@ -11,25 +11,23 @@ FAQ
 
 #### How do I build it?
 
-You will need an installation of [Go](http://golang.org) (version >= 1.1.1) available on your PATH, as well as a version of Ruby with rake. Personally I've had great success using [jruby](http://jruby.org/).
+You will need 
 
-The Rakefile uses the ````sys/uname```` package to identify what system you are using, you can install this by running ````gem install sys-uname````
+* an installation of [Go](http://golang.org) (version >= 1.1.1)
+* `libglfw3.2`
+* `libGLEW`
 
-To build the project you need to run ````rake```` from the root of this repository, this will
+Run
 
-1. Fetch dependencies
-2. Setup folders
-3. Build the project
+`make` 
 
-On Windows and OSX you shouldn't have to do anything more then that as I've included the shared libraries this project needs to build with (glew and GLFW)
+This will install the binary `gomeboycolor` to your GOBIN. 
 
-However on Linux you will need to have libGLEW and libglfw installed.
+#### How do I run it
 
-Builds have been tested on the following systems, note that these are all 64-bit
-
-* OSX Mountain Lion (10.5.8)
-* Ubuntu Linux 13.04
-* Windows 7
+```
+gomeboycolor <path-to-rom-file>
+```
 
 License
 -----------------------------
