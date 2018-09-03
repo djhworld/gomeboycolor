@@ -271,7 +271,8 @@ func (s *Display) drawFrame(screenData *types.Screen) {
 
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.Disable(gl.DEPTH_TEST)
-	gl.PointSize(float32(s.ScreenSizeMultiplier) + 1.0)
+	gl.PointSize(float32(s.ScreenSizeMultiplier) * 2.0)
+	//gl.PointSize(float32(s.ScreenSizeMultiplier))
 	gl.Begin(gl.POINTS)
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {
