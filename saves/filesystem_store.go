@@ -17,11 +17,11 @@ func NewFileSystemStore(baseDir string) *FileSystemStore {
 }
 
 func (f *FileSystemStore) Open(game string) (io.ReadCloser, error) {
-	location := filepath.Join(f.baseDir, game)
+	location := filepath.Join(f.baseDir, game+".sav")
 	return os.Open(location)
 }
 
 func (f *FileSystemStore) Create(game string) (io.WriteCloser, error) {
-	location := filepath.Join(f.baseDir, game)
+	location := filepath.Join(f.baseDir, game+".sav")
 	return os.Create(location)
 }

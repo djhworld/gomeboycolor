@@ -110,7 +110,7 @@ func main() {
 	}
 
 	//TODO make this configurable...?
-	saveStore := saves.NewFileSystemStore("./")
+	saveStore := saves.NewFileSystemStore("")
 
 	err = StartEmulator(cart, saveStore, conf)
 	if err != nil {
