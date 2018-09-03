@@ -37,6 +37,7 @@ type GomeboyColor struct {
 	fpsCounter   *metric.FPSCounter
 	debugOptions *DebugOptions
 	config       *config.Config
+	cart         *cartridge.Cartridge
 	saveStore    saves.Store
 	cpuClockAcc  int
 	frameCount   int
@@ -45,7 +46,7 @@ type GomeboyColor struct {
 }
 
 func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config) (*GomeboyColor, error) {
-	var gbc *GomeboyColor = newGomeboyColor(conf, saveStore)
+	var gbc *GomeboyColor = newGomeboyColor(cart, conf, saveStore)
 
 	b, er := gbc.mmu.LoadBIOS(BOOTROM)
 	if !b {
@@ -56,7 +57,7 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config)
 	//append cartridge name and filename to title
 	gbc.config.Title += fmt.Sprintf(" - %s - %s", cart.Name, cart.Title)
 
-	gbc.mmu.LoadCartridge(cart)
+	gbc.mmu.LoadCartridge(gbc.cart)
 
 	gbc.debugOptions.Init(gbc.config.DumpState)
 	if gbc.config.Debug {
@@ -70,12 +71,6 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config)
 			gbc.debugOptions.breakWhen = types.Word(b)
 			log.Println("Emulator will break into debugger when PC = ", gbc.debugOptions.breakWhen)
 		}
-	}
-
-	ioInitializeErr := gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose(cart.ID))
-
-	if ioInitializeErr != nil {
-		log.Fatalf("%v", ioInitializeErr)
 	}
 
 	//load RAM into MBC (if supported)
@@ -117,7 +112,10 @@ func (gbc *GomeboyColor) Run() {
 }
 
 func (gbc *GomeboyColor) RunIO() {
-	gbc.io.Run()
+	err := gbc.io.Run(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 }
 
 func (gbc *GomeboyColor) Step() {
@@ -145,9 +143,10 @@ func (gbc *GomeboyColor) Reset() {
 	gbc.setupBoot()
 }
 
-func newGomeboyColor(conf *config.Config, saveStore saves.Store) *GomeboyColor {
+func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore saves.Store) *GomeboyColor {
 	gbc := new(GomeboyColor)
 
+	gbc.cart = cart
 	gbc.config = conf
 	gbc.saveStore = saveStore
 	gbc.debugOptions = new(DebugOptions)
@@ -281,15 +280,13 @@ func (gbc *GomeboyColor) setupWithoutBoot() {
 	gbc.mmu.WriteByte(0xFFFF, 0x00)
 }
 
-func (gbc *GomeboyColor) onClose(gameId string) func() {
-	return func() {
-		//TODO need to figure this bit out (handle errors?)
-		w, _ := gbc.saveStore.Create(gameId)
-		defer w.Close()
-		gbc.mmu.SaveCartridgeRam(w)
-		log.Println("Goodbye!")
-		os.Exit(0)
-	}
+func (gbc *GomeboyColor) onClose() {
+	//TODO need to figure this bit out (handle errors?)
+	w, _ := gbc.saveStore.Create(gbc.cart.ID)
+	defer w.Close()
+	gbc.mmu.SaveCartridgeRam(w)
+	log.Println("Goodbye!")
+	os.Exit(0)
 }
 
 func (gbc *GomeboyColor) pause() {

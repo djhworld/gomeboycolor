@@ -11,6 +11,7 @@ import (
 
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/config"
+	"github.com/djhworld/gomeboycolor/gbc"
 	"github.com/djhworld/gomeboycolor/saves"
 )
 
@@ -96,14 +97,7 @@ func main() {
 	}
 	fmt.Println(conf)
 
-	romFilename := flag.Arg(0)
-
-	romContents, err := RetrieveROM(romFilename)
-	if err != nil {
-		log.Println(err)
-	}
-
-	cart, err := cartridge.NewCartridge(romFilename, romContents)
+	cart, err := createCartridge(flag.Arg(0))
 	if err != nil {
 		log.Println(err)
 		return
@@ -112,14 +106,34 @@ func main() {
 	//TODO make this configurable...?
 	saveStore := saves.NewFileSystemStore("")
 
-	err = StartEmulator(cart, saveStore, conf)
+	log.Println("Starting emulator")
+
+	emulator, err := gbc.Init(cart, saveStore, conf)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
+	//Starts emulator code in a goroutine
+	go emulator.Run()
+
+	//lock the OS thread here
+	runtime.LockOSThread()
+
+	//set the IO controller to run indefinitely (it waits for screen updates)
+	emulator.RunIO()
 }
 
-func RetrieveROM(filename string) ([]byte, error) {
+func createCartridge(romFilename string) (*cartridge.Cartridge, error) {
+	romContents, err := retrieveROM(romFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	return cartridge.NewCartridge(romFilename, romContents)
+}
+
+func retrieveROM(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 
 	if err != nil {

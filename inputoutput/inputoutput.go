@@ -148,7 +148,7 @@ func NewIO() *IO {
 	return i
 }
 
-func (i *IO) Init(title string, screenSize int, headless bool, onCloseHandler func()) error {
+func (i *IO) init(title string, screenSize int, headless bool, onCloseHandler func()) error {
 	i.headless = headless
 	var err error = nil
 
@@ -177,7 +177,11 @@ func (i *IO) Init(title string, screenSize int, headless bool, onCloseHandler fu
 }
 
 //This will wait for updates to the display or audio and dispatch them accordingly
-func (i *IO) Run() {
+func (i *IO) Run(title string, screenSize int, headless bool, onCloseHandler func()) error {
+	if err := i.init(title, screenSize, headless, onCloseHandler); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case data := <-i.ScreenOutputChannel:
