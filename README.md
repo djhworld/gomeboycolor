@@ -9,17 +9,20 @@ You are welcome to visit the github page for this project by [clicking here](htt
 FAQ
 ============================
 
+
 #### How do I build it?
 
 You will need 
 
-* an installation of [Go](http://golang.org) (version >= 1.1.1)
+* an installation of [Go](http://golang.org) (version >= 1.11.0)
 * `libglfw3.2`
 * `libGLEW`
 
 Run
 
-`make` 
+```
+make
+```
 
 This will install the binary `gomeboycolor` to your GOBIN. 
 
