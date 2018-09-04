@@ -224,8 +224,9 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 
 	window.SetTitle(title)
 
-	//TODO fix desktop mode
-	window.SetPos((s.ScreenSizeMultiplier)/2, (s.ScreenSizeMultiplier)/2)
+	vidMode := glfw.GetPrimaryMonitor().GetVideoMode()
+
+	window.SetPos(vidMode.Width/3, vidMode.Height/3)
 
 	window.SetCloseCallback(func(w *glfw.Window) {
 		w.Destroy()
@@ -241,22 +242,6 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 
-	//resize functionTrue
-	/*
-		onResize := func(window *glfw.Window, w, h int) {
-			gl.Viewport(0, 0, int32(w), int32(h))
-			gl.MatrixMode(gl.PROJECTION)
-			gl.LoadIdentity()
-			gl.Ortho(0, float64(w), float64(h), 0, -1, 1)
-			gl.ClearColor(0.255, 0.255, 0.255, 0)
-			gl.Clear(gl.COLOR_BUFFER_BIT)
-			gl.MatrixMode(gl.MODELVIEW)
-			gl.LoadIdentity()
-		}
-
-		window.SetSizeCallback(onResize)
-	*/
-
 	s.window = window
 
 	return nil
@@ -264,7 +249,8 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 }
 
 func (s *Display) drawFrame(screenData *types.Screen) {
-	gl.Viewport(0, 0, int32(SCREEN_WIDTH*s.ScreenSizeMultiplier)*2, int32(SCREEN_HEIGHT*s.ScreenSizeMultiplier)*2)
+	fw, fh := s.window.GetFramebufferSize()
+	gl.Viewport(0, 0, int32(fw), int32(fh))
 	gl.MatrixMode(gl.PROJECTION)
 	gl.LoadIdentity()
 	gl.Ortho(0, float64(SCREEN_WIDTH*s.ScreenSizeMultiplier), float64(SCREEN_HEIGHT*s.ScreenSizeMultiplier), 0, -1, 1)
@@ -276,7 +262,6 @@ func (s *Display) drawFrame(screenData *types.Screen) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.Disable(gl.DEPTH_TEST)
 	gl.PointSize(float32(s.ScreenSizeMultiplier) * 2.0)
-	//gl.PointSize(float32(s.ScreenSizeMultiplier))
 	gl.Begin(gl.POINTS)
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {
