@@ -157,14 +157,12 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.debugOptions = new(DebugOptions)
 	gbc.fpsCounter = metric.NewFPSCounter()
 	gbc.mmu = mmu.NewGbcMMU()
-	gbc.cpu = cpu.NewCPU()
+	gbc.cpu = cpu.NewCPU(gbc.mmu)
 
 	gbc.io = inputoutput.NewIO()
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
 	gbc.timer = timer.NewTimer()
-
-	gbc.cpu.LinkMMU(gbc.mmu)
 
 	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
 	gbc.gpu.LinkIRQHandler(gbc.mmu)

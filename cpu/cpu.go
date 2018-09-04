@@ -1,7 +1,6 @@
 package cpu
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -102,22 +101,12 @@ type GbcCPU struct {
 	Speed                   int
 }
 
-func NewCPU() *GbcCPU {
+func NewCPU(m mmu.MemoryMappedUnit) *GbcCPU {
 	cpu := new(GbcCPU)
 	cpu.Reset()
-	return cpu
-}
-
-func (cpu *GbcCPU) LinkMMU(m mmu.MemoryMappedUnit) {
 	cpu.mmu = m
 	log.Println(PREFIX, "Linked CPU to MMU")
-}
-
-func (cpu *GbcCPU) Validate() error {
-	if cpu.mmu == nil {
-		return errors.New("No MMU linked to CPU")
-	}
-	return nil
+	return cpu
 }
 
 func (cpu *GbcCPU) Reset() {
@@ -1242,32 +1231,31 @@ func (cpu *GbcCPU) Dispatch(Opcode byte) {
 }
 
 func (cpu *GbcCPU) Step() int {
-	if err := cpu.Validate(); err != nil {
-		log.Fatalln(PREFIX, err)
-	}
 	cpu.LastInstrCycle.Reset()
+	var opcode byte
+	var ok bool = false
 
 	if !cpu.Halted {
 		cpu.CheckForInterrupts()
-		var Opcode byte = cpu.ReadByte(cpu.PC)
-		var ok bool = false
+		opcode = cpu.ReadByte(cpu.PC)
+		ok = false
 
-		if Opcode == 0xCB {
+		if opcode == 0xCB {
 			cpu.IncrementPC(1)
-			Opcode = cpu.ReadByte(cpu.PC)
-			cpu.CurrentInstruction, ok = cpu.DecodeCB(Opcode)
+			opcode = cpu.ReadByte(cpu.PC)
+			cpu.CurrentInstruction, ok = cpu.DecodeCB(opcode)
 			if !ok {
-				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", opcode, cpu.String()))
 			}
 			cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
-			cpu.DispatchCB(Opcode)
+			cpu.DispatchCB(opcode)
 		} else {
-			cpu.CurrentInstruction, ok = cpu.Decode(Opcode)
+			cpu.CurrentInstruction, ok = cpu.Decode(opcode)
 			if !ok {
-				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", Opcode, cpu.String()))
+				panic(fmt.Sprintf("No instruction found for opcode: %X\n%s", opcode, cpu.String()))
 			}
 			cpu.CurrentInstruction = cpu.Compile(cpu.CurrentInstruction)
-			cpu.Dispatch(Opcode)
+			cpu.Dispatch(opcode)
 		}
 
 		//this is put in place to check whether the PC has been altered by an instruction. If it has then don't
@@ -1367,13 +1355,15 @@ func (cpu *GbcCPU) Compile(instruction Instruction) Instruction {
 }
 
 func (cpu *GbcCPU) Decode(instruction byte) (Instruction, bool) {
-	ins, ok := Instructions[instruction]
-	return ins, ok
+	if ins := Instructions[instruction]; ins == EMPTY_INSTRUCTION {
+		return ins, false
+	} else {
+		return ins, true
+	}
 }
 
 func (cpu *GbcCPU) DecodeCB(instruction byte) (Instruction, bool) {
-	ins, ok := InstructionsCB[instruction]
-	return ins, ok
+	return InstructionsCB[instruction], true
 }
 
 func (cpu *GbcCPU) pushByteToStack(b byte) {
@@ -1401,16 +1391,10 @@ func (cpu *GbcCPU) popWordFromStack() types.Word {
 }
 
 func (cpu *GbcCPU) ReadByte(addr types.Word) byte {
-	if err := cpu.Validate(); err != nil {
-		log.Fatalln(PREFIX, err)
-	}
 	return cpu.mmu.ReadByte(addr)
 }
 
 func (cpu *GbcCPU) WriteByte(addr types.Word, value byte) {
-	if err := cpu.Validate(); err != nil {
-		log.Fatalln(PREFIX, err)
-	}
 	cpu.mmu.WriteByte(addr, value)
 }
 
