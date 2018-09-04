@@ -98,7 +98,12 @@ func (gbc *GomeboyColor) Run() {
 	for {
 		gbc.frameCount++
 
-		gbc.doFrame()
+		if !gbc.debugOptions.debuggerOn {
+			gbc.doFrame()
+		} else {
+			gbc.doFrameWithDebug()
+		}
+
 		gbc.cpuClockAcc = 0
 		if gbc.config.DisplayFPS {
 			if time.Since(currentTime) >= (1 * time.Second) {
@@ -179,12 +184,18 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 
 func (gbc *GomeboyColor) doFrame() {
 	for gbc.cpuClockAcc < FRAME_CYCLES {
-		if gbc.debugOptions.debuggerOn && gbc.cpu.PC == gbc.debugOptions.breakWhen {
+		gbc.Step()
+	}
+}
+
+func (gbc *GomeboyColor) doFrameWithDebug() {
+	for gbc.cpuClockAcc < FRAME_CYCLES {
+		if gbc.cpu.PC == gbc.debugOptions.breakWhen {
 			gbc.pause()
 		}
 
 		if gbc.config.DumpState && !gbc.cpu.Halted {
-			fmt.Println(gbc.cpu)
+			fmt.Println("\t ", gbc.cpu)
 		}
 		gbc.Step()
 	}
