@@ -155,16 +155,16 @@ func (g *GPU) Reset() {
 func (g *GPU) Step(t int) {
 	if !g.displayOn {
 		g.ly = 0
-		g.clock = 456
+		g.clock = 912 //456
 		g.mode = HBLANK
 	} else {
 		if g.ly >= 144 {
 			g.mode = VBLANK
 			g.lcdInterruptThrown = false
-		} else if g.clock >= 456-80 {
+		} else if g.clock >= 912-80 {
 			g.mode = OAMREAD
 			g.lcdInterruptThrown = false
-		} else if g.clock >= 456-80-172 {
+		} else if g.clock >= 912-80-172 {
 			g.mode = VRAMREAD
 			g.lcdInterruptThrown = false
 		} else {
@@ -184,7 +184,7 @@ func (g *GPU) Step(t int) {
 	g.clock -= t
 
 	if g.clock <= 0 {
-		g.clock += 456
+		g.clock += 912
 		g.ly += 1
 
 		if g.ly == 144 {
