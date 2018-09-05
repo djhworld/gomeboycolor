@@ -1,3 +1,5 @@
+// +build !wasm
+
 package inputoutput
 
 import (
