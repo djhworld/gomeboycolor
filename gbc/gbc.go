@@ -86,6 +86,11 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config)
 
 	gbc.setupBoot()
 
+	err = gbc.io.Init(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose)
+	if err != nil {
+		log.Fatalln("io init failure\n\t", err)
+	}
+
 	log.Println("Completed setup")
 	log.Println(strings.Repeat("*", 120))
 
@@ -117,10 +122,7 @@ func (gbc *GomeboyColor) Run() {
 }
 
 func (gbc *GomeboyColor) RunIO() {
-	err := gbc.io.Run(gbc.config.Title, gbc.config.ScreenSize, gbc.config.Headless, gbc.onClose)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	gbc.io.Run()
 }
 
 func (gbc *GomeboyColor) Step() {
