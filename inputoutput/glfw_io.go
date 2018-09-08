@@ -22,16 +22,16 @@ var DefaultControlScheme ControlScheme = ControlScheme{
 	int(glfw.KeyS),
 }
 
-type GLFWBasedIO struct {
+type GlfwIO struct {
 	*CoreIO
 }
 
-func NewGLFWBasedIO(frameRateLock int64, headless bool) *GLFWBasedIO {
+func NewGlfwIO(frameRateLock int64, headless bool) *GlfwIO {
 	log.Println("Creating GLFW based IO Handler")
-	return &GLFWBasedIO{newCoreIO(frameRateLock, headless)}
+	return &GlfwIO{newCoreIO(frameRateLock, headless)}
 }
 
-func (i *GLFWBasedIO) Init(title string, screenSize int, onCloseHandler func()) error {
+func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error {
 	var err error = nil
 
 	if !i.headless {
