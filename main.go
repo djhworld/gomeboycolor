@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/djhworld/gomeboycolor/cartridge"
+	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/config"
 	"github.com/djhworld/gomeboycolor/gbc"
 	"github.com/djhworld/gomeboycolor/saves"
@@ -110,7 +111,7 @@ func main() {
 
 	log.Println("Starting emulator")
 
-	emulator, err := gbc.Init(cart, saveStore, conf)
+	emulator, err := gbc.Init(cart, saveStore, conf, inputoutput.NewGLFWBasedIO(35, conf.Headless))
 	if err != nil {
 		log.Println(err)
 		return
