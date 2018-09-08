@@ -1,7 +1,6 @@
 package inputoutput
 
 import (
-	"log"
 	"time"
 
 	"github.com/djhworld/gomeboycolor/types"
@@ -57,10 +56,6 @@ func (i *CoreIO) Run() {
 			if !i.headless {
 				<-fpsThrottler
 				i.Display.drawFrame(data)
-			}
-		case data := <-i.AudioOutputChannel:
-			if !i.headless {
-				log.Println("Writing %d to audio!", data)
 			}
 		}
 	}
