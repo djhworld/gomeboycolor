@@ -10,6 +10,7 @@ const PREFIX string = "IO"
 const SCREEN_WIDTH int = 160
 const SCREEN_HEIGHT int = 144
 
+// interface for handling all IO interations with the emulator
 type IOHandler interface {
 	Init(title string, screenSize int, onCloseHandler func()) error
 	GetKeyHandler() *KeyHandler
@@ -17,6 +18,8 @@ type IOHandler interface {
 	Run()
 }
 
+// CoreIO contains all core functionality for running the IO event loop
+// all sub types should extend this type
 type CoreIO struct {
 	KeyHandler          *KeyHandler
 	Display             *Display
@@ -45,7 +48,7 @@ func (i *CoreIO) GetKeyHandler() *KeyHandler {
 	return i.KeyHandler
 }
 
-//This will wait for updates to the display or audio and dispatch them accordingly
+// Run runs the IO event loop
 func (i *CoreIO) Run() {
 	fpsLock := time.Second / time.Duration(i.frameRateLock)
 	fpsThrottler := time.Tick(fpsLock)

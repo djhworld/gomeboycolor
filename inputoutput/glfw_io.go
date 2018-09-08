@@ -22,6 +22,8 @@ var DefaultControlScheme ControlScheme = ControlScheme{
 	int(glfw.KeyS),
 }
 
+// GlfwIO is for running the emulator using GLFW.
+// libglfw3 will be required on the system
 type GlfwIO struct {
 	*CoreIO
 }
