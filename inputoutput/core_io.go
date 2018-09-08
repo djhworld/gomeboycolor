@@ -6,11 +6,11 @@ import (
 	"github.com/djhworld/gomeboycolor/types"
 )
 
-const PREFIX string = "IO"
-const SCREEN_WIDTH int = 160
-const SCREEN_HEIGHT int = 144
+const prefix string = "IO"
+const screenWidth int = 160
+const screenHeight int = 144
 
-// interface for handling all IO interations with the emulator
+// IOHandler interface for handling all IO interations with the emulator
 type IOHandler interface {
 	Init(title string, screenSize int, onCloseHandler func()) error
 	GetKeyHandler() *KeyHandler
@@ -30,7 +30,7 @@ type CoreIO struct {
 }
 
 func newCoreIO(frameRateLock int64, headless bool) *CoreIO {
-	var i *CoreIO = new(CoreIO)
+	i := new(CoreIO)
 	i.KeyHandler = new(KeyHandler)
 	i.Display = new(Display)
 	i.ScreenOutputChannel = make(chan *types.Screen)
@@ -40,10 +40,14 @@ func newCoreIO(frameRateLock int64, headless bool) *CoreIO {
 	return i
 }
 
+// GetScreenOutputChannel returns the channel to push screen
+// change events to the IO event loop
 func (i *CoreIO) GetScreenOutputChannel() chan *types.Screen {
 	return i.ScreenOutputChannel
 }
 
+// GetKeyHandler returns the key handler component
+// for managing interactions with the keyboard
 func (i *CoreIO) GetKeyHandler() *KeyHandler {
 	return i.KeyHandler
 }

@@ -34,7 +34,7 @@ func NewGlfwIO(frameRateLock int64, headless bool) *GlfwIO {
 }
 
 func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error {
-	var err error = nil
+	var err error
 
 	if !i.headless {
 		err = i.Display.init(title, screenSize, onCloseHandler)
@@ -73,7 +73,7 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 		log.Fatalln("failed to initialize glfw:", err)
 	}
 
-	s.Name = PREFIX + "-SCREEN"
+	s.Name = prefix + "-SCREEN"
 
 	log.Printf("%s: Initialising display", s.Name)
 
@@ -81,7 +81,7 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 	log.Printf("%s: Set screen size multiplier to %dx", s.Name, s.ScreenSizeMultiplier)
 
 	glfw.WindowHint(glfw.Resizable, glfw.False)
-	window, err := glfw.CreateWindow(SCREEN_WIDTH*s.ScreenSizeMultiplier, SCREEN_HEIGHT*s.ScreenSizeMultiplier, "Testing", nil, nil)
+	window, err := glfw.CreateWindow(screenWidth*s.ScreenSizeMultiplier, screenHeight*s.ScreenSizeMultiplier, "Testing", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (s *Display) drawFrame(screenData *types.Screen) {
 	gl.Viewport(0, 0, int32(fw), int32(fh))
 	gl.MatrixMode(gl.PROJECTION)
 	gl.LoadIdentity()
-	gl.Ortho(0, float64(SCREEN_WIDTH*s.ScreenSizeMultiplier), float64(SCREEN_HEIGHT*s.ScreenSizeMultiplier), 0, -1, 1)
+	gl.Ortho(0, float64(screenWidth*s.ScreenSizeMultiplier), float64(screenHeight*s.ScreenSizeMultiplier), 0, -1, 1)
 	gl.ClearColor(0.255, 0.255, 0.255, 0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.MatrixMode(gl.MODELVIEW)
@@ -127,8 +127,8 @@ func (s *Display) drawFrame(screenData *types.Screen) {
 	gl.Disable(gl.DEPTH_TEST)
 	gl.PointSize(float32(s.ScreenSizeMultiplier) * 2.0)
 	gl.Begin(gl.POINTS)
-	for y := 0; y < SCREEN_HEIGHT; y++ {
-		for x := 0; x < SCREEN_WIDTH; x++ {
+	for y := 0; y < screenHeight; y++ {
+		for x := 0; x < screenWidth; x++ {
 			var pixel types.RGB = screenData[y][x]
 			gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
 			gl.Vertex2i(int32(x*s.ScreenSizeMultiplier), int32(y*s.ScreenSizeMultiplier))
