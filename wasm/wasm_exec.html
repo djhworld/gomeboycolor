@@ -1,0 +1,208 @@
+<!doctype html>
+<!--
+Copyright 2018 The Go Authors. All rights reserved.
+Use of this source code is governed by a BSD-style
+license that can be found in the LICENSE file.
+-->
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Go wasm</title>
+	<link rel="stylesheet" href="bootstrap.min.css" />
+	<script type="text/javascript">
+	</script>
+	<style type="text/css">
+	  body {
+		  background-color:#472981;
+	  }
+	  #screen {
+		  width: 800px;
+		  margin-left:auto;
+		  margin-right:auto;
+		  display:block;
+
+	  }
+
+	  #screen-div {
+		  background-color:#34383b;
+		  border: 1px #000 solid;
+		  border-radius:12px;
+		  border-bottom-right-radius: 50px;
+		  border-bottom-left-radius: 50px;
+		  margin-left:auto;
+		  margin-right:auto;
+		  display:block;
+		  padding:0px;
+		  width:800px;
+		  height:475px;
+		  margin-top:40px;
+
+	  }
+
+	  #buttons {
+		  margin-top:12px;
+	  }
+	  h1#title {
+		  color: #ebf2f5;
+		  font-style: italic;
+		  font-weight:bold;
+	  }
+
+	  h1#title small {
+		  font-family: "Comic Sans MS", cursive, sans-serif;
+		  font-style:normal;
+		  font-weight:900 !important;
+		  font-size:2.5rem;
+	  }
+
+	  h1#title small span.c {
+		color: #7d2259;
+	  }
+
+	  h1#title small span.o1 {
+		color: #635690;
+	  }
+
+	  h1#title small span.l {
+		color: #7d9375;
+	  }
+
+	  h1#title small span.o2 {
+		color: #c8ca81;
+	  }
+
+	  h1#title small span.r {
+		color: #176eb1;
+	  }
+
+	  #files{
+		  color: #ebf2f5;
+	  }
+	</style>
+</head>
+
+<body>
+	<div class="container">
+			<div id="screen-div">
+				<canvas id="screen"></canvas>
+				<h1 id="title" class="text-center">GOME BOY   <small><span class="c">C</span><span class="o1">O</span><span class="l">L</span><span class="o2">O</span><span class="r">R</span></small></h1>
+			</div>
+
+			<div id="buttons" class="text-center">
+				<input type="file" class="text-center" id="files" name="files[]" />
+				<br/>
+				<br/>
+				<button class="btn btn-secondary" onClick="stop();" id="stop" disabled>Stop</button>
+			</div>
+
+
+			<script type="text/javascript">
+				var HANDLERS = [];
+				function _arrayBufferToBase64(buffer) {
+					var binary = '';
+					var bytes = new Uint8ClampedArray(buffer);
+					var len = bytes.byteLength;
+					for (var i = 0; i < len; i++) {
+						binary += String.fromCharCode(bytes[i]);
+					}
+					return window.btoa(binary);
+				}
+
+				function handleFileSelect(evt) {
+					var files = evt.target.files; // FileList object
+					if (files.length >= 1) {
+						var reader = new FileReader();
+						reader.onload = function(e) {
+							var ab = reader.result;
+							run(_arrayBufferToBase64(ab));
+						}
+						reader.readAsArrayBuffer(files[0]);
+					}
+				}
+
+				function str2ab(str) {
+					var bufView = new Uint16Array(str.length);
+					for (var i = 0, strLen = str.length; i < strLen; i++) {
+						bufView[i] = str.charCodeAt(i);
+					}
+					return Uint8ClampedArray.from(bufView);
+				}
+
+				var myWorker;
+				var canvas = document.getElementById("screen");
+				var context = canvas.getContext("2d");
+
+				function createEventListener(event, handler) {
+					document.addEventListener(event, handler);
+					HANDLERS.push(
+						{"e": event, "h": handler},
+					);
+				}
+
+				function sleep(time) {
+						return new Promise((resolve) => setTimeout(resolve, time));
+				}
+
+				function run(rom) {
+					stop();
+
+					//TODO handle errors from the emulator
+					myWorker = new Worker('worker.js');
+					myWorker.postMessage(rom)
+					document.getElementById("stop").disabled = false;
+					document.getElementById("files").disabled = true;
+					let keydownhandler = function (e) {
+						myWorker.postMessage([1, e.which])
+					}
+					let keyuphandler = function (e) {
+						myWorker.postMessage([0, e.which])
+					}
+
+					createEventListener("keydown", keydownhandler);
+					createEventListener("keyup", keyuphandler);
+
+					myWorker.onmessage = function(e) {
+						var decodedData = str2ab(window.atob(e.data)); 
+						var imageData = new ImageData(decodedData, 160, 144);
+						context.putImageData(imageData, canvas.width/4,4);
+					}
+				}
+
+
+				function reset() {
+					for (var item in HANDLERS) {
+						console.log("Removing event handler" + HANDLERS[item].e);
+						document.removeEventListener(HANDLERS[item].e, HANDLERS[item].h, false);
+					}
+					HANDLERS = [];
+
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.fillStyle="#bfc5ab";
+					context.fillRect(canvas.width/4,4,160, 144); 
+				}
+
+				function stop() {
+					if(myWorker) {
+						myWorker.postMessage([9])
+						sleep(500).then(() => {
+							myWorker.terminate();
+							myWorker = null;
+
+							document.getElementById("stop").disabled = true;
+							document.getElementById("files").disabled = false;
+							reset();
+						});
+					} else {
+						document.getElementById("stop").disabled = true;
+						document.getElementById("files").disabled = false;
+						reset();
+					}
+				}
+
+				reset();
+				document.getElementById('files').addEventListener('change', handleFileSelect, false);
+			</script>
+		</div>
+	</body>
+</html>
