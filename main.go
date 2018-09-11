@@ -125,6 +125,8 @@ func main() {
 
 	//set the IO controller to run indefinitely (it waits for screen updates)
 	emulator.RunIO()
+
+	log.Println("Goodbye!")
 }
 
 func createCartridge(romFilename string) (*cartridge.Cartridge, error) {

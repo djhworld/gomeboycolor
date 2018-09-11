@@ -35,12 +35,17 @@ func NewGlfwIO(frameRateLock int64, headless bool) *GlfwIO {
 
 func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error {
 	var err error
+	i.onCloseHandler = onCloseHandler
 
 	if !i.headless {
-		err = i.Display.init(title, screenSize, onCloseHandler)
+		err = i.Display.init(title, screenSize)
 		if err != nil {
 			return err
 		}
+
+		i.Display.window.SetCloseCallback(func(w *glfw.Window) {
+			i.stopChannel <- 1
+		})
 
 		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
 		i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
@@ -66,7 +71,7 @@ type Display struct {
 	window               *glfw.Window
 }
 
-func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler func()) error {
+func (s *Display) init(title string, screenSizeMultiplier int) error {
 	var err error
 
 	if err := glfw.Init(); err != nil {
@@ -92,12 +97,6 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 
 	window.SetPos(vidMode.Width/3, vidMode.Height/3)
 
-	window.SetCloseCallback(func(w *glfw.Window) {
-		w.Destroy()
-		glfw.Terminate()
-		onCloseHandler()
-	})
-
 	window.MakeContextCurrent()
 
 	if err := gl.Init(); err != nil {
@@ -110,6 +109,12 @@ func (s *Display) init(title string, screenSizeMultiplier int, onCloseHandler fu
 
 	return nil
 
+}
+
+func (s *Display) destroy() {
+	log.Println("Destroying display")
+	s.window.Destroy()
+	glfw.Terminate()
 }
 
 func (s *Display) drawFrame(screenData *types.Screen) {

@@ -43,6 +43,7 @@ type GomeboyColor struct {
 	frameCount   int
 	stepCount    int
 	inBootMode   bool
+	stopped      bool
 }
 
 func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config, ioHandler inputoutput.IOHandler) (*GomeboyColor, error) {
@@ -100,7 +101,7 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config,
 func (gbc *GomeboyColor) Run() {
 	currentTime := time.Now()
 
-	for {
+	for !gbc.stopped {
 		gbc.frameCount++
 
 		if !gbc.debugOptions.debuggerOn {
@@ -160,6 +161,7 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.fpsCounter = metric.NewFPSCounter()
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU(gbc.mmu)
+	gbc.stopped = false
 
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
@@ -295,8 +297,7 @@ func (gbc *GomeboyColor) onClose() {
 	w, _ := gbc.saveStore.Create(gbc.cart.ID)
 	defer w.Close()
 	gbc.mmu.SaveCartridgeRam(w)
-	log.Println("Goodbye!")
-	os.Exit(0)
+	gbc.stopped = true
 }
 
 func (gbc *GomeboyColor) pause() {
