@@ -26,12 +26,12 @@ var DefaultControlScheme ControlScheme = ControlScheme{
 // libglfw3 will be required on the system
 type GlfwIO struct {
 	*CoreIO
-	glfwDisplay *GlfwDisplay
+	glfwDisplay *glfwDisplay
 }
 
 func NewGlfwIO(frameRateLock int64, headless bool) *GlfwIO {
 	log.Println("Creating GLFW based IO Handler")
-	glfwDisplay := new(GlfwDisplay)
+	glfwDisplay := new(glfwDisplay)
 	return &GlfwIO{
 		newCoreIO(frameRateLock, headless, glfwDisplay),
 		glfwDisplay,
@@ -71,13 +71,13 @@ func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error
 	return err
 }
 
-type GlfwDisplay struct {
+type glfwDisplay struct {
 	Name                 string
 	ScreenSizeMultiplier int
 	window               *glfw.Window
 }
 
-func (s *GlfwDisplay) init(title string, screenSizeMultiplier int) error {
+func (s *glfwDisplay) init(title string, screenSizeMultiplier int) error {
 	var err error
 
 	if err := glfw.Init(); err != nil {
@@ -117,13 +117,13 @@ func (s *GlfwDisplay) init(title string, screenSizeMultiplier int) error {
 
 }
 
-func (s *GlfwDisplay) Stop() {
+func (s *glfwDisplay) Stop() {
 	log.Println("Stopping display")
 	s.window.Destroy()
 	glfw.Terminate()
 }
 
-func (s *GlfwDisplay) DrawFrame(screenData *types.Screen) {
+func (s *glfwDisplay) DrawFrame(screenData *types.Screen) {
 	fw, fh := s.window.GetFramebufferSize()
 	gl.Viewport(0, 0, int32(fw), int32(fh))
 	gl.MatrixMode(gl.PROJECTION)
