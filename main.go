@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/djhworld/gomeboycolor/cartridge"
-	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/config"
 	"github.com/djhworld/gomeboycolor/gbc"
+	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/saves"
 )
 
@@ -68,7 +68,7 @@ func PrintHelp() {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	fmt.Printf("%s. %s\n", TITLE, VERSION)
-	fmt.Println("Copyright (c) 2013. Daniel James Harper.")
+	fmt.Println("Copyright (c) 2018. Daniel James Harper.")
 	fmt.Println("http://djhworld.github.io/gomeboycolor")
 	fmt.Println(strings.Repeat("*", 120))
 
