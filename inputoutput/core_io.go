@@ -26,9 +26,9 @@ type Display interface {
 // CoreIO contains all core functionality for running the IO event loop
 // all sub types should extend this type
 type CoreIO struct {
-	KeyHandler          *KeyHandler
-	ScreenOutputChannel chan *types.Screen
-	AudioOutputChannel  chan int
+	keyHandler          *KeyHandler
+	audioOutputChannel  chan int
+	screenOutputChannel chan *types.Screen
 	stopChannel         chan int
 	display             Display
 	headless            bool
@@ -38,9 +38,9 @@ type CoreIO struct {
 
 func newCoreIO(frameRateLock int64, headless bool, display Display) *CoreIO {
 	i := new(CoreIO)
-	i.KeyHandler = new(KeyHandler)
-	i.ScreenOutputChannel = make(chan *types.Screen)
-	i.AudioOutputChannel = make(chan int)
+	i.keyHandler = new(KeyHandler)
+	i.audioOutputChannel = make(chan int)
+	i.screenOutputChannel = make(chan *types.Screen)
 	i.stopChannel = make(chan int, 1)
 	i.display = display
 	i.headless = headless
@@ -52,32 +52,32 @@ func newCoreIO(frameRateLock int64, headless bool, display Display) *CoreIO {
 // GetScreenOutputChannel returns the channel to push screen
 // change events to the IO event loop
 func (i *CoreIO) GetScreenOutputChannel() chan *types.Screen {
-	return i.ScreenOutputChannel
+	return i.screenOutputChannel
 }
 
 // GetKeyHandler returns the key handler component
 // for managing interactions with the keyboard
 func (i *CoreIO) GetKeyHandler() *KeyHandler {
-	return i.KeyHandler
+	return i.keyHandler
 }
 
 // Run runs the IO event loop
 func (i *CoreIO) Run() {
 	fpsLock := time.Second / time.Duration(i.frameRateLock)
 	fpsThrottler := time.Tick(fpsLock)
-	done := false
+	isRunning := true
 
-	for !done {
+	for isRunning {
 		select {
-		case <-i.stopChannel:
-			i.display.Stop()
-			i.onCloseHandler()
-			done = true
-		case data := <-i.ScreenOutputChannel:
+		case data := <-i.screenOutputChannel:
 			if !i.headless {
 				<-fpsThrottler
 				i.display.DrawFrame(data)
 			}
+		case <-i.stopChannel:
+			i.display.Stop()
+			i.onCloseHandler()
+			isRunning = false
 		}
 	}
 }

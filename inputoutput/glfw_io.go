@@ -52,18 +52,18 @@ func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error
 			i.stopChannel <- 1
 		})
 
-		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
+		i.keyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
 
 		i.glfwDisplay.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 			if action == glfw.Repeat {
-				i.KeyHandler.KeyDown(int(key))
+				i.keyHandler.KeyDown(int(key))
 				return
 			}
 
 			if action == glfw.Press {
-				i.KeyHandler.KeyDown(int(key))
+				i.keyHandler.KeyDown(int(key))
 			} else {
-				i.KeyHandler.KeyUp(int(key))
+				i.keyHandler.KeyUp(int(key))
 			}
 		})
 	}
