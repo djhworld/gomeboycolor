@@ -18,26 +18,31 @@ type IOHandler interface {
 	Run()
 }
 
+type Display interface {
+	DrawFrame(*types.Screen)
+	Stop()
+}
+
 // CoreIO contains all core functionality for running the IO event loop
 // all sub types should extend this type
 type CoreIO struct {
 	KeyHandler          *KeyHandler
-	Display             *Display
 	ScreenOutputChannel chan *types.Screen
 	AudioOutputChannel  chan int
 	stopChannel         chan int
+	display             Display
 	headless            bool
 	frameRateLock       int64
 	onCloseHandler      func()
 }
 
-func newCoreIO(frameRateLock int64, headless bool) *CoreIO {
+func newCoreIO(frameRateLock int64, headless bool, display Display) *CoreIO {
 	i := new(CoreIO)
 	i.KeyHandler = new(KeyHandler)
-	i.Display = new(Display)
 	i.ScreenOutputChannel = make(chan *types.Screen)
 	i.AudioOutputChannel = make(chan int)
 	i.stopChannel = make(chan int, 1)
+	i.display = display
 	i.headless = headless
 	i.frameRateLock = frameRateLock
 	i.onCloseHandler = nil
@@ -65,13 +70,13 @@ func (i *CoreIO) Run() {
 	for !done {
 		select {
 		case <-i.stopChannel:
-			i.Display.destroy()
+			i.display.Stop()
 			i.onCloseHandler()
 			done = true
 		case data := <-i.ScreenOutputChannel:
 			if !i.headless {
 				<-fpsThrottler
-				i.Display.drawFrame(data)
+				i.display.DrawFrame(data)
 			}
 		}
 	}

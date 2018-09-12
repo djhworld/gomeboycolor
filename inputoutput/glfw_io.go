@@ -26,11 +26,16 @@ var DefaultControlScheme ControlScheme = ControlScheme{
 // libglfw3 will be required on the system
 type GlfwIO struct {
 	*CoreIO
+	glfwDisplay *GlfwDisplay
 }
 
 func NewGlfwIO(frameRateLock int64, headless bool) *GlfwIO {
 	log.Println("Creating GLFW based IO Handler")
-	return &GlfwIO{newCoreIO(frameRateLock, headless)}
+	glfwDisplay := new(GlfwDisplay)
+	return &GlfwIO{
+		newCoreIO(frameRateLock, headless, glfwDisplay),
+		glfwDisplay,
+	}
 }
 
 func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error {
@@ -38,17 +43,18 @@ func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error
 	i.onCloseHandler = onCloseHandler
 
 	if !i.headless {
-		err = i.Display.init(title, screenSize)
+		err = i.glfwDisplay.init(title, screenSize)
 		if err != nil {
 			return err
 		}
 
-		i.Display.window.SetCloseCallback(func(w *glfw.Window) {
+		i.glfwDisplay.window.SetCloseCallback(func(w *glfw.Window) {
 			i.stopChannel <- 1
 		})
 
 		i.KeyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
-		i.Display.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+
+		i.glfwDisplay.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 			if action == glfw.Repeat {
 				i.KeyHandler.KeyDown(int(key))
 				return
@@ -65,13 +71,13 @@ func (i *GlfwIO) Init(title string, screenSize int, onCloseHandler func()) error
 	return err
 }
 
-type Display struct {
+type GlfwDisplay struct {
 	Name                 string
 	ScreenSizeMultiplier int
 	window               *glfw.Window
 }
 
-func (s *Display) init(title string, screenSizeMultiplier int) error {
+func (s *GlfwDisplay) init(title string, screenSizeMultiplier int) error {
 	var err error
 
 	if err := glfw.Init(); err != nil {
@@ -111,13 +117,13 @@ func (s *Display) init(title string, screenSizeMultiplier int) error {
 
 }
 
-func (s *Display) destroy() {
-	log.Println("Destroying display")
+func (s *GlfwDisplay) Stop() {
+	log.Println("Stopping display")
 	s.window.Destroy()
 	glfw.Terminate()
 }
 
-func (s *Display) drawFrame(screenData *types.Screen) {
+func (s *GlfwDisplay) DrawFrame(screenData *types.Screen) {
 	fw, fh := s.window.GetFramebufferSize()
 	gl.Viewport(0, 0, int32(fw), int32(fh))
 	gl.MatrixMode(gl.PROJECTION)
