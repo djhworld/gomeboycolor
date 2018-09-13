@@ -1,21 +1,17 @@
 <!doctype html>
-<!--
-Copyright 2018 The Go Authors. All rights reserved.
-Use of this source code is governed by a BSD-style
-license that can be found in the LICENSE file.
--->
 <html>
 
 <head>
 	<meta charset="utf-8">
-	<title>Go wasm</title>
+	<title>gomeboycolor</title>
 	<link rel="stylesheet" href="bootstrap.min.css" />
-	<script type="text/javascript">
-
-	</script>
+	<script type="text/javascript" src="utils.js"></script>
+	<script type="text/javascript" src="jquery.min.js"></script>
+	<script type="text/javascript" src="bootstrap.min.js"></script>
 	<style type="text/css">
 		body {
 			background-color: #472981;
+			color: #ebf2f5;
 		}
 
 		#screen {
@@ -37,12 +33,12 @@ license that can be found in the LICENSE file.
 			display: block;
 			padding: 0px;
 			width: 800px;
-			height: 475px;
+			height: 480px;
 			margin-top: 40px;
 
 		}
 
-		#buttons {
+		.buttons {
 			margin-top: 12px;
 		}
 
@@ -79,8 +75,70 @@ license that can be found in the LICENSE file.
 			color: #176eb1;
 		}
 
-		#files {
-			color: #ebf2f5;
+		.hidden {
+			display: none;
+		}
+
+		#files-label {
+			cursor: pointer;
+
+		}
+
+		h6#me {
+			font-size: 10px;
+		}
+
+		a {
+			color: #dedede;
+		}
+
+		h6#me a {
+			text-decoration: none;
+			color: #dedede;
+		}
+
+		h6#me a:hover {
+			text-decoration: underline;
+		}
+
+		.modal-content {
+			text-align: center;
+			color: white;
+			background-color: #444;
+			font-size: 20px;
+		}
+
+		#aboutModal .modal-content {
+			font-size: 13px;
+			text-align: left;
+		}
+
+		#aboutModal a {
+			text-decoration: underline;
+		}
+
+		#aboutModal a:hover {
+			color: #999;
+		}
+
+
+
+		#controlsModal .modal-content kbd {
+			font-size: 32px;
+		}
+
+		footer {
+			font-size: 12px;
+			color: #aeaeae;
+		}
+
+		footer a {
+			color: #aeaeae;
+		}
+
+		footer a:hover {
+			color: #aeaeae;
+			text-decoration: underline;
 		}
 	</style>
 </head>
@@ -91,51 +149,242 @@ license that can be found in the LICENSE file.
 			<canvas id="screen"></canvas>
 			<h1 id="title" class="text-center">GOME BOY <small><span class="c">C</span><span class="o1">O</span><span class="l">L</span><span
 					 class="o2">O</span><span class="r">R</span></small></h1>
+			<h6 id="me" class="text-center"><a href="https://djhworld.github.io/about">by djhworld</a>&nbsp;|&nbsp;<span id="loadedFile"
+				 title="The current loaded ROM">(No ROM loaded)</span></h6>
 		</div>
 
-		<div id="buttons" class="text-center">
-			<input type="file" class="text-center" id="files" name="files[]" />
+
+		<div class="buttons text-center">
+			<input type="file" class="hidden" id="files" name="files[]" />
+			<label id="files-label" for="files" title="Choose a ROM file to load" class="btn btn-primary text-center">Choose ROM</label>
+			<button class="btn btn-danger hidden" onClick="stop();" id="stop">Stop</button>
+			<br />
+			<button type="button" style="margin-top:4px;" class="btn btn-info btn-sm" data-toggle="modal" data-target="#controlsModal">
+				Controls
+			</button>
+			<button type="button" style="margin-top:4px;" class="btn btn-info btn-sm" data-toggle="modal" data-target="#aboutModal">
+				About
+			</button>
 			<br />
 			<br />
-			<button class="btn btn-secondary" onClick="stop();" id="stop" disabled>Stop</button>
+			<input type="checkbox" id="skipBoot" title="Skip the boot sequence" value="Skip Boot" value="0" />
+			<label for="skipBoot" title="Skip the boot sequence">Skip Boot</label>
+
+			<input type="checkbox" id="colorMode" title="Turn on/off Gameboy Color feature set" value="Color Mode" checked />
+			<label for="skipBoot" title="Turn on/off Gameboy Color feature set">Color Mode</label>
 		</div>
+		<footer>
+			<div class="inner text-center">
+				<a href="https://djhworld.github.io">djhworld.github.io</a>&nbsp;|&nbsp;
+				<a href="about">Blog post about this</a>
+			</div>
+		</footer>
+
+		<div class="modal" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="aboutModal">About</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<p>This is <a href="https://github.com/djhworld/gomeboycolor">gomeboycolor</a>, a Gameboy Color emulator, written
+							in Go, ported to WebAssembly.</p>
+
+						<p>The performance might be a little off, and it's not perfect,
+							but most games should work. I wrote this emulator a few years ago and decided to try and port it to WebAssembly.
+						</p>
+
+						<div class="alert alert-warn">
+							<strong>⚠️&nbsp;Google Chrome users</strong>
+							<p>Performance, at least for this application, doesn't seem as good as Firefox and Safari right now.</p>
+							<p>You might find keyboard controls and the 'Stop' button become unresponsive in Chrome. </p>
+						</div>
+
+						<p>ROMs that support battery saves are stored in your browser LocalStorage.</p>
+						<p>Audio is not implemented</p>
+						<p>Read this blog post for more information</p>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal" id="controlsModal" tabindex="-1" role="dialog" aria-labelledby="controlsModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="controlsModalLabel">Controls</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<kbd>Z</kbd> = A&nbsp;&nbsp;
+						<kbd>X</kbd> = B&nbsp;&nbsp;
+						<kbd>A</kbd> = start&nbsp;&nbsp;
+						<kbd>S</kbd> = select&nbsp;&nbsp;
+						<br />
+						<br />
+						<kbd>&#8592;</kbd>&nbsp;&nbsp;
+						<kbd>&#8593;</kbd>&nbsp;&nbsp;
+						<kbd>&#8594;</kbd>&nbsp;&nbsp;
+						<kbd>&#8595;</kbd>&nbsp;&nbsp;
+					</div>
+				</div>
+			</div>
+		</div>
+
+
 
 
 		<script type="text/javascript">
+			var emulatorWorker = null;
 			var HANDLERS = [];
-			function _arrayBufferToBase64(buffer) {
-				var binary = '';
-				var bytes = new Uint8ClampedArray(buffer);
-				var len = bytes.byteLength;
-				for (var i = 0; i < len; i++) {
-					binary += String.fromCharCode(bytes[i]);
-				}
-				return window.btoa(binary);
-			}
-
-			function handleFileSelect(evt) {
-				var files = evt.target.files; // FileList object
-				if (files.length >= 1) {
-					var reader = new FileReader();
-					reader.onload = function (e) {
-						var ab = reader.result;
-						run(_arrayBufferToBase64(ab));
-					}
-					reader.readAsArrayBuffer(files[0]);
-				}
-			}
-
-			function str2ab(str) {
-				var bufView = new Uint16Array(str.length);
-				for (var i = 0, strLen = str.length; i < strLen; i++) {
-					bufView[i] = str.charCodeAt(i);
-				}
-				return Uint8ClampedArray.from(bufView);
-			}
-
-			var myWorker;
 			var canvas = document.getElementById("screen");
 			var context = canvas.getContext("2d");
+			var ROM_NAME = null;
+			var ROM_DATA = "";
+
+			function run(romName, romData) {
+				stop();
+				ROM_NAME = romName;
+				ROM_DATA = romData;
+
+				console.log("Loading worker....");
+				emulatorWorker = new Worker('worker.js');
+				emulatorWorker.onmessage = onMessageHandler;
+			}
+
+			function onMessageHandler(e) {
+				let msg = e.data;
+				switch (msg[0]) {
+					case "launch-ok":
+						handleInit();
+						break;
+					case "init-ok":
+						handleGetGameId();
+						break;
+					case "got-game-id":
+						handleLoadSave(msg[1]);
+						break;
+					case "load-save-ok":
+						handleStart();
+						break;
+					case "stop-ok":
+						handleStop();
+						break;
+					case "save-state":
+						handleSaveState(msg[1]);
+						break;
+					case "screen-update":
+						updateCanvas(msg[1]);
+						break;
+					default:
+						console.log("Don't know how to handle" + JSON.stringify(msg));
+						break;
+				}
+			}
+
+			function handleInit() {
+				console.log("Emulator has launched in a web worker");
+				console.log("Posting ROM to worker....");
+				emulatorWorker.postMessage(
+					[
+						"init",
+						{
+							"romData": {
+								"name": ROM_NAME,
+								"base64Bytes": ROM_DATA
+							},
+							"config": {
+								"skipBoot": document.getElementById("skipBoot").checked,
+								"colorMode": document.getElementById("colorMode").checked,
+							}
+						}
+					]
+				);
+			}
+
+			function handleGetGameId() {
+				emulatorWorker.postMessage(["get-game-id", {}]);
+			}
+
+			function handleLoadSave(gameId) {
+				console.log("Getting save data for: " + gameId);
+				storedSave = window.localStorage.getItem(gameId);
+				if (storedSave != null) {
+					emulatorWorker.postMessage(["load-save", storedSave]);
+				} else {
+					emulatorWorker.postMessage(["load-save", ""]);
+				}
+			}
+
+			function handleStart() {
+				document.getElementById("stop").classList.remove("hidden");
+				document.getElementById("files-label").classList.add("hidden")
+				document.title = "gomeboycolor - " + ROM_NAME;
+				document.getElementById("loadedFile").innerHTML = ROM_NAME;
+
+				let keydownhandler = function (e) {
+					emulatorWorker.postMessage(["kd", e.which])
+				}
+				let keyuphandler = function (e) {
+					emulatorWorker.postMessage(["ku", e.which])
+				}
+				createEventListener("keydown", keydownhandler);
+				createEventListener("keyup", keyuphandler);
+
+				emulatorWorker.postMessage(["start", {}]);
+			}
+
+			function handleSaveState(saveData) {
+				console.log("Saving state to localstorage");
+				window.localStorage.setItem(saveData[0], saveData[1]);
+			}
+
+			function handleStop() {
+				emulatorWorker.terminate();
+				emulatorWorker = null;
+				reset();
+			}
+
+			function updateCanvas(screenData) {
+				var decodedData = _strToArrayBuffer(window.atob(screenData));
+				var imageData = new ImageData(decodedData, 160, 144);
+				context.putImageData(imageData, canvas.width / 4, 4);
+			}
+
+			function reset() {
+				for (var item in HANDLERS) {
+					console.log("Removing event handler" + HANDLERS[item].e);
+					document.removeEventListener(HANDLERS[item].e, HANDLERS[item].h, false);
+				}
+				HANDLERS = [];
+				ROM_NAME = null;
+				ROM_DATA = "";
+
+				document.getElementById("stop").classList.add("hidden");
+				document.getElementById("files-label").classList.remove("hidden")
+				document.title = "gomeboycolor";
+				document.getElementById("loadedFile").innerHTML = "No ROM loaded";
+
+
+
+				context.clearRect(0, 0, canvas.width, canvas.height);
+				context.fillStyle = "#bfc5ab";
+				context.fillRect(canvas.width / 4, 4, 160, 144);
+			}
+
+			function stop() {
+				if (emulatorWorker) {
+					emulatorWorker.postMessage(["stop", {}]);
+				} else {
+					reset();
+				}
+			}
 
 			function createEventListener(event, handler) {
 				document.addEventListener(event, handler);
@@ -144,68 +393,8 @@ license that can be found in the LICENSE file.
 				);
 			}
 
-			function sleep(time) {
-				return new Promise((resolve) => setTimeout(resolve, time));
-			}
-
-			function run(rom) {
-				stop();
-
-				//TODO handle errors from the emulator
-				myWorker = new Worker('worker.js');
-				myWorker.postMessage(rom)
-				document.getElementById("stop").disabled = false;
-				document.getElementById("files").disabled = true;
-				let keydownhandler = function (e) {
-					myWorker.postMessage([1, e.which])
-				}
-				let keyuphandler = function (e) {
-					myWorker.postMessage([0, e.which])
-				}
-
-				createEventListener("keydown", keydownhandler);
-				createEventListener("keyup", keyuphandler);
-
-				myWorker.onmessage = function (e) {
-					var decodedData = str2ab(window.atob(e.data));
-					var imageData = new ImageData(decodedData, 160, 144);
-					context.putImageData(imageData, canvas.width / 4, 4);
-				}
-			}
-
-
-			function reset() {
-				for (var item in HANDLERS) {
-					console.log("Removing event handler" + HANDLERS[item].e);
-					document.removeEventListener(HANDLERS[item].e, HANDLERS[item].h, false);
-				}
-				HANDLERS = [];
-
-				context.clearRect(0, 0, canvas.width, canvas.height);
-				context.fillStyle = "#bfc5ab";
-				context.fillRect(canvas.width / 4, 4, 160, 144);
-			}
-
-			function stop() {
-				if (myWorker) {
-					myWorker.postMessage([9])
-					sleep(500).then(() => {
-						myWorker.terminate();
-						myWorker = null;
-
-						document.getElementById("stop").disabled = true;
-						document.getElementById("files").disabled = false;
-						reset();
-					});
-				} else {
-					document.getElementById("stop").disabled = true;
-					document.getElementById("files").disabled = false;
-					reset();
-				}
-			}
-
 			reset();
-			document.getElementById('files').addEventListener('change', handleFileSelect, false);
+			document.getElementById('files').addEventListener('change', handleFileSelect(run), false);
 		</script>
 	</div>
 </body>
