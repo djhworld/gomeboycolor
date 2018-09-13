@@ -4,10 +4,10 @@
 <head>
 	<meta charset="utf-8">
 	<title>gomeboycolor</title>
-	<link rel="stylesheet" href="bootstrap.min.css" />
-	<script type="text/javascript" src="utils.js"></script>
-	<script type="text/javascript" src="jquery.min.js"></script>
-	<script type="text/javascript" src="bootstrap.min.js"></script>
+	<link rel="stylesheet" href="css/bootstrap.min.css" />
+	<script type="text/javascript" src="js/utils.js"></script>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<style type="text/css">
 		body {
 			background-color: #472981;
@@ -254,7 +254,7 @@
 				ROM_DATA = romData;
 
 				console.log("Loading worker....");
-				emulatorWorker = new Worker('worker.js');
+				emulatorWorker = new Worker('js/worker.js');
 				emulatorWorker.onmessage = onMessageHandler;
 			}
 

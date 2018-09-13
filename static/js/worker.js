@@ -6,7 +6,7 @@ if (!WebAssembly.instantiateStreaming) { // polyfill
 }
 
 importScripts('wasm_exec.js');
-const GOMEBOY_COLOR_WASM = "gbc.wasm";
+const GOMEBOY_COLOR_WASM = "../wasm/gbc.wasm";
 
 const go = new Go();
 let mod, inst;
