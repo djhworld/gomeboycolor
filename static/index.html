@@ -154,7 +154,7 @@
 		</div>
 
 
-		<div class="buttons text-center">
+		<div id="emulator-config" class="buttons text-center">
 			<input type="file" class="hidden" id="files" name="files[]" />
 			<label id="files-label" for="files" title="Choose a ROM file to load" class="btn btn-primary text-center">Choose ROM</label>
 			<button class="btn btn-danger hidden" onClick="stop();" id="stop">Stop</button>
@@ -256,6 +256,7 @@
 				console.log("Loading worker....");
 				emulatorWorker = new Worker('js/worker.js');
 				emulatorWorker.onmessage = onMessageHandler;
+				document.getElementById("files-label").innerHTML = "Loading...";
 			}
 
 			function onMessageHandler(e) {
@@ -366,8 +367,10 @@
 				ROM_NAME = null;
 				ROM_DATA = "";
 
+				document.getElementById("stop").innerHTML = "Stop";
 				document.getElementById("stop").classList.add("hidden");
 				document.getElementById("files-label").classList.remove("hidden")
+				document.getElementById("files-label").innerHTML = "Choose ROM";
 				document.title = "gomeboycolor";
 				document.getElementById("loadedFile").innerHTML = "No ROM loaded";
 
@@ -381,6 +384,7 @@
 			function stop() {
 				if (emulatorWorker) {
 					emulatorWorker.postMessage(["stop", {}]);
+					document.getElementById("stop").innerHTML = "Stopping...";
 				} else {
 					reset();
 				}
