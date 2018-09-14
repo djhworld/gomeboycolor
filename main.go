@@ -23,16 +23,17 @@ const TITLE string = "gomeboycolor"
 var VERSION string
 
 const (
-	SKIP_BOOT_FLAG   string = "skipboot"
-	SCREEN_SIZE_FLAG        = "size"
-	SHOW_FPS_FLAG           = "showfps"
-	TITLE_FLAG              = "title"
-	DUMP_FLAG               = "dump"
-	DEBUGGER_ON_FLAG        = "debug"
-	BREAK_WHEN_FLAG         = "b"
-	COLOR_MODE_FLAG         = "color"
-	HELP_FLAG               = "help"
-	HEADLESS_FLAG           = "headless"
+	SKIP_BOOT_FLAG       string = "skipboot"
+	SCREEN_SIZE_FLAG            = "size"
+	SHOW_FPS_FLAG               = "showfps"
+	TITLE_FLAG                  = "title"
+	DUMP_FLAG                   = "dump"
+	DEBUGGER_ON_FLAG            = "debug"
+	BREAK_WHEN_FLAG             = "b"
+	COLOR_MODE_FLAG             = "color"
+	HELP_FLAG                   = "help"
+	HEADLESS_FLAG               = "headless"
+	FRAME_RATE_LOCK_FLAG        = "fpsLock"
 )
 
 var title *string = flag.String(TITLE_FLAG, TITLE, "Title to use")
@@ -42,6 +43,7 @@ var skipBoot *bool = flag.Bool(SKIP_BOOT_FLAG, false, "Skip boot sequence")
 var colorMode *bool = flag.Bool(COLOR_MODE_FLAG, true, "Emulates Gameboy Color Hardware")
 var help *bool = flag.Bool(HELP_FLAG, false, "Show this help message")
 var headless *bool = flag.Bool(HEADLESS_FLAG, false, "Run emulator without output")
+var frameRatelock *int64 = flag.Int64(FRAME_RATE_LOCK_FLAG, 58, "Lock framerate to this. Going higher than default might be unstable!")
 
 //debug stuff...
 var dumpState *bool = flag.Bool(DUMP_FLAG, false, "Print state of machine after each cycle (WARNING - WILL RUN SLOW)")
@@ -60,6 +62,7 @@ func PrintHelp() {
 	fmt.Println("	-dump			-> 	Dump CPU state after every cycle. Will be very SLOW and resource intensive. Defaults to false")
 	fmt.Println("	-size=(1-6)		->	Set screen size. Defaults to 1.")
 	fmt.Println("	-headless		->	Runs emulator without output")
+	fmt.Println("	-fpsLock		->	Lock framerate to this. Going higher than default might be unstable!")
 	fmt.Println("	-title=(title)		->	Change window title. Defaults to 'gomeboycolor'.")
 	fmt.Println("\nYou can pass an option argument to the boolean flags if you want to enable that particular option. e.g. to disable the boot screen you would do the following")
 	fmt.Println("\n\tgomeboycolor -skipboot=false location/of/romfile.gbc\n")
@@ -88,15 +91,16 @@ func main() {
 
 	//Parse and validate settings file (if found)
 	conf := &config.Config{
-		Title:      TITLE,
-		ScreenSize: *screenSizeMultiplier,
-		SkipBoot:   *skipBoot,
-		DisplayFPS: *showFps,
-		ColorMode:  *colorMode,
-		Debug:      *debug,
-		BreakOn:    *breakOn,
-		DumpState:  *dumpState,
-		Headless:   *headless,
+		Title:         TITLE,
+		ScreenSize:    *screenSizeMultiplier,
+		SkipBoot:      *skipBoot,
+		DisplayFPS:    *showFps,
+		ColorMode:     *colorMode,
+		Debug:         *debug,
+		BreakOn:       *breakOn,
+		DumpState:     *dumpState,
+		Headless:      *headless,
+		FrameRateLock: *frameRatelock,
 	}
 	fmt.Println(conf)
 
@@ -111,7 +115,7 @@ func main() {
 
 	log.Println("Starting emulator")
 
-	emulator, err := gbc.Init(cart, saveStore, conf, inputoutput.NewGlfwIO(58, conf.Headless))
+	emulator, err := gbc.Init(cart, saveStore, conf, inputoutput.NewGlfwIO(conf.FrameRateLock, conf.Headless))
 	if err != nil {
 		log.Println(err)
 		return

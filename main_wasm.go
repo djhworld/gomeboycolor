@@ -19,7 +19,6 @@ import (
 )
 
 const TITLE string = "gomeboycolor"
-const DEFAULT_FRAME_RATE_LOCK int64 = 35
 
 func main() {
 	fmt.Printf("%s.\n", TITLE)
@@ -36,7 +35,7 @@ func main() {
 		emulatorSetup.cart,
 		emulatorSetup.saveStore,
 		emulatorSetup.config,
-		inputoutput.NewWebIO(getFrameRateLock(), emulatorSetup.config.Headless),
+		inputoutput.NewWebIO(emulatorSetup.config.FrameRateLock, emulatorSetup.config.Headless),
 	)
 
 	if err != nil {
@@ -51,15 +50,6 @@ func main() {
 
 	webworker.SendStopOK()
 	log.Println("Goodbye!")
-}
-
-func getFrameRateLock() int64 {
-	userAgent := js.Global().Get("navigator").Get("userAgent").String()
-	if strings.Contains(userAgent, "Firefox") {
-		return DEFAULT_FRAME_RATE_LOCK
-	} else {
-		return 35
-	}
 }
 
 func awaitSetup(emulatorSetup *EmulatorSetup) {
@@ -110,15 +100,16 @@ func (e *EmulatorSetup) handleInit(initData js.Value) error {
 
 	initConfig := initData.Get("config")
 	e.config = &config.Config{
-		Title:      TITLE,
-		ScreenSize: 1,
-		SkipBoot:   initConfig.Get("skipBoot").Bool(),
-		DisplayFPS: true,
-		ColorMode:  initConfig.Get("colorMode").Bool(),
-		Debug:      false,
-		BreakOn:    "0x0000",
-		DumpState:  false,
-		Headless:   false,
+		Title:         TITLE,
+		ScreenSize:    1,
+		SkipBoot:      initConfig.Get("skipBoot").Bool(),
+		DisplayFPS:    initConfig.Get("showfps").Bool(),
+		ColorMode:     initConfig.Get("colorMode").Bool(),
+		Debug:         false,
+		BreakOn:       "0x0000",
+		DumpState:     false,
+		Headless:      initConfig.Get("headless").Bool(),
+		FrameRateLock: int64(initConfig.Get("fpsLock").Int()),
 	}
 
 	romData := initData.Get("romData")

@@ -15,12 +15,8 @@ function _arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-function _strToArrayBuffer(str) {
-    var bufView = new Uint16Array(str.length);
-    for (var i = 0, strLen = str.length; i < strLen; i++) {
-        bufView[i] = str.charCodeAt(i);
-    }
-    return Uint8ClampedArray.from(bufView);
+function _strToUint8ClampedArray(str) {
+    return new Uint8ClampedArray(base64js.toByteArray(str));
 }
 
 

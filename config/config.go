@@ -10,11 +10,12 @@ import (
 
 type Config struct {
 	//mandatory settings
-	Title      string
-	ScreenSize int
-	SkipBoot   bool
-	DisplayFPS bool
-	ColorMode  bool
+	Title         string
+	ScreenSize    int
+	SkipBoot      bool
+	DisplayFPS    bool
+	ColorMode     bool
+	FrameRateLock int64
 
 	//optional
 	Headless  bool
@@ -35,6 +36,7 @@ func (c *Config) String() string {
 		fmt.Sprintln(utils.PadRight("Breakpoint: ", 19, " "), c.BreakOn) +
 		fmt.Sprintln(utils.PadRight("CPU Dump?: ", 19, " "), c.DumpState) +
 		fmt.Sprintln(utils.PadRight("Headless: ", 19, " "), c.Headless) +
+		fmt.Sprintln(utils.PadRight("FrameRateLock: ", 19, " "), c.FrameRateLock) +
 		fmt.Sprint(strings.Repeat("-", 50))
 }
 

@@ -5,6 +5,7 @@
 	<meta charset="utf-8">
 	<title>gomeboycolor</title>
 	<link rel="stylesheet" href="css/bootstrap.min.css" />
+	<script type="text/javascript" src="js/base64js.min.js"></script>
 	<script type="text/javascript" src="js/utils.js"></script>
 	<script type="text/javascript" src="js/jquery.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
@@ -172,6 +173,48 @@
 
 			<input type="checkbox" id="colorMode" title="Turn on/off Gameboy Color feature set" value="Color Mode" checked />
 			<label for="skipBoot" title="Turn on/off Gameboy Color feature set">Color Mode</label>
+			<br/>
+
+			<label for="fpsLock" title="Turn on/off Gameboy Color feature set">Lock frame rate to</label>
+			<select id="fpsLock" title="Lock the frame rate to this value. Higher than 35 will result in unstable/unresponsive input">
+				<option value="25">25</option>
+				<option value="26">26</option>
+				<option value="27">27</option>
+				<option value="28">28</option>
+				<option value="29">29</option>
+				<option value="30">30</option>
+				<option value="30">30</option>
+				<option value="31">31</option>
+				<option value="32">32</option>
+				<option value="33">33</option>
+				<option value="34">34</option>
+				<option value="35" selected>35</option>
+				<option value="36">36</option>
+				<option value="37">37⚠️</option>
+				<option value="38">38⚠️</option>
+				<option value="39">39⚠️</option>
+				<option value="40">40⚠️</option>
+				<option value="41">41⚠️</option>
+				<option value="42">42⚠️</option>
+				<option value="43">43⚠️</option>
+				<option value="44">44⚠️</option>
+				<option value="45">45⚠️</option>
+				<option value="46">46⚠️</option>
+				<option value="47">47⚠️</option>
+				<option value="48">48⚠️</option>
+				<option value="49">49⚠️</option>
+				<option value="50">50⚠️</option>
+				<option value="51">51⚠️</option>
+				<option value="52">52⚠️</option>
+				<option value="53">53⚠️</option>
+				<option value="54">54⚠️</option>
+				<option value="55">55⚠️</option>
+				<option value="56">56⚠️</option>
+				<option value="57">57⚠️</option>
+				<option value="58">58⚠️</option>
+				<option value="59">59⚠️</option>
+			</select>
+			<span>frames per second</span>
 		</div>
 		<footer>
 			<div class="inner text-center">
@@ -193,19 +236,26 @@
 						<p>This is <a href="https://github.com/djhworld/gomeboycolor">gomeboycolor</a>, a Gameboy Color emulator, written
 							in Go, ported to WebAssembly.</p>
 
-						<p>The performance might be a little off, and it's not perfect,
-							but most games should work. I wrote this emulator a few years ago and decided to try and port it to WebAssembly.
+						<p>The performance is not great, and it's not a perfect emulator,
+							but most games should work. I coded this a few years ago and decided to try and port it to WebAssembly.
 						</p>
-
 						<div class="alert alert-warn">
 							<strong>⚠️&nbsp;Google Chrome users</strong>
 							<p>Performance, at least for this application, doesn't seem as good as Firefox and Safari right now.</p>
 							<p>You might find keyboard controls and the 'Stop' button become unresponsive in Chrome. </p>
+							<p>Try reducing the frame rate lock to see if you get better performance</p>
 						</div>
 
-						<p>ROMs that support battery saves are stored in your browser LocalStorage.</p>
-						<p>Audio is not implemented</p>
+
+						<h6>Features</h6>
+						<ul style="list-style-type:none;">
+							<li>✅&nbsp;ROMs that support battery saves are stored in your browser LocalStorage.</li>
+							<li>❌&nbsp;Audio is not implemented</li>
+							<li>✅&nbsp;Gameboy Color support</li>
+						</ul>
+
 						<p>Read this blog post for more information</p>
+
 
 					</div>
 				</div>
@@ -257,6 +307,7 @@
 				emulatorWorker = new Worker('js/worker.js');
 				emulatorWorker.onmessage = onMessageHandler;
 				document.getElementById("files-label").innerHTML = "Loading...";
+				document.getElementById("fpsLock").disabled = true;
 			}
 
 			function onMessageHandler(e) {
@@ -292,6 +343,7 @@
 			function handleInit() {
 				console.log("Emulator has launched in a web worker");
 				console.log("Posting ROM to worker....");
+				var fpsLock = document.getElementById("fpsLock");
 				emulatorWorker.postMessage(
 					[
 						"init",
@@ -303,6 +355,9 @@
 							"config": {
 								"skipBoot": document.getElementById("skipBoot").checked,
 								"colorMode": document.getElementById("colorMode").checked,
+								"fpsLock": parseInt(fpsLock.options[fpsLock.selectedIndex].value),
+								"headless": false,
+								"showfps": true
 							}
 						}
 					]
@@ -353,7 +408,7 @@
 			}
 
 			function updateCanvas(screenData) {
-				var decodedData = _strToArrayBuffer(window.atob(screenData));
+				var decodedData = _strToUint8ClampedArray(screenData);
 				var imageData = new ImageData(decodedData, 160, 144);
 				context.putImageData(imageData, canvas.width / 4, 4);
 			}
@@ -373,6 +428,7 @@
 				document.getElementById("files-label").innerHTML = "Choose ROM";
 				document.title = "gomeboycolor";
 				document.getElementById("loadedFile").innerHTML = "No ROM loaded";
+				document.getElementById("fpsLock").disabled = false;
 
 
 
