@@ -70,10 +70,8 @@ func (i *CoreIO) Run() {
 	for isRunning {
 		select {
 		case data := <-i.screenOutputChannel:
-			if !i.headless {
-				<-fpsThrottler
-				i.display.DrawFrame(data)
-			}
+			<-fpsThrottler
+			i.display.DrawFrame(data)
 		case <-i.stopChannel:
 			i.display.Stop()
 			i.onCloseHandler()

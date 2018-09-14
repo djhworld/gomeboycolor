@@ -68,14 +68,12 @@ func (i *WebIO) Init(title string, screenSize int, onCloseHandler func()) error 
 		}
 	})
 
-	if !i.headless {
-		err = i.html5Display.init(title)
-		if err != nil {
-			return err
-		}
-
-		i.keyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
+	err = i.html5Display.init(title, i.headless)
+	if err != nil {
+		return err
 	}
+
+	i.keyHandler.Init(DefaultControlScheme) //TODO: allow user to define controlscheme
 
 	self := js.Global().Get("self")
 	self.Call("addEventListener", "message", messageCB, false)
@@ -86,15 +84,17 @@ func (i *WebIO) Init(title string, screenSize int, onCloseHandler func()) error 
 type html5CanvasDisplay struct {
 	Name      string
 	imageData []byte
+	headless  bool
 }
 
 //TODO on close handler?
-func (s *html5CanvasDisplay) init(title string) error {
+func (s *html5CanvasDisplay) init(title string, headless bool) error {
 	s.Name = prefix + "-SCREEN"
 	log.Printf("%s: Initialising display", s.Name)
 
 	imageDataLen := screenWidth * screenHeight * 4
 	s.imageData = make([]byte, imageDataLen, imageDataLen)
+	s.headless = headless
 
 	return nil
 }
@@ -117,5 +117,8 @@ func (s *html5CanvasDisplay) DrawFrame(screenData *types.Screen) {
 		}
 	}
 
-	webworker.SendScreenUpdate(base64.StdEncoding.EncodeToString(s.imageData))
+	// TODO this is probably a performance bottleneck
+	if !s.headless {
+		webworker.SendScreenUpdate(base64.StdEncoding.EncodeToString(s.imageData))
+	}
 }
