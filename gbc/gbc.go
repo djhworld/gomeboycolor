@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/djhworld/gomeboycolor/apu"
 	"github.com/djhworld/gomeboycolor/cartridge"
@@ -14,7 +13,6 @@ import (
 	"github.com/djhworld/gomeboycolor/cpu"
 	"github.com/djhworld/gomeboycolor/gpu"
 	"github.com/djhworld/gomeboycolor/inputoutput"
-	"github.com/djhworld/gomeboycolor/metric"
 	"github.com/djhworld/gomeboycolor/mmu"
 	"github.com/djhworld/gomeboycolor/saves"
 	"github.com/djhworld/gomeboycolor/timer"
@@ -34,13 +32,11 @@ type GomeboyColor struct {
 	io           inputoutput.IOHandler
 	apu          *apu.APU
 	timer        *timer.Timer
-	fpsCounter   *metric.FPSCounter
 	debugOptions *DebugOptions
 	config       *config.Config
 	cart         *cartridge.Cartridge
 	saveStore    saves.Store
 	cpuClockAcc  int
-	frameCount   int
 	stepCount    int
 	inBootMode   bool
 	stopped      bool
@@ -99,11 +95,7 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config,
 }
 
 func (gbc *GomeboyColor) Run() {
-	currentTime := time.Now()
-
 	for !gbc.stopped {
-		gbc.frameCount++
-
 		if !gbc.debugOptions.debuggerOn {
 			gbc.doFrame()
 		} else {
@@ -111,14 +103,6 @@ func (gbc *GomeboyColor) Run() {
 		}
 
 		gbc.cpuClockAcc = 0
-		if gbc.config.DisplayFPS {
-			if time.Since(currentTime) >= (1 * time.Second) {
-				gbc.fpsCounter.Add(gbc.frameCount / 1.0)
-				log.Println("Average frames per second:", gbc.fpsCounter.Avg())
-				currentTime = time.Now()
-				gbc.frameCount = 0
-			}
-		}
 	}
 }
 
@@ -158,7 +142,6 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.saveStore = saveStore
 	gbc.io = ioHandler
 	gbc.debugOptions = new(DebugOptions)
-	gbc.fpsCounter = metric.NewFPSCounter()
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU(gbc.mmu)
 	gbc.stopped = false

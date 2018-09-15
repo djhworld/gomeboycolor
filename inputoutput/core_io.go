@@ -3,6 +3,7 @@ package inputoutput
 import (
 	"time"
 
+	"github.com/djhworld/gomeboycolor/metric"
 	"github.com/djhworld/gomeboycolor/types"
 )
 
@@ -15,6 +16,7 @@ type IOHandler interface {
 	Init(title string, screenSize int, onCloseHandler func()) error
 	GetKeyHandler() *KeyHandler
 	GetScreenOutputChannel() chan *types.Screen
+	GetAvgFrameRate() float32
 	Run()
 }
 
@@ -34,9 +36,11 @@ type CoreIO struct {
 	headless            bool
 	frameRateLock       int64
 	onCloseHandler      func()
+	frameRateCounter    *metric.FPSCounter
+	frameRateReporter   func(float32)
 }
 
-func newCoreIO(frameRateLock int64, headless bool, display Display) *CoreIO {
+func newCoreIO(frameRateLock int64, headless bool, frameRateReporter func(float32), display Display) *CoreIO {
 	i := new(CoreIO)
 	i.keyHandler = new(KeyHandler)
 	i.audioOutputChannel = make(chan int)
@@ -46,6 +50,8 @@ func newCoreIO(frameRateLock int64, headless bool, display Display) *CoreIO {
 	i.headless = headless
 	i.frameRateLock = frameRateLock
 	i.onCloseHandler = nil
+	i.frameRateCounter = metric.NewFPSCounter()
+	i.frameRateReporter = frameRateReporter
 	return i
 }
 
@@ -61,10 +67,16 @@ func (i *CoreIO) GetKeyHandler() *KeyHandler {
 	return i.keyHandler
 }
 
+func (i *CoreIO) GetAvgFrameRate() float32 {
+	return i.frameRateCounter.Avg()
+}
+
 // Run runs the IO event loop
 func (i *CoreIO) Run() {
 	fpsLock := time.Second / time.Duration(i.frameRateLock)
 	fpsThrottler := time.Tick(fpsLock)
+	frameRateCountTicker := time.Tick(1 * time.Second)
+	frameCount := 0
 	isRunning := true
 
 	for isRunning {
@@ -72,10 +84,15 @@ func (i *CoreIO) Run() {
 		case data := <-i.screenOutputChannel:
 			<-fpsThrottler
 			i.display.DrawFrame(data)
+			frameCount++
 		case <-i.stopChannel:
 			i.display.Stop()
 			i.onCloseHandler()
 			isRunning = false
+		case <-frameRateCountTicker:
+			i.frameRateCounter.Add(frameCount)
+			i.frameRateReporter(i.frameRateCounter.Avg())
+			frameCount = 0
 		}
 	}
 }

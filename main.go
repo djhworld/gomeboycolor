@@ -115,7 +115,7 @@ func main() {
 
 	log.Println("Starting emulator")
 
-	emulator, err := gbc.Init(cart, saveStore, conf, inputoutput.NewGlfwIO(conf.FrameRateLock, conf.Headless))
+	emulator, err := gbc.Init(cart, saveStore, conf, inputoutput.NewGlfwIO(conf.FrameRateLock, conf.Headless, conf.DisplayFPS))
 	if err != nil {
 		log.Println(err)
 		return
