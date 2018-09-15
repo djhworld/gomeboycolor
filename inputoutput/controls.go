@@ -35,7 +35,7 @@ func (k *KeyHandler) Init(cs ControlScheme) {
 }
 
 func (k *KeyHandler) Name() string {
-	return prefix + "-KEYB"
+	return PREFIX + "-KEYB"
 }
 
 func (k *KeyHandler) Reset() {

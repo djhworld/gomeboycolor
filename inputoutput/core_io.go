@@ -7,9 +7,9 @@ import (
 	"github.com/djhworld/gomeboycolor/types"
 )
 
-const prefix string = "IO"
-const screenWidth int = 160
-const screenHeight int = 144
+const PREFIX string = "IO"
+const SCREEN_WIDTH int = 160
+const SCREEN_HEIGHT int = 144
 
 // IOHandler interface for handling all IO interations with the emulator
 type IOHandler interface {
@@ -28,28 +28,30 @@ type Display interface {
 // CoreIO contains all core functionality for running the IO event loop
 // all sub types should extend this type
 type CoreIO struct {
-	keyHandler          *KeyHandler
+	OnCloseHandler func()
+	KeyHandler     *KeyHandler
+	StopChannel    chan int
+	Headless       bool
+
 	audioOutputChannel  chan int
 	screenOutputChannel chan *types.Screen
-	stopChannel         chan int
 	display             Display
-	headless            bool
 	frameRateLock       int64
-	onCloseHandler      func()
 	frameRateCounter    *metric.FPSCounter
 	frameRateReporter   func(float32)
 }
 
-func newCoreIO(frameRateLock int64, headless bool, frameRateReporter func(float32), display Display) *CoreIO {
+func NewCoreIO(frameRateLock int64, headless bool, frameRateReporter func(float32), display Display) *CoreIO {
 	i := new(CoreIO)
-	i.keyHandler = new(KeyHandler)
-	i.audioOutputChannel = make(chan int)
+	i.KeyHandler = new(KeyHandler)
+	i.StopChannel = make(chan int, 1)
+	i.Headless = headless
+	i.OnCloseHandler = nil
+
 	i.screenOutputChannel = make(chan *types.Screen)
-	i.stopChannel = make(chan int, 1)
+	i.audioOutputChannel = make(chan int)
 	i.display = display
-	i.headless = headless
 	i.frameRateLock = frameRateLock
-	i.onCloseHandler = nil
 	i.frameRateCounter = metric.NewFPSCounter()
 	i.frameRateReporter = frameRateReporter
 	return i
@@ -64,7 +66,7 @@ func (i *CoreIO) GetScreenOutputChannel() chan *types.Screen {
 // GetKeyHandler returns the key handler component
 // for managing interactions with the keyboard
 func (i *CoreIO) GetKeyHandler() *KeyHandler {
-	return i.keyHandler
+	return i.KeyHandler
 }
 
 func (i *CoreIO) GetAvgFrameRate() float32 {
@@ -85,9 +87,9 @@ func (i *CoreIO) Run() {
 			<-fpsThrottler
 			i.display.DrawFrame(data)
 			frameCount++
-		case <-i.stopChannel:
+		case <-i.StopChannel:
 			i.display.Stop()
-			i.onCloseHandler()
+			i.OnCloseHandler()
 			isRunning = false
 		case <-frameRateCountTicker:
 			i.frameRateCounter.Add(frameCount)
