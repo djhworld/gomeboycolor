@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sort"
 
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/components"
@@ -62,7 +61,7 @@ type GbcMMU struct {
 	DMARegister       byte
 	interruptsEnabled byte
 	interruptsFlag    byte
-	peripheralIOMap   map[types.Word]components.Peripheral
+	peripheralsIO     [65536]components.Peripheral
 
 	//CGB features
 	cgbWramBankSelectedRegister       byte
@@ -74,7 +73,6 @@ type GbcMMU struct {
 
 func NewGbcMMU() *GbcMMU {
 	var mmu *GbcMMU = new(GbcMMU)
-	mmu.peripheralIOMap = make(map[types.Word]components.Peripheral)
 	mmu.Reset()
 	return mmu
 }
@@ -89,9 +87,17 @@ func (mmu *GbcMMU) Reset() {
 	mmu.hdmaTransferInfo = new(HDMATransfer)
 }
 
+func (mmu *GbcMMU) PrintPeripheralMap() {
+	for i, v := range mmu.peripheralsIO {
+		if v != nil {
+			fmt.Printf("\t%X - %v\n", i, v.Name())
+		}
+	}
+}
+
 func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 	//Check peripherals first
-	if p, ok := mmu.peripheralIOMap[addr]; ok {
+	if p := mmu.peripheralsIO[addr]; p != nil {
 		p.Write(addr, value)
 		return
 	}
@@ -138,7 +144,7 @@ func (mmu *GbcMMU) WriteByte(addr types.Word, value byte) {
 
 func (mmu *GbcMMU) ReadByte(addr types.Word) byte {
 	//Check peripherals first
-	if p, ok := mmu.peripheralIOMap[addr]; ok {
+	if p := mmu.peripheralsIO[addr]; p != nil {
 		return p.Read(addr)
 	}
 
@@ -208,11 +214,11 @@ func (mmu *GbcMMU) SetInBootMode(mode bool) {
 func (mmu *GbcMMU) ConnectPeripheral(p components.Peripheral, startAddr, endAddr types.Word) {
 	if startAddr == endAddr {
 		log.Printf("%s: Connecting MMU to %s on address %s", PREFIX, p.Name(), startAddr)
-		mmu.peripheralIOMap[startAddr] = p
+		mmu.peripheralsIO[startAddr] = p
 	} else {
 		log.Printf("%s: Connecting MMU to %s on address range %s to %s", PREFIX, p.Name(), startAddr, endAddr)
 		for addr := startAddr; addr <= endAddr; addr++ {
-			mmu.peripheralIOMap[addr] = p
+			mmu.peripheralsIO[addr] = p
 		}
 	}
 }
@@ -221,28 +227,8 @@ func (mmu *GbcMMU) ConnectPeripheral(p components.Peripheral, startAddr, endAddr
 func (mmu *GbcMMU) ConnectPeripheralOn(p components.Peripheral, addrs ...types.Word) {
 	log.Printf("%s: Connecting MMU to %s to address(es): %s", PREFIX, p.Name(), addrs)
 	for _, addr := range addrs {
-		mmu.peripheralIOMap[addr] = p
+		mmu.peripheralsIO[addr] = p
 	}
-}
-
-func (mmu *GbcMMU) PrintPeripheralMap() {
-	var addrs types.Words
-	for k, _ := range mmu.peripheralIOMap {
-		addrs = append(addrs, k)
-	}
-
-	sort.Sort(addrs)
-
-	for i, addr := range addrs {
-		peripheral := mmu.peripheralIOMap[addr]
-
-		fmt.Printf("[%s] -> %s   ", addr, peripheral.Name())
-		if i%8 == 0 {
-			fmt.Println()
-		}
-	}
-
-	fmt.Println()
 }
 
 //Puts BIOS ROM into special area in MMU

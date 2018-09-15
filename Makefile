@@ -1,7 +1,2 @@
-all: prepare 
-	go install
-
-prepare:
+all:
 	go mod tidy
-
-
