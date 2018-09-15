@@ -36,7 +36,11 @@ func SendSaveState(gameId, state string) {
 }
 
 func SendScreenUpdate(screenData string) {
-	postMessage("screen-update", screenData)
+	js.Global().Call("sendScreenUpdate", screenData)
+}
+
+func SendFrameRate(rate float32) {
+	postMessage("frame-rate-report", rate)
 }
 
 func postMessage(action string, body interface{}) {

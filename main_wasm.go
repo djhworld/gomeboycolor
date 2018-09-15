@@ -35,7 +35,11 @@ func main() {
 		emulatorSetup.cart,
 		emulatorSetup.saveStore,
 		emulatorSetup.config,
-		inputoutput.NewWebIO(emulatorSetup.config.FrameRateLock, emulatorSetup.config.Headless),
+		inputoutput.NewWebIO(
+			emulatorSetup.config.FrameRateLock, 
+			emulatorSetup.config.Headless, 
+			emulatorSetup.config.DisplayFPS,
+		),
 	)
 
 	if err != nil {

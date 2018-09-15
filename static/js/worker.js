@@ -6,7 +6,15 @@ if (!WebAssembly.instantiateStreaming) { // polyfill
 }
 
 importScripts('wasm_exec.js');
+importScripts('base64js.min.js');
 const GOMEBOY_COLOR_WASM = "../wasm/gbc.wasm";
+const SCREEN_UPDATE = "screen-update";
+
+// uses transferable on post message
+function sendScreenUpdate(bs64) {
+    var buf =  new Uint8ClampedArray(base64js.toByteArray(bs64)).buffer;
+    postMessage([SCREEN_UPDATE, buf], [buf]);
+}
 
 const go = new Go();
 let mod, inst;

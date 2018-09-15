@@ -40,12 +40,19 @@ type WebIO struct {
 	html5Display *html5CanvasDisplay
 }
 
-func NewWebIO(frameRateLock int64, headless bool) *WebIO {
+func NewWebIO(frameRateLock int64, headless bool, displayFps bool) *WebIO {
 	log.Println("Creating Web based IO Handler")
 	html5Display := new(html5CanvasDisplay)
 
+	frameRateReporter := func(v float32) {
+		if displayFps {
+			log.Printf("Average frame rate\t%.2f\tfps", v)
+			webworker.SendFrameRate(v)
+		}
+	}
+
 	return &WebIO{
-		newCoreIO(frameRateLock, headless, html5Display),
+		newCoreIO(frameRateLock, headless, frameRateReporter, html5Display),
 		html5Display,
 	}
 }
@@ -83,7 +90,7 @@ func (i *WebIO) Init(title string, screenSize int, onCloseHandler func()) error 
 
 type html5CanvasDisplay struct {
 	Name      string
-	imageData []byte
+	imageData []uint8
 	headless  bool
 }
 
@@ -93,7 +100,7 @@ func (s *html5CanvasDisplay) init(title string, headless bool) error {
 	log.Printf("%s: Initialising display", s.Name)
 
 	imageDataLen := screenWidth * screenHeight * 4
-	s.imageData = make([]byte, imageDataLen, imageDataLen)
+	s.imageData = make([]uint8, imageDataLen, imageDataLen)
 	s.headless = headless
 
 	return nil

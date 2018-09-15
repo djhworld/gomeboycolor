@@ -34,7 +34,7 @@
 			display: block;
 			padding: 0px;
 			width: 800px;
-			height: 480px;
+			height: 510px;
 			margin-top: 40px;
 
 		}
@@ -141,12 +141,18 @@
 			color: #aeaeae;
 			text-decoration: underline;
 		}
+
+		#chrome-warning {
+			cursor: pointer;
+		}
 	</style>
 </head>
 
 <body>
 	<div class="container">
 		<div id="screen-div">
+			<div style="width:100%; height:30px; text-align:right;"><span style="margin-right:8px;" class="badge badge-secondary"
+				 id="frameRate"></span></div>
 			<canvas id="screen"></canvas>
 			<h1 id="title" class="text-center">GOME BOY <small><span class="c">C</span><span class="o1">O</span><span class="l">L</span><span
 					 class="o2">O</span><span class="r">R</span></small></h1>
@@ -168,15 +174,24 @@
 			</button>
 			<br />
 			<br />
-			<input type="checkbox" id="skipBoot" title="Skip the boot sequence" value="Skip Boot" value="0" />
+			<input type="checkbox" name="config[]" id="skipBoot" title="Skip the boot sequence" value="Skip Boot" value="0" />
 			<label for="skipBoot" title="Skip the boot sequence">Skip Boot</label>
 
-			<input type="checkbox" id="colorMode" title="Turn on/off Gameboy Color feature set" value="Color Mode" checked />
-			<label for="skipBoot" title="Turn on/off Gameboy Color feature set">Color Mode</label>
-			<br/>
+			<input type="checkbox" name="config[]" id="colorMode" title="Turn on/off Gameboy Color feature set" value="Color Mode"
+			 checked />
+			<label for="colorMode" title="Turn on/off Gameboy Color feature set">Color Mode</label>
 
-			<label for="fpsLock" title="Turn on/off Gameboy Color feature set">Lock frame rate to</label>
-			<select id="fpsLock" title="Lock the frame rate to this value. Higher than 35 will result in unstable/unresponsive input">
+			<input type="checkbox" name="config[]" id="headless" title="Don't render screen output (useful for testing web assembly performance)"
+			 value="Headless" />
+			<label for="headless" title="Don't render screen output (useful for testing web assembly performance)">Headless</label>
+
+			<input type="checkbox" name="config[]" id="showFps" title="Show average frames per second" value="Show frame rate" />
+			<label for="showFps" title="Show average frames per second">Show frame rate</label>
+			<br />
+
+			<label for="fpsLock" title="Lock the frame rate to this value. Higher values may cause keyboard input/controls to be unreliable!">Lock
+				frame rate to</label>
+			<select id="fpsLock" title="Lock the frame rate to this value. Higher values may cause keyboard input/controls to be unreliable!">
 				<option value="25">25</option>
 				<option value="26">26</option>
 				<option value="27">27</option>
@@ -188,15 +203,15 @@
 				<option value="32">32</option>
 				<option value="33">33</option>
 				<option value="34">34</option>
-				<option value="35" selected>35</option>
+				<option value="35">35</option>
 				<option value="36">36</option>
-				<option value="37">37⚠️</option>
-				<option value="38">38⚠️</option>
-				<option value="39">39⚠️</option>
-				<option value="40">40⚠️</option>
-				<option value="41">41⚠️</option>
-				<option value="42">42⚠️</option>
-				<option value="43">43⚠️</option>
+				<option value="37">37</option>
+				<option value="38">38</option>
+				<option value="39">39</option>
+				<option value="40">40</option>
+				<option value="41">41</option>
+				<option value="42">42</option>
+				<option value="43">43</option>
 				<option value="44">44⚠️</option>
 				<option value="45">45⚠️</option>
 				<option value="46">46⚠️</option>
@@ -215,6 +230,8 @@
 				<option value="59">59⚠️</option>
 			</select>
 			<span>frames per second</span>
+			<br />
+			<strong id="chrome-warning" data-toggle="modal" data-target="#aboutModal">⚠️&nbsp;Google Chrome Warning&nbsp;⚠️</strong>
 		</div>
 		<footer>
 			<div class="inner text-center">
@@ -240,10 +257,10 @@
 							but most games should work. I coded this a few years ago and decided to try and port it to WebAssembly.
 						</p>
 						<div class="alert alert-warn">
-							<strong>⚠️&nbsp;Google Chrome users</strong>
-							<p>Performance, at least for this application, doesn't seem as good as Firefox and Safari right now.</p>
-							<p>You might find keyboard controls and the 'Stop' button become unresponsive in Chrome. </p>
-							<p>Try reducing the frame rate lock to see if you get better performance</p>
+							<strong>⚠️&nbsp;Google Chrome users&nbsp;⚠️</strong>
+							<p>Performance, at least for this application, is very sketchy in Chrome in comparison to Firefox and Safari.</p>
+							<p>You might find keyboard controls and the 'Stop' button become unresponsive in Chrome, so by default I've
+								locked the frame rate to 25 fps.</p>
 						</div>
 
 
@@ -291,6 +308,37 @@
 
 
 		<script type="text/javascript">
+			if (navigator.userAgent.includes("Chrome/")) {
+				document.getElementById("fpsLock").value = 25;
+				document.getElementById("chrome-warning").classList.remove("hidden");
+			} else {
+				document.getElementById("fpsLock").value = 43;
+				document.getElementById("chrome-warning").classList.add("hidden");
+			}
+
+			function saveSettings() {
+				window.localStorage.setItem("config", JSON.stringify({
+					"headless": document.getElementById("headless").checked,
+					"colorMode": document.getElementById("colorMode").checked,
+					"showFps": document.getElementById("showFps").checked,
+					"skipBoot": document.getElementById("skipBoot").checked,
+					"fpsLock": parseInt(document.getElementById("fpsLock").options[document.getElementById("fpsLock").selectedIndex].value)
+				}));
+			}
+
+			function loadSettings() {
+				var rawConfig = window.localStorage.getItem("config");
+				if (rawConfig != null) {
+					let config = JSON.parse(rawConfig);
+					document.getElementById("headless").checked = config.headless;
+					document.getElementById("colorMode").checked = config.colorMode;
+					document.getElementById("showFps").checked = config.showFps;
+					document.getElementById("skipBoot").checked = config.skipBoot;
+					document.getElementById("fpsLock").value = config.fpsLock;
+				}
+			}
+			loadSettings();
+
 			var emulatorWorker = null;
 			var HANDLERS = [];
 			var canvas = document.getElementById("screen");
@@ -306,8 +354,14 @@
 				console.log("Loading worker....");
 				emulatorWorker = new Worker('js/worker.js');
 				emulatorWorker.onmessage = onMessageHandler;
+				saveSettings();
 				document.getElementById("files-label").innerHTML = "Loading...";
 				document.getElementById("fpsLock").disabled = true;
+
+				let config = document.getElementsByName("config[]");
+				for (var i = 0, len = config.length; i < len; i++) {
+					config[i].disabled = true;
+				}
 			}
 
 			function onMessageHandler(e) {
@@ -331,6 +385,9 @@
 					case "save-state":
 						handleSaveState(msg[1]);
 						break;
+					case "frame-rate-report":
+						handleFrameRateReport(msg[1])
+						break;
 					case "screen-update":
 						updateCanvas(msg[1]);
 						break;
@@ -338,6 +395,10 @@
 						console.log("Don't know how to handle" + JSON.stringify(msg));
 						break;
 				}
+			}
+
+			function handleFrameRateReport(frameRate) {
+				document.getElementById("frameRate").innerHTML = "" + frameRate.toFixed(2) + " fps";
 			}
 
 			function handleInit() {
@@ -356,8 +417,8 @@
 								"skipBoot": document.getElementById("skipBoot").checked,
 								"colorMode": document.getElementById("colorMode").checked,
 								"fpsLock": parseInt(fpsLock.options[fpsLock.selectedIndex].value),
-								"headless": false,
-								"showfps": true
+								"headless": document.getElementById("headless").checked,
+								"showfps": document.getElementById("showFps").checked
 							}
 						}
 					]
@@ -408,7 +469,7 @@
 			}
 
 			function updateCanvas(screenData) {
-				var decodedData = _strToUint8ClampedArray(screenData);
+				var decodedData = new Uint8ClampedArray(screenData);
 				var imageData = new ImageData(decodedData, 160, 144);
 				context.putImageData(imageData, canvas.width / 4, 4);
 			}
@@ -428,7 +489,12 @@
 				document.getElementById("files-label").innerHTML = "Choose ROM";
 				document.title = "gomeboycolor";
 				document.getElementById("loadedFile").innerHTML = "No ROM loaded";
+				document.getElementById("frameRate").innerHTML = "";
 				document.getElementById("fpsLock").disabled = false;
+				let config = document.getElementsByName("config[]");
+				for (var i = 0, len = config.length; i < len; i++) {
+					config[i].disabled = false;
+				}
 
 
 
