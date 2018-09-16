@@ -1,0 +1,4 @@
+prepare:
+	go mod tidy
+
+
