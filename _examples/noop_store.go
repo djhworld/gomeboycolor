@@ -5,8 +5,8 @@ import (
 	"log"
 )
 
+// NoopStore does nothing with battery saves
 type NoopStore struct {
-	baseDir string
 }
 
 func NewNoopStore() *NoopStore {

@@ -59,7 +59,7 @@ func createEmulator(romFile string) (*gbc.GomeboyColor, error) {
 	saveStore := NewNoopStore()
 
 	// 4. Create IO handler
-	ioHandler := NewNoopIO(conf.FrameRateLock, conf.Headless, conf.DisplayFPS)
+	ioHandler := NewTerminalIO(conf.FrameRateLock, conf.Headless, conf.DisplayFPS)
 
 	// 5. Initialise emulator
 	return gbc.Init(
