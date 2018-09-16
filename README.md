@@ -10,6 +10,7 @@ This is a backend library that provides the core emulator runtime, it is designe
 Available frontends: 
 
 * [gomeboycolor-glfw](https://github.com/djhworld/gomeboycolor-glfw) - Uses `libglfw` to provide you a native, windowed version of the emulator.
+* [\_examples](https://github.com/djhworld/gomeboycolor/tree/master/_examples) - Uses [tcell](https://github.com/gdamore/tcell) to render the emulator in your terminal.
 
 
 You are welcome to visit the github page for this project by [clicking here](http://djhworld.github.io/gomeboycolor)
@@ -20,13 +21,26 @@ FAQ
 
 ### Backend?
 
-TODO 
+This module will emulate the hardware of the Gameboy Color.
+
+You can write a 'frontend' to receive the screen data and render it to a medium of your choosing, along with handling keyboard inputs, and something to handle saving battery saves.
+
+See the [\_examples](https://github.com/djhworld/gomeboycolor/tree/master/_examples)  directory for a simple example of how to write a frontend. Alternatively, look at the 'Available frontends' above.
+
+
+### Features?
+
+* ⚠️ Mostly works. It is not a perfect emulator by any means and some games might not function correctly.
+  * ✅ blargg CPU tests pass
+  * ❌ Memory timing tests don't pass
+* ✅ Supports battery saves for ROMS that allow you to save state
+* ❌ Audio is NOT implemented right now
+* ❌ Does not support games that require the Gameboy Color HDMA extensions
 
 
 ### How do I build it?
 
 This is a 'library' module, no build required. 
-
 
 
 License
