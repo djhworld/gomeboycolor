@@ -10,6 +10,7 @@ This is a backend library that provides the core emulator runtime, it is designe
 Available frontends: 
 
 * [gomeboycolor-glfw](https://github.com/djhworld/gomeboycolor-glfw) - Uses `libglfw` to provide you a native, windowed version of the emulator.
+* [gomeboycolor-wasm](https://github.com/djhworld/gomeboycolor-wasm) - WebAssembly frontend to support playing in the browser
 * [\_examples](https://github.com/djhworld/gomeboycolor/tree/master/_examples) - Uses [tcell](https://github.com/gdamore/tcell) to render the emulator in your terminal.
 
 
