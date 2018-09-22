@@ -27,7 +27,7 @@ type TerminalIO struct {
 	terminalDisplay *terminalDisplay
 }
 
-func NewTerminalIO(headless bool, displayFps bool) *TerminalIO {
+func NewTerminalIO(frameRateLock int64, headless bool, displayFps bool) *TerminalIO {
 	log.Println("Creating TERMINAL based IO Handler")
 
 	frameRateReporter := func(v float32) {
@@ -39,7 +39,7 @@ func NewTerminalIO(headless bool, displayFps bool) *TerminalIO {
 	terminalDisplay := new(terminalDisplay)
 
 	return &TerminalIO{
-		inputoutput.NewCoreIO(headless, frameRateReporter, terminalDisplay),
+		inputoutput.NewCoreIO(frameRateLock, headless, frameRateReporter, terminalDisplay),
 		terminalDisplay,
 	}
 }

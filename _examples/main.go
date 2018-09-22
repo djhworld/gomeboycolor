@@ -33,7 +33,6 @@ func main() {
 		FrameRateLock: 58,
 	}
 
-
 	romFile := os.Args[1]
 
 	// 1. Initialise emulator
@@ -43,7 +42,7 @@ func main() {
 	}
 
 	// 2. Starts core emulator runtime in a goroutine
-	go emulator.Run(conf.FrameRateLock)
+	go emulator.Run()
 
 	// 3. Start the IO loop to run indefinitely to handle screen updates/keyboard input etc.
 	emulator.RunIO()
@@ -61,7 +60,7 @@ func createEmulator(romFile string, conf *config.Config) (*gbc.GomeboyColor, err
 	saveStore := NewNoopStore()
 
 	// 4. Create IO handler
-	ioHandler := NewTerminalIO(conf.Headless, conf.DisplayFPS)
+	ioHandler := NewTerminalIO(conf.FrameRateLock, conf.Headless, conf.DisplayFPS)
 
 	// 5. Initialise emulator
 	return gbc.Init(
