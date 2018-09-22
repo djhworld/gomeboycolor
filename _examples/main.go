@@ -19,22 +19,6 @@ func main() {
 		log.Fatalf("ERROR: %v", errors.New("Please specify the location of a ROM to boot"))
 	}
 
-	romFile := os.Args[1]
-
-	// 1. Initialise emulator
-	emulator, err := createEmulator(romFile)
-	if err != nil {
-		log.Fatalf("ERROR: %v", err)
-	}
-
-	// 2. Starts core emulator runtime in a goroutine
-	go emulator.Run()
-
-	// 3. Start the IO loop to run indefinitely to handle screen updates/keyboard input etc.
-	emulator.RunIO()
-}
-
-func createEmulator(romFile string) (*gbc.GomeboyColor, error) {
 	// 1. Setup configuration
 	conf := &config.Config{
 		Title:         "dummmy gomeboycolor",
@@ -49,6 +33,24 @@ func createEmulator(romFile string) (*gbc.GomeboyColor, error) {
 		FrameRateLock: 58,
 	}
 
+
+	romFile := os.Args[1]
+
+	// 1. Initialise emulator
+	emulator, err := createEmulator(romFile, conf)
+	if err != nil {
+		log.Fatalf("ERROR: %v", err)
+	}
+
+	// 2. Starts core emulator runtime in a goroutine
+	go emulator.Run(conf.FrameRateLock)
+
+	// 3. Start the IO loop to run indefinitely to handle screen updates/keyboard input etc.
+	emulator.RunIO()
+}
+
+func createEmulator(romFile string, conf *config.Config) (*gbc.GomeboyColor, error) {
+
 	// 2. Load ROM file into a cartridge struct
 	cart, err := createCartridge(os.Args[1])
 	if err != nil {
@@ -59,7 +61,7 @@ func createEmulator(romFile string) (*gbc.GomeboyColor, error) {
 	saveStore := NewNoopStore()
 
 	// 4. Create IO handler
-	ioHandler := NewTerminalIO(conf.FrameRateLock, conf.Headless, conf.DisplayFPS)
+	ioHandler := NewTerminalIO(conf.Headless, conf.DisplayFPS)
 
 	// 5. Initialise emulator
 	return gbc.Init(
