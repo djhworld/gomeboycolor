@@ -36,11 +36,12 @@ type CoreIO struct {
 	audioOutputChannel  chan int
 	screenOutputChannel chan *types.Screen
 	display             Display
+	frameRateLock       int64
 	frameRateCounter    *metric.FPSCounter
 	frameRateReporter   func(float32)
 }
 
-func NewCoreIO(headless bool, frameRateReporter func(float32), display Display) *CoreIO {
+func NewCoreIO(frameRateLock int64, headless bool, frameRateReporter func(float32), display Display) *CoreIO {
 	i := new(CoreIO)
 	i.KeyHandler = new(KeyHandler)
 	i.StopChannel = make(chan int, 1)
@@ -50,6 +51,7 @@ func NewCoreIO(headless bool, frameRateReporter func(float32), display Display) 
 	i.screenOutputChannel = make(chan *types.Screen)
 	i.audioOutputChannel = make(chan int)
 	i.display = display
+	i.frameRateLock = frameRateLock
 	i.frameRateCounter = metric.NewFPSCounter()
 	i.frameRateReporter = frameRateReporter
 	return i
@@ -73,6 +75,8 @@ func (i *CoreIO) GetAvgFrameRate() float32 {
 
 // Run runs the IO event loop
 func (i *CoreIO) Run() {
+	fpsLock := time.Second / time.Duration(i.frameRateLock)
+	fpsThrottler := time.Tick(fpsLock)
 	frameRateCountTicker := time.Tick(1 * time.Second)
 	frameCount := 0
 	isRunning := true
@@ -80,6 +84,7 @@ func (i *CoreIO) Run() {
 	for isRunning {
 		select {
 		case data := <-i.screenOutputChannel:
+			<-fpsThrottler
 			i.display.DrawFrame(data)
 			frameCount++
 		case <-i.StopChannel:
@@ -90,6 +95,8 @@ func (i *CoreIO) Run() {
 			i.frameRateCounter.Add(frameCount)
 			i.frameRateReporter(i.frameRateCounter.Avg())
 			frameCount = 0
+		default:
+			time.Sleep(16 * time.Millisecond)
 		}
 	}
 }

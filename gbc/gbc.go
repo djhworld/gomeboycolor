@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/djhworld/gomeboycolor/apu"
 	"github.com/djhworld/gomeboycolor/cartridge"
@@ -95,22 +94,15 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config,
 	return gbc, nil
 }
 
-func (gbc *GomeboyColor) Run(fpsLock int64) {
-	fpsThrottler := time.Tick(time.Second / time.Duration(fpsLock))
+func (gbc *GomeboyColor) Run() {
 
 	for !gbc.stopped {
-		select {
-		case <-fpsThrottler:
-			if !gbc.debugOptions.debuggerOn {
-				gbc.doFrame()
-			} else {
-				gbc.doFrameWithDebug()
-			}
-			gbc.cpuClockAcc = 0
-		default:
-			time.Sleep(1 * time.Millisecond)
+		if !gbc.debugOptions.debuggerOn {
+			gbc.doFrame()
+		} else {
+			gbc.doFrameWithDebug()
 		}
-
+		gbc.cpuClockAcc = 0
 	}
 }
 
