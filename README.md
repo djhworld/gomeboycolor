@@ -37,6 +37,7 @@ See the [\_examples](https://github.com/djhworld/gomeboycolor/tree/master/_examp
 * ✅ Supports battery saves for ROMS that allow you to save state
 * ❌ Audio is NOT implemented right now
 * ❌ Does not support games that require the Gameboy Color HDMA extensions
+* ⚠️  Does not support RTC clock on MBC3 (although games can still be played)
 
 
 ### How do I build it?
