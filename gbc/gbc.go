@@ -94,13 +94,12 @@ func Init(cart *cartridge.Cartridge, saveStore saves.Store, conf *config.Config,
 	return gbc, nil
 }
 
-func (gbc *GomeboyColor) Run() {
-
+func (gbc *GomeboyColor) Run(frameRunnerWrapper func(func())) {
 	for !gbc.stopped {
 		if !gbc.debugOptions.debuggerOn {
-			gbc.doFrame()
+			frameRunnerWrapper(gbc.doFrame)
 		} else {
-			gbc.doFrameWithDebug()
+			frameRunnerWrapper(gbc.doFrameWithDebug)
 		}
 		gbc.cpuClockAcc = 0
 	}

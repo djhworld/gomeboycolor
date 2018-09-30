@@ -95,8 +95,6 @@ func (i *CoreIO) Run() {
 			i.frameRateCounter.Add(frameCount)
 			i.frameRateReporter(i.frameRateCounter.Avg())
 			frameCount = 0
-		default:
-			time.Sleep(16 * time.Millisecond)
 		}
 	}
 }
