@@ -41,8 +41,12 @@ func main() {
 		log.Fatalf("ERROR: %v", err)
 	}
 
+	dumbFrameRunnerWrapper := func(doFrame func()) {
+		doFrame()
+	}
+
 	// 2. Starts core emulator runtime in a goroutine
-	go emulator.Run()
+	go emulator.Run(dumbFrameRunnerWrapper)
 
 	// 3. Start the IO loop to run indefinitely to handle screen updates/keyboard input etc.
 	emulator.RunIO()
