@@ -584,7 +584,7 @@ func (g *GPU) getCGBBackgroundTileAttrs(tilemapOffset types.Word, lineOffset typ
 		//revert bank selection register to what it was set to previously
 		g.cgbVramBankSelectionRegister = currentSelectedBankTmp
 
-		return tileNo, NewCGBBackgroundTileAttrs(attributeData)
+		return tileNo, CGB_BACKGROUND_TILE_ATTRS[attributeData]
 	} else {
 		panic("Cannot call this function, not in color gb mode!")
 	}
@@ -797,8 +797,8 @@ func formatTileLine(t *Tile, tileY int, flipHorizontal, flipVertical bool, tileL
 	}
 
 	if flipVertical {
-		for i, v := range t[7-tileY] {
-			tileLineStorageArea[i] = v
+		for i := 0; i < len(t[7-tileY]); i++ {
+			tileLineStorageArea[i] = t[7-tileY][i]
 		}
 		return
 	}
@@ -810,7 +810,7 @@ func formatTileLine(t *Tile, tileY int, flipHorizontal, flipVertical bool, tileL
 		return
 	}
 
-	for i, v := range t[tileY] {
-		tileLineStorageArea[i] = v
+	for i := 0; i < len(t[tileY]); i++ {
+		tileLineStorageArea[i] = t[tileY][i]
 	}
 }
