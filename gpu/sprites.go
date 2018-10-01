@@ -22,13 +22,14 @@ type Sprite interface {
 type Sprite8x8 struct {
 	SpriteAttrs       *SpriteAttributes
 	TileID            int
-	ScanlineDrawQueue []int
+	ScanlineDrawQueue *Queue
 	CurrentTileLine   int
 }
 
 func NewSprite8x8() *Sprite8x8 {
 	var sprite *Sprite8x8 = new(Sprite8x8)
 	sprite.SpriteAttrs = new(SpriteAttributes)
+	sprite.ScanlineDrawQueue = newQueue(8)
 	return sprite
 }
 
@@ -51,25 +52,24 @@ func (s *Sprite8x8) UpdateSprite(addr types.Word, value byte) {
 
 func (s *Sprite8x8) PushScanlines(fromScanline, amount int) {
 	for i := 0; i < amount; i++ {
-		if len(s.ScanlineDrawQueue) == 8 {
+		if s.ScanlineDrawQueue.len == 8 {
 			break
 		}
-		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
+		s.ScanlineDrawQueue.Push(fromScanline + i)
 	}
 }
 
 func (s *Sprite8x8) IsScanlineDrawQueueEmpty() bool {
-	return len(s.ScanlineDrawQueue) == 0
+	return s.ScanlineDrawQueue.len <= 0
 }
 
 func (s *Sprite8x8) PopScanline() (int, int) {
-	if len(s.ScanlineDrawQueue) == 0 {
+	if s.ScanlineDrawQueue.len <= 0 {
 		panic("Scanline queue is empty!")
 	}
 
-	value := s.ScanlineDrawQueue[0]
+	value := s.ScanlineDrawQueue.Pop()
 	oldCurrentTileLine := s.CurrentTileLine
-	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
 
 	if s.CurrentTileLine < 7 {
 		s.CurrentTileLine++
@@ -78,9 +78,7 @@ func (s *Sprite8x8) PopScanline() (int, int) {
 }
 
 func (s *Sprite8x8) ResetScanlineDrawQueue() {
-	if len(s.ScanlineDrawQueue) > 0 {
-		s.ScanlineDrawQueue = make([]int, 0)
-	}
+	s.ScanlineDrawQueue.Reset()
 	s.CurrentTileLine = 0
 }
 
@@ -95,13 +93,14 @@ func (s *Sprite8x8) GetTileID(no int) int {
 type Sprite8x16 struct {
 	SpriteAttrs       *SpriteAttributes
 	TileIDs           [2]int
-	ScanlineDrawQueue []int
+	ScanlineDrawQueue *Queue
 	CurrentTileLine   int
 }
 
 func NewSprite8x16() *Sprite8x16 {
 	var sprite *Sprite8x16 = new(Sprite8x16)
 	sprite.SpriteAttrs = new(SpriteAttributes)
+	sprite.ScanlineDrawQueue = newQueue(16)
 	return sprite
 }
 
@@ -132,25 +131,26 @@ func (s *Sprite8x16) SpriteAttributes() *SpriteAttributes {
 
 func (s *Sprite8x16) PushScanlines(fromScanline, amount int) {
 	for i := 0; i < amount; i++ {
-		if len(s.ScanlineDrawQueue) == 16 {
+		if s.ScanlineDrawQueue.len >= 16 {
 			break
 		}
-		s.ScanlineDrawQueue = append(s.ScanlineDrawQueue, fromScanline+i)
+
+		s.ScanlineDrawQueue.Push(fromScanline + i)
 	}
 }
 
 func (s *Sprite8x16) IsScanlineDrawQueueEmpty() bool {
-	return len(s.ScanlineDrawQueue) == 0
+	return s.ScanlineDrawQueue.len <= 0
 }
 
 func (s *Sprite8x16) PopScanline() (int, int) {
-	if len(s.ScanlineDrawQueue) == 0 {
+	if s.ScanlineDrawQueue.len <= 0 {
 		panic("Scanline queue is empty!")
 	}
 
-	value := s.ScanlineDrawQueue[0]
+	value := s.ScanlineDrawQueue.Pop()
 	oldCurrentTileLine := s.CurrentTileLine
-	s.ScanlineDrawQueue = s.ScanlineDrawQueue[1:]
+
 	if s.CurrentTileLine < 15 {
 		s.CurrentTileLine++
 	}
@@ -158,9 +158,7 @@ func (s *Sprite8x16) PopScanline() (int, int) {
 }
 
 func (s *Sprite8x16) ResetScanlineDrawQueue() {
-	if len(s.ScanlineDrawQueue) > 0 {
-		s.ScanlineDrawQueue = make([]int, 0)
-	}
+	s.ScanlineDrawQueue.Reset()
 	s.CurrentTileLine = 0
 }
 
@@ -215,4 +213,45 @@ func (sa *SpriteAttributes) Update(attributeId int, fromValue byte) {
 
 func (s *SpriteAttributes) String() string {
 	return fmt.Sprintf("%#v", s)
+}
+
+type Queue struct {
+	content      []int
+	maxQueueSize int
+	readHead     int
+	writeHead    int
+	len          int
+}
+
+func newQueue(maxSize int) *Queue {
+	q := new(Queue)
+	q.maxQueueSize = maxSize
+	q.content = make([]int, q.maxQueueSize, q.maxQueueSize)
+	return q
+}
+
+func (q *Queue) Push(e int) {
+	if q.len >= q.maxQueueSize {
+		return
+	}
+	q.content[q.writeHead] = e
+	q.writeHead = (q.writeHead + 1) % q.maxQueueSize
+	q.len++
+}
+
+func (q *Queue) Pop() int {
+	if q.len <= 0 {
+		return -1
+	}
+	result := q.content[q.readHead]
+	q.content[q.readHead] = -1
+	q.readHead = (q.readHead + 1) % q.maxQueueSize
+	q.len--
+	return result
+}
+
+func (q *Queue) Reset() {
+	q.readHead = 0
+	q.writeHead = 0
+	q.len = 0
 }
