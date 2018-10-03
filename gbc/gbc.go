@@ -119,8 +119,6 @@ func (gbc *GomeboyColor) Step() {
 	gbc.timer.Step(cycles / gbc.cpu.Speed)
 
 	gbc.stepCount++
-
-	gbc.checkBootModeStatus()
 }
 
 func (gbc *GomeboyColor) Reset() {
@@ -169,6 +167,8 @@ func (gbc *GomeboyColor) doFrame() {
 	for gbc.cpuClockAcc < FRAME_CYCLES {
 		gbc.Step()
 	}
+
+	gbc.checkBootModeStatus()
 }
 
 func (gbc *GomeboyColor) doFrameWithDebug() {
