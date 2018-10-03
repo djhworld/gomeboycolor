@@ -538,5 +538,6 @@ var Instructions []*Instruction = []*Instruction{
 }
 
 func (i Instruction) String() string {
-	return fmt.Sprintf("%s %s %s  %s", utils.ByteToString(i.Opcode), i.Description)
+
+	return fmt.Sprintf("%s %s", utils.ByteToString(i.Opcode), i.Description)
 }
