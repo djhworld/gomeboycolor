@@ -9,7 +9,6 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -17,9 +16,6 @@ import (
 	"github.com/djhworld/gomeboycolor/gpu"
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
-
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
 )
 
 type DebugCommandHandler func(*GomeboyColor, ...string)
@@ -293,16 +289,11 @@ func ToMemoryAddress(s string) (types.Word, error) {
 func SpritesToImage(sprites [40][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
 	out := image.NewNRGBA(image.Rect(0, 0, w, h))
 
-	font, err := GetFont("../resources/FreeUniversal-Regular.ttf")
-	if err != nil {
-		return out, err
-	}
 	draw.Draw(out, out.Bounds(), &image.Uniform{color.RGBA{200, 200, 200, 255}}, image.ZP, draw.Src)
-	DrawTextOnImage("Sprites", font, out, 8, (out.Bounds().Dx()/2)-10, 2)
 	plotX, plotY, imgX, imgY := 4, 26, 0, 0
 
 	var spacing int = 8
-	for i, spr := range sprites {
+	for _, spr := range sprites {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
 				cr := color.RGBA{spr[y][x].Red, spr[y][x].Green, spr[y][x].Blue, 0xFF}
@@ -313,7 +304,7 @@ func SpritesToImage(sprites [40][8][8]types.RGB, w, h int) (*image.NRGBA, error)
 			imgY++
 		}
 		imgY = 0
-		DrawTextOnImage(fmt.Sprint(i), font, out, 4, plotX, plotY+12)
+
 		plotX += 8 + spacing
 		if plotX >= 490 {
 			plotY += 24 + spacing
@@ -326,10 +317,6 @@ func SpritesToImage(sprites [40][8][8]types.RGB, w, h int) (*image.NRGBA, error)
 func TilesToImage(tiles [512][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
 	out := image.NewNRGBA(image.Rect(0, 0, w, h))
 
-	font, err := GetFont("../resources/FreeUniversal-Regular.ttf")
-	if err != nil {
-		return out, err
-	}
 	draw.Draw(out, out.Bounds(), &image.Uniform{color.RGBA{200, 200, 200, 0xFF}}, image.ZP, draw.Src)
 
 	//draw left/right border
@@ -338,10 +325,9 @@ func TilesToImage(tiles [512][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
 		out.Set(w-1, y, color.Black)
 	}
 	plotX, plotY, imgX, imgY := 4, 26, 0, 0
-	DrawTextOnImage("Tiles", font, out, 8, (out.Bounds().Dx()/2)-10, 2)
 
 	var spacing int = 8
-	for i, tile := range tiles {
+	for _, tile := range tiles {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
 				cr := color.RGBA{tile[y][x].Red, tile[y][x].Green, tile[y][x].Blue, 0xFF}
@@ -352,7 +338,7 @@ func TilesToImage(tiles [512][8][8]types.RGB, w, h int) (*image.NRGBA, error) {
 			imgY++
 		}
 		imgY = 0
-		DrawTextOnImage(fmt.Sprint(i), font, out, 4, plotX, plotY+12)
+
 		plotX += 8 + spacing
 		if plotX >= 490 {
 			plotY += 24 + spacing
@@ -366,41 +352,11 @@ func TilemapToImage(img [256][256]types.RGB, caption string) (*image.NRGBA, erro
 
 	out := image.NewNRGBA(image.Rect(0, 0, 256, (256 + 17)))
 	draw.Draw(out, out.Bounds(), &image.Uniform{color.RGBA{235, 235, 235, 255}}, image.ZP, draw.Src)
-	font, err := GetFont("../resources/FreeUniversal-Regular.ttf")
-	if err != nil {
-		return out, err
-	}
-
 	for i := 0; i < 256; i++ {
 		for j := 0; j < 256; j++ {
 			cr := img[i][j]
 			out.Set(i, j, color.RGBA{cr.Red, cr.Green, cr.Blue, 0xFF})
 		}
 	}
-	DrawTextOnImage(caption, font, out, 8, 72, 256)
 	return out, nil
-}
-
-func DrawTextOnImage(text string, font *truetype.Font, img *image.NRGBA, size, x, y int) {
-	c := freetype.NewContext()
-	c.SetDPI(120)
-	c.SetFont(font)
-	c.SetFontSize(float64(size))
-	c.SetClip(img.Bounds())
-	c.SetDst(img)
-	c.SetSrc(image.Black)
-	pt := freetype.Pt(x, y+int(c.PointToFixed(float64(size))>>8))
-	c.DrawString(text, pt)
-}
-
-func GetFont(location string) (*truetype.Font, error) {
-	fontBytes, err := ioutil.ReadFile(location)
-	if err != nil {
-		return nil, err
-	}
-	font, err := freetype.ParseFont(fontBytes)
-	if err != nil {
-		return nil, err
-	}
-	return font, nil
 }
