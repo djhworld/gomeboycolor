@@ -11,6 +11,7 @@ import (
 	"github.com/djhworld/gomeboycolor/cartridge"
 	"github.com/djhworld/gomeboycolor/config"
 	"github.com/djhworld/gomeboycolor/cpu"
+	"github.com/djhworld/gomeboycolor/dma"
 	"github.com/djhworld/gomeboycolor/gpu"
 	"github.com/djhworld/gomeboycolor/inputoutput"
 	"github.com/djhworld/gomeboycolor/mmu"
@@ -29,6 +30,8 @@ type GomeboyColor struct {
 	gpu          *gpu.GPU
 	cpu          *cpu.GbcCPU
 	mmu          *mmu.GbcMMU
+	hDMA         *dma.HDMA
+	oamDMA       *dma.OAMDMA
 	io           inputoutput.IOHandler
 	apu          *apu.APU
 	timer        *timer.Timer
@@ -110,13 +113,20 @@ func (gbc *GomeboyColor) RunIO() {
 }
 
 func (gbc *GomeboyColor) Step() {
-	cycles := gbc.cpu.Step()
+	cycles := 0x00
+
+	if gbc.hDMA.IsRunning() {
+		gbc.hDMA.Step()
+	} else {
+		cycles = gbc.cpu.Step()
+	}
 	//GPU is unaffected by CPU speed changes
 	gbc.gpu.Step(cycles)
 	gbc.cpuClockAcc += cycles
 
 	//these are affected by CPU speed changes
 	gbc.timer.Step(cycles / gbc.cpu.Speed)
+	gbc.oamDMA.Step(cycles / gbc.cpu.Speed)
 
 	gbc.stepCount++
 
@@ -143,11 +153,15 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.debugOptions = new(DebugOptions)
 	gbc.mmu = mmu.NewGbcMMU()
 	gbc.cpu = cpu.NewCPU(gbc.mmu)
+	gbc.hDMA = dma.NewHDMA(gbc.mmu)
+	gbc.oamDMA = dma.NewOAMDMA(gbc.mmu)
 	gbc.stopped = false
 
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
 	gbc.timer = timer.NewTimer()
+
+	gbc.gpu.RegisterObserver(gbc.hDMA)
 
 	//mmu will process interrupt requests from GPU (i.e. it will set appropriate flags)
 	gbc.gpu.LinkIRQHandler(gbc.mmu)
@@ -158,6 +172,8 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0x8000, 0x9FFF)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFE00, 0xFE9F)
 	gbc.mmu.ConnectPeripheral(gbc.gpu, 0xFF57, 0xFF6F)
+	gbc.mmu.ConnectPeripheralOn(gbc.hDMA, 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55)
+	gbc.mmu.ConnectPeripheralOn(gbc.oamDMA, 0xFF46)
 	gbc.mmu.ConnectPeripheralOn(gbc.gpu, 0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFF4F)
 	gbc.mmu.ConnectPeripheralOn(gbc.io.GetKeyHandler(), 0xFF00)
 	gbc.mmu.ConnectPeripheralOn(gbc.timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07)

@@ -22,6 +22,14 @@ const (
 	FOURMB_ROM_32KBRAM
 )
 
+// GPU Modes
+const (
+	HBLANK_MODE   byte = 0x00
+	VBLANK_MODE        = 0x01
+	OAMREAD_MODE       = 0x02
+	VRAMREAD_MODE      = 0x03
+)
+
 //memory addresses
 const (
 	INTERRUPT_ENABLED_FLAG_ADDR types.Word = 0xFFFF

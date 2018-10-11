@@ -9,11 +9,19 @@ import (
 	"github.com/djhworld/gomeboycolor/types"
 )
 
+type GPUObserver interface {
+	OnGPUModeChange(mode byte)
+	OnDisplayChange(on bool)
+}
+
 const NAME = "GPU"
 const PREFIX = NAME + ":"
 
 const DISPLAY_WIDTH int = 160
 const DISPLAY_HEIGHT int = 144
+
+const Sprite8x16Mode byte = 0
+const Sprite8x8Mode byte = 1
 
 const (
 	TILEMAP0  types.Word = 0x9800
@@ -37,13 +45,6 @@ const (
 	WY                         = 0xFF4A
 )
 
-const HBLANK byte = 0x00
-const VBLANK byte = 0x01
-const OAMREAD byte = 0x02
-const VRAMREAD byte = 0x03
-const Sprite8x16Mode byte = 0
-const Sprite8x8Mode byte = 1
-
 var GBColours []types.RGB = []types.RGB{
 	types.RGB{Red: 235, Green: 235, Blue: 235},
 	types.RGB{Red: 196, Green: 196, Blue: 196},
@@ -56,6 +57,7 @@ type Tile [8][8]int
 type Palette [4]types.RGB
 
 type GPU struct {
+	observers             []GPUObserver
 	screenData            types.Screen
 	rawScreenDotData      [144][160]int
 	screenOutputChannel   chan *types.Screen
@@ -124,6 +126,10 @@ func (g *GPU) LinkIRQHandler(m components.IRQHandler) {
 	log.Println(PREFIX, "Linked IRQ Handler to GPU")
 }
 
+func (g *GPU) RegisterObserver(observer GPUObserver) {
+	g.observers = append(g.observers, observer)
+}
+
 func (g *GPU) Name() string {
 	return NAME
 }
@@ -131,6 +137,7 @@ func (g *GPU) Name() string {
 func (g *GPU) Reset() {
 	log.Println(PREFIX, "Resetting", g.Name())
 	g.Write(LCDC, 0x00)
+	g.observers = make([]GPUObserver, 0)
 	g.screenData = *new(types.Screen)
 	g.rawScreenDotData = *new([144][160]int)
 	g.mode = 0
@@ -152,23 +159,37 @@ func (g *GPU) Reset() {
 	g.currentTileLineDotData = new([8]int)
 }
 
+func (g *GPU) updateMode(m byte) {
+	g.mode = m
+	for _, observer := range g.observers {
+		observer.OnGPUModeChange(g.mode)
+	}
+}
+
+func (g *GPU) updateDisplayState(value byte) {
+	g.displayOn = (value & 0x80) == 0x80 //bit 7
+	for _, observer := range g.observers {
+		observer.OnDisplayChange(g.displayOn)
+	}
+}
+
 func (g *GPU) Step(t int) {
 	if !g.displayOn {
 		g.ly = 0
 		g.clock = 456
-		g.mode = HBLANK
+		g.updateMode(constants.HBLANK_MODE)
 	} else {
 		if g.ly >= 144 {
-			g.mode = VBLANK
+			g.updateMode(constants.VBLANK_MODE)
 			g.lcdInterruptThrown = false
 		} else if g.clock >= 456-80 {
-			g.mode = OAMREAD
+			g.updateMode(constants.OAMREAD_MODE)
 			g.lcdInterruptThrown = false
 		} else if g.clock >= 456-80-172 {
-			g.mode = VRAMREAD
+			g.updateMode(constants.VRAMREAD_MODE)
 			g.lcdInterruptThrown = false
 		} else {
-			g.mode = HBLANK
+			g.updateMode(constants.HBLANK_MODE)
 			//throw HBlank LCD interrupt (if enabled)
 			if g.HblankLCDInterruptEnabled() && g.lcdInterruptThrown == false {
 				g.irqHandler.RequestInterrupt(constants.LCD_IRQ)
@@ -265,7 +286,7 @@ func (g *GPU) Write(addr types.Word, value byte) {
 		case LCDC:
 			g.lcdc = value
 
-			g.displayOn = value&0x80 == 0x80 //bit 7
+			g.updateDisplayState(value)
 
 			if value&0x40 == 0x40 { //bit 6
 				g.windowTilemap = TILEMAP1
@@ -364,7 +385,7 @@ func (g *GPU) Read(addr types.Word) byte {
 		case LCDC:
 			return g.lcdc
 		case STAT:
-			return (g.mode | g.stat&0xF8)
+			return (byte(g.mode) | g.stat&0xF8)
 		case SCROLLY:
 			return g.scrollY
 		case SCROLLX:
@@ -721,6 +742,7 @@ func (g *GPU) byteToPalette(b byte) Palette {
 func (g *GPU) DumpTiles() [512][8][8]types.RGB {
 	fmt.Println("Dumping", len(g.tiledata[0]), "tiles")
 	var out [512][8][8]types.RGB
+
 	for i, tile := range g.tiledata[0] {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
