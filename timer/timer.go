@@ -20,50 +20,46 @@ const (
 	NAME = "TIMER"
 )
 
-type Frequency string
+type Frequency struct {
+	name   string
+	cycles int
+}
 
-const (
-	freq4096   Frequency = "4096hz"
-	freq16384            = "16384hz"
-	freq65536            = "65536hz"
-	freq262144           = "262144hz"
-)
-
-var FrequenciesToCycles map[Frequency]int = map[Frequency]int{
-	freq4096:   256, //1024,
-	freq262144: 4,
-	freq65536:  16,
-	freq16384:  64,
+var frequencies []*Frequency = []*Frequency{
+	&Frequency{name: "4096hz", cycles: 256},
+	&Frequency{name: "262144hz", cycles: 4},
+	&Frequency{name: "65536hz", cycles: 16},
+	&Frequency{name: "16384hz", cycles: 64},
 }
 
 type Counter struct {
 	Name           string
-	ClockFrequency Frequency
+	ClockFrequency *Frequency
 	ClockCounter   int
 	Value          byte
 }
 
-func NewCounter(name string, initialFreq Frequency) *Counter {
+func NewCounter(name string, initialFreq *Frequency) *Counter {
 	var counter *Counter = new(Counter)
 	counter.Reset()
 	counter.Name = name
-	counter.SetFrequency(initialFreq)
+	counter.setFrequency(initialFreq)
 	return counter
 }
 
 func (c *Counter) String() string {
-	return fmt.Sprint(c.Name+":", " Frequency: ", c.ClockFrequency, " (", FrequenciesToCycles[c.ClockFrequency], " cycles) ", "| Current Counter: ", c.ClockCounter, " | Value: ", c.Value)
+	return fmt.Sprint(c.Name+":", " Frequency: ", c.ClockFrequency.name, " (", c.ClockFrequency.cycles, " cycles) ", "| Current Counter: ", c.ClockCounter, " | Value: ", c.Value)
 }
 
 func (c *Counter) Reset() {
 	//default to 4096
-	c.SetFrequency(freq4096)
+	c.setFrequency(frequencies[0])
 	c.Value = 0
 }
 
-func (c *Counter) SetFrequency(freq Frequency) {
+func (c *Counter) setFrequency(freq *Frequency) {
 	c.ClockFrequency = freq
-	c.ClockCounter = FrequenciesToCycles[freq]
+	c.ClockCounter = freq.cycles
 }
 
 //returns true when overflowed
@@ -72,7 +68,7 @@ func (c *Counter) Step(cycles int) bool {
 
 	for c.ClockCounter <= 0 {
 		c.Value++
-		c.ClockCounter += FrequenciesToCycles[c.ClockFrequency]
+		c.ClockCounter += c.ClockFrequency.cycles
 		if c.Value == 0x00 {
 			return true
 		}
@@ -93,8 +89,8 @@ type Timer struct {
 
 func NewTimer() *Timer {
 	var t *Timer = new(Timer)
-	t.divCounter = NewCounter("DIV", freq16384)
-	t.timaCounter = NewCounter("TIMA", freq4096)
+	t.divCounter = NewCounter("DIV", frequencies[3])
+	t.timaCounter = NewCounter("TIMA", frequencies[0])
 	t.tacRegister = 0x00
 	t.tmaRegister = 0x00
 	return t
@@ -140,32 +136,17 @@ func (timer *Timer) Write(address types.Word, value byte) {
 	case TMA_REGISTER:
 		timer.tmaRegister = value
 	case TAC_REGISTER:
-		var oldFrequency Frequency = timer.GetFrequency(timer.tacRegister & 0x03)
-		var newFrequency Frequency = timer.GetFrequency(value & 0x03)
+		var oldFrequency *Frequency = frequencies[(timer.tacRegister & 0x03)]
+		var newFrequency *Frequency = frequencies[(value & 0x03)]
 
 		if oldFrequency != newFrequency {
-			timer.timaCounter.SetFrequency(newFrequency)
+			timer.timaCounter.setFrequency(newFrequency)
 			log.Println(timer.timaCounter)
 		}
 
 		timer.tacRegister = value
 	default:
 		panic(fmt.Sprintln("Timer module is not set up to handle address", address))
-	}
-}
-
-func (timer *Timer) GetFrequency(freqId byte) Frequency {
-	switch freqId {
-	case 0:
-		return freq4096
-	case 1:
-		return freq262144
-	case 2:
-		return freq65536
-	case 3:
-		return freq16384
-	default:
-		panic("Unknown frequency!")
 	}
 }
 
