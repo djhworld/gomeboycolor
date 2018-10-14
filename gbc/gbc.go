@@ -125,7 +125,6 @@ func (gbc *GomeboyColor) Step() {
 	gbc.cpuClockAcc += cycles
 
 	//these are affected by CPU speed changes
-	gbc.timer.Step(cycles / gbc.cpu.Speed)
 	gbc.oamDMA.Step(cycles / gbc.cpu.Speed)
 
 	gbc.stepCount++
@@ -151,15 +150,15 @@ func newGomeboyColor(cart *cartridge.Cartridge, conf *config.Config, saveStore s
 	gbc.saveStore = saveStore
 	gbc.io = ioHandler
 	gbc.debugOptions = new(DebugOptions)
+	gbc.timer = timer.NewTimer()
 	gbc.mmu = mmu.NewGbcMMU()
-	gbc.cpu = cpu.NewCPU(gbc.mmu)
+	gbc.cpu = cpu.NewCPU(gbc.mmu, gbc.timer)
 	gbc.hDMA = dma.NewHDMA(gbc.mmu)
 	gbc.oamDMA = dma.NewOAMDMA(gbc.mmu)
 	gbc.stopped = false
 
 	gbc.gpu = gpu.NewGPU()
 	gbc.apu = apu.NewAPU()
-	gbc.timer = timer.NewTimer()
 
 	gbc.gpu.RegisterObserver(gbc.hDMA)
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/djhworld/gomeboycolor/constants"
 	"github.com/djhworld/gomeboycolor/mmu"
+	"github.com/djhworld/gomeboycolor/timer"
 	"github.com/djhworld/gomeboycolor/types"
 	"github.com/djhworld/gomeboycolor/utils"
 )
@@ -101,16 +102,18 @@ type GbcCPU struct {
 	CurrentInstruction      *CurrentInstruction
 	LastInstrCycle          Clock
 	mmu                     mmu.MemoryMappedUnit
+	timer                   *timer.Timer
 	PCJumped                bool
 	Halted                  bool
 	InterruptFlagBeforeHalt byte
 	Speed                   int
 }
 
-func NewCPU(m mmu.MemoryMappedUnit) *GbcCPU {
+func NewCPU(m mmu.MemoryMappedUnit, timer *timer.Timer) *GbcCPU {
 	cpu := new(GbcCPU)
 	cpu.Reset()
 	cpu.mmu = m
+	cpu.timer = timer
 	log.Println(PREFIX, "Linked CPU to MMU")
 	return cpu
 }
@@ -246,9 +249,6 @@ func (cpu *GbcCPU) Step() int {
 		}
 
 		cpu.PCJumped = false
-
-		//calculate cycles
-		cpu.LastInstrCycle.M += cpu.CurrentInstruction.Cycles
 	} else {
 		iflagnow := cpu.mmu.ReadByte(constants.INTERRUPT_FLAG_ADDR)
 
@@ -258,7 +258,7 @@ func (cpu *GbcCPU) Step() int {
 		}
 
 		//Halt consumes 1 cpu cycle
-		cpu.LastInstrCycle.M = 1
+		cpu.tick(1)
 	}
 
 	return cpu.LastInstrCycle.M
@@ -299,6 +299,8 @@ func (cpu *GbcCPU) CheckForInterrupts() bool {
 			default:
 				log.Fatalf("Unknown interrupt = %d", interrupt)
 			}
+
+			cpu.tick(1)
 		}
 	}
 
@@ -327,10 +329,10 @@ func (cpu *GbcCPU) Compile(instruction *Instruction) {
 	cpu.CurrentInstruction.Instruction = instruction
 	switch instruction.OperandsSize {
 	case 1:
-		cpu.CurrentInstruction.Operands[0] = cpu.mmu.ReadByte(cpu.PC + 1)
+		cpu.CurrentInstruction.Operands[0] = cpu.ReadByte(cpu.PC + 1)
 	case 2:
-		cpu.CurrentInstruction.Operands[0] = cpu.mmu.ReadByte(cpu.PC + 1)
-		cpu.CurrentInstruction.Operands[1] = cpu.mmu.ReadByte(cpu.PC + 2)
+		cpu.CurrentInstruction.Operands[0] = cpu.ReadByte(cpu.PC + 1)
+		cpu.CurrentInstruction.Operands[1] = cpu.ReadByte(cpu.PC + 2)
 	}
 }
 
@@ -359,10 +361,12 @@ func (cpu *GbcCPU) popWordFromStack() types.Word {
 }
 
 func (cpu *GbcCPU) ReadByte(addr types.Word) byte {
+	cpu.tick(1)
 	return cpu.mmu.ReadByte(addr)
 }
 
 func (cpu *GbcCPU) WriteByte(addr types.Word, value byte) {
+	cpu.tick(1)
 	cpu.mmu.WriteByte(addr, value)
 }
 
@@ -778,6 +782,7 @@ func (cpu *GbcCPU) LDnn_SP() {
 //LD SP, rr
 func (cpu *GbcCPU) LDSP_hl() {
 	cpu.SP = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+	cpu.tick(1)
 }
 
 //LDHL SP, n
@@ -812,6 +817,7 @@ func (cpu *GbcCPU) LDHLSP_n() {
 	cpu.ResetFlag(N)
 
 	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(HL))
+	cpu.tick(1)
 }
 
 //PUSH nn
@@ -819,6 +825,7 @@ func (cpu *GbcCPU) LDHLSP_n() {
 func (cpu *GbcCPU) Push_nn(r1, r2 *byte) {
 	word := types.Word(utils.JoinBytes(*r1, *r2))
 	cpu.pushWordToStack(word)
+	cpu.tick(1)
 }
 
 //POP nn
@@ -1102,6 +1109,11 @@ func (cpu *GbcCPU) OrA_hl() {
 	cpu.R.A = cpu.orBytes(cpu.R.A, value)
 }
 
+func (cpu *GbcCPU) tick(cycles int) {
+	cpu.LastInstrCycle.M += cycles
+	cpu.timer.Step(cycles)
+}
+
 //OR A, n
 func (cpu *GbcCPU) OrA_n() {
 	var value byte = cpu.CurrentInstruction.Operands[0]
@@ -1177,6 +1189,7 @@ func (cpu *GbcCPU) Addhl_rr(r1, r2 *byte) {
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	var result types.Word = cpu.addWords(HL, RR)
 	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(result))
+	cpu.tick(1)
 }
 
 //ADD HL,SP
@@ -1184,10 +1197,12 @@ func (cpu *GbcCPU) Addhl_sp() {
 	var HL types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
 	var result types.Word = cpu.addWords(HL, cpu.SP)
 	cpu.R.H, cpu.R.L = utils.SplitIntoBytes(uint16(result))
+	cpu.tick(1)
 }
 
 //ADD SP,n
 func (cpu *GbcCPU) Addsp_n() {
+	cpu.tick(1)
 	var n byte = cpu.CurrentInstruction.Operands[0]
 
 	var calculation types.Word
@@ -1219,6 +1234,7 @@ func (cpu *GbcCPU) Addsp_n() {
 	cpu.ResetFlag(N)
 
 	cpu.SP = calculation
+	cpu.tick(1)
 }
 
 //INC rr
@@ -1226,11 +1242,13 @@ func (cpu *GbcCPU) Inc_rr(r1, r2 *byte) {
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR += 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
+	cpu.tick(1)
 }
 
 //INC SP
 func (cpu *GbcCPU) Inc_sp() {
 	cpu.SP = (cpu.SP + 1) & 0xFFFF
+	cpu.tick(1)
 }
 
 //DEC rr
@@ -1238,11 +1256,13 @@ func (cpu *GbcCPU) Dec_rr(r1, r2 *byte) {
 	var RR types.Word = types.Word(utils.JoinBytes(*r1, *r2))
 	RR -= 1
 	*r1, *r2 = utils.SplitIntoBytes(uint16(RR))
+	cpu.tick(1)
 }
 
 //DEC SP
 func (cpu *GbcCPU) Dec_sp() {
 	cpu.SP = (cpu.SP - 1) & 0xFFFF
+	cpu.tick(1)
 }
 
 //CPL
@@ -1413,7 +1433,10 @@ func (cpu *GbcCPU) Rlc_r(r *byte) {
 //RLC (HL)
 func (cpu *GbcCPU) Rlc_hl() {
 	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+
+	cpu.tick(1)
 	var hlValue byte = cpu.mmu.ReadByte(hlAddr)
+	cpu.tick(1)
 
 	var bit7 bool = false
 
@@ -1597,7 +1620,10 @@ func (cpu *GbcCPU) Rrc_r(r *byte) {
 //RRC (HL)
 func (cpu *GbcCPU) Rrc_hl() {
 	var hlAddr types.Word = types.Word(utils.JoinBytes(cpu.R.H, cpu.R.L))
+
+	cpu.tick(1)
 	var hlValue byte = cpu.mmu.ReadByte(hlAddr)
+	cpu.tick(1)
 	var bit0 bool = false
 
 	if hlValue&0x01 == 0x01 {
@@ -1920,6 +1946,8 @@ func (cpu *GbcCPU) JP_nn() {
 	var hs byte = cpu.CurrentInstruction.Operands[1]
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 	cpu.PCJumped = true
+	// cycles = 4
+	cpu.tick(1)
 }
 
 //JP (HL)
@@ -1937,15 +1965,15 @@ func (cpu *GbcCPU) JPcc_nn(flag int, jumpWhen bool) {
 	if cpu.IsFlagSet(flag) == jumpWhen {
 		cpu.PCJumped = true
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
-		cpu.CurrentInstruction.Cycles = 4
-	} else {
-		cpu.CurrentInstruction.Cycles = 3
+		//cycles = 4
+		cpu.tick(1)
 	}
 }
 
 //JR n
 func (cpu *GbcCPU) JR_n() {
 	var n byte = cpu.CurrentInstruction.Operands[0]
+
 	if n != 0x00 {
 		cpu.PC += types.Word(cpu.CurrentInstruction.OperandsSize + 1)
 
@@ -1957,6 +1985,8 @@ func (cpu *GbcCPU) JR_n() {
 
 		cpu.PCJumped = true
 	}
+	cpu.tick(1)
+
 }
 
 //JR cc, nn
@@ -1975,7 +2005,7 @@ func (cpu *GbcCPU) JRcc_nn(flag int, jumpWhen bool) {
 
 			cpu.PCJumped = true
 		}
-		cpu.CurrentInstruction.Cycles = 3
+		cpu.tick(1)
 	} else {
 		cpu.CurrentInstruction.Cycles = 2
 	}
@@ -1990,6 +2020,7 @@ func (cpu *GbcCPU) Call_nn() {
 	cpu.pushWordToStack(nextInstr)
 	cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 	cpu.PCJumped = true
+	cpu.tick(1)
 }
 
 // CALL cc,nn
@@ -2002,7 +2033,9 @@ func (cpu *GbcCPU) Callcc_nn(flag int, callWhen bool) {
 		cpu.pushWordToStack(nextInstr)
 		cpu.PC = types.Word(utils.JoinBytes(hs, ls))
 		cpu.PCJumped = true
+
 		cpu.CurrentInstruction.Cycles = 6
+		cpu.tick(1)
 	} else {
 		cpu.CurrentInstruction.Cycles = 3
 	}
@@ -2012,6 +2045,7 @@ func (cpu *GbcCPU) Callcc_nn(flag int, callWhen bool) {
 func (cpu *GbcCPU) Ret() {
 	cpu.PC = cpu.popWordFromStack()
 	cpu.PCJumped = true
+	cpu.tick(1)
 }
 
 // RET cc
@@ -2019,9 +2053,9 @@ func (cpu *GbcCPU) Retcc(flag int, returnWhen bool) {
 	if cpu.IsFlagSet(flag) == returnWhen {
 		cpu.PC = cpu.popWordFromStack()
 		cpu.PCJumped = true
-		cpu.CurrentInstruction.Cycles = 5
+		cpu.tick(2)
 	} else {
-		cpu.CurrentInstruction.Cycles = 2
+		cpu.tick(1)
 	}
 }
 
@@ -2030,6 +2064,7 @@ func (cpu *GbcCPU) Ret_i() {
 	cpu.PC = cpu.popWordFromStack()
 	cpu.InterruptsEnabled = true
 	cpu.PCJumped = true
+	cpu.tick(1)
 }
 
 // RST n
@@ -2037,6 +2072,7 @@ func (cpu *GbcCPU) Rst(n byte) {
 	cpu.pushWordToStack(cpu.PC + 1)
 	cpu.PC = types.Word(n)
 	cpu.PCJumped = true
+	cpu.tick(1)
 }
 
 //-----------------------------------------------------------------------
