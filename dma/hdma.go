@@ -1,6 +1,8 @@
 package dma
 
 import (
+	"log"
+
 	"github.com/djhworld/gomeboycolor/components"
 	"github.com/djhworld/gomeboycolor/constants"
 	"github.com/djhworld/gomeboycolor/mmu"
@@ -16,6 +18,13 @@ const (
 	CGB_HDMA_REG             types.Word = 0xFF55
 )
 
+type HDMARegisters struct {
+	srcHigh byte
+	srcLow  byte
+	dstHigh byte
+	dstLow  byte
+}
+
 type HDMATransfer struct {
 	Source      types.Word
 	Destination types.Word
@@ -27,6 +36,7 @@ type HDMA struct {
 	displayOn        bool
 	isHblankTransfer bool
 	gpuMode          byte
+	registers        HDMARegisters
 	hdmaTransfer     HDMATransfer
 	mmu              *mmu.GbcMMU
 }
@@ -75,16 +85,15 @@ func (h *HDMA) OnDisplayChange(on bool) {
 	h.displayOn = on
 }
 
+// HDMA Source/Dest registers always return 0xFF when read
+// Source: https://github.com/AntonioND/giibiiadvance/blob/master/docs/TCAGBD.pdf
 func (h *HDMA) Read(address types.Word) byte {
 	switch address {
 	case CGB_HDMA_SOURCE_HIGH_REG:
-		return byte((h.hdmaTransfer.Source & 0xFF00) >> 8)
 	case CGB_HDMA_SOURCE_LOW_REG:
-		return byte((h.hdmaTransfer.Source & 0x00FF))
 	case CGB_HDMA_DEST_HIGH_REG:
-		return byte((h.hdmaTransfer.Destination & 0xFF00) >> 8)
 	case CGB_HDMA_DEST_LOW_REG:
-		return byte((h.hdmaTransfer.Destination & 0x00FF))
+		return 0xFF
 	case CGB_HDMA_REG:
 		if h.running {
 			return 0x00
@@ -92,20 +101,24 @@ func (h *HDMA) Read(address types.Word) byte {
 			return (1 << 7) | byte(h.hdmaTransfer.Length)
 		}
 	default:
-		panic("Unsupported register in HDMA")
+		log.Println(NAME + "- WARN - Unsupported register in HDMA")
 	}
+	return 0xFF
 }
 
 func (h *HDMA) Write(address types.Word, value byte) {
 	switch address {
 	case CGB_HDMA_SOURCE_HIGH_REG:
-		h.hdmaTransfer.Source = (h.hdmaTransfer.Source & 0x00FF) | types.Word(value)<<8
+		h.registers.srcHigh = value
 	case CGB_HDMA_SOURCE_LOW_REG:
-		h.hdmaTransfer.Source = (h.hdmaTransfer.Source & 0xFF00) | types.Word(value)
+		// lower 4 bits are ignored
+		h.registers.srcLow = value & 0xF0
 	case CGB_HDMA_DEST_HIGH_REG:
-		h.hdmaTransfer.Destination = (h.hdmaTransfer.Destination & 0x00FF) | types.Word(value)<<8
+		// upper 3 bits are ignored
+		h.registers.dstHigh = value & 0x1F
 	case CGB_HDMA_DEST_LOW_REG:
-		h.hdmaTransfer.Destination = (h.hdmaTransfer.Destination & 0xFF00) | types.Word(value)
+		// lower 4 bits are ignored
+		h.registers.dstLow = value & 0xF0
 	case CGB_HDMA_REG:
 		if h.running && (value&(1<<7)) == 0 {
 			h.running = false
@@ -132,13 +145,24 @@ func (h *HDMA) IsRunning() bool {
 	}
 }
 
+func (h *HDMA) computeTransferLocations() {
+	h.hdmaTransfer.Source = (types.Word(h.registers.srcHigh) << 8) | types.Word(h.registers.srcLow)
+	h.hdmaTransfer.Destination = (types.Word(h.registers.dstHigh) << 8) | types.Word(h.registers.dstLow)
+
+	// align destination to be at least 0x8000 (VRAM)
+	// Not doing this was causing a huge pain in some ROMS
+	h.hdmaTransfer.Destination |= 0x8000
+}
+
 func (h *HDMA) startTransfer(value byte) {
 	h.isHblankTransfer = (value & 0x80) != 0
 	h.running = true
 	h.hdmaTransfer.Length = int(value&0x7F) + 1
+	h.computeTransferLocations()
 }
 
 func (h *HDMA) Reset() {
 	h.hdmaTransfer = HDMATransfer{}
+	h.registers = HDMARegisters{0xFF, 0xFF, 0xFF, 0xFF}
 	h.isHblankTransfer = false
 }
